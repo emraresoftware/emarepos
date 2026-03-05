@@ -1,0 +1,323 @@
+<?php
+namespace App\Services;
+
+use App\Models\Sale;
+use App\Models\SaleItem;
+use App\Models\Product;
+use App\Models\Customer;
+use App\Models\AccountTransaction;
+use App\Models\StockMovement;
+use App\Models\CampaignUsage;
+use App\Models\LoyaltyPoint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
+
+class SaleService
+{
+    /**
+     * Create a new sale with items, update stock, handle payments
+     */
+    public function createSale(array $data): Sale
+    {
+        return DB::transaction(function () use ($data) {
+            $branchId = $data['branch_id'] ?? session('branch_id');
+            $tenantId = $data['tenant_id'] ?? session('tenant_id');
+            
+            // Generate receipt number
+            $receiptNo = $this->generateReceiptNo($branchId);
+            
+            // Calculate totals from items
+            $items = $data['items'] ?? [];
+            $calculated = $this->calculateTotals($items, $data['discount'] ?? 0);
+            
+            // Create sale record
+            $sale = Sale::create([
+                'tenant_id' => $tenantId,
+                'receipt_no' => $receiptNo,
+                'branch_id' => $branchId,
+                'customer_id' => $data['customer_id'] ?? null,
+                'user_id' => $data['user_id'] ?? auth()->id(),
+                'payment_method' => $data['payment_method'] ?? 'cash',
+                'total_items' => count($items),
+                'subtotal' => $calculated['subtotal'],
+                'vat_total' => $calculated['vat_total'],
+                'additional_tax_total' => $calculated['additional_tax_total'],
+                'discount_total' => $calculated['discount_total'],
+                'grand_total' => $calculated['grand_total'],
+                'discount' => $data['discount'] ?? 0,
+                'cash_amount' => $data['cash_amount'] ?? 0,
+                'card_amount' => $data['card_amount'] ?? 0,
+                'status' => 'completed',
+                'staff_name' => $data['staff_name'] ?? auth()->user()?->name,
+                'application' => $data['application'] ?? 'pos',
+                'notes' => $data['notes'] ?? null,
+                'sold_at' => $data['sold_at'] ?? Carbon::now(),
+            ]);
+            
+            // Create sale items and update stock
+            foreach ($items as $item) {
+                $product = Product::find($item['product_id']);
+                
+                $saleItem = SaleItem::create([
+                    'sale_id' => $sale->id,
+                    'product_id' => $item['product_id'],
+                    'product_name' => $item['product_name'] ?? $product?->name ?? 'Bilinmeyen Ürün',
+                    'barcode' => $item['barcode'] ?? $product?->barcode,
+                    'quantity' => $item['quantity'] ?? 1,
+                    'unit_price' => $item['unit_price'] ?? $product?->sale_price ?? 0,
+                    'discount' => $item['discount'] ?? 0,
+                    'vat_rate' => $item['vat_rate'] ?? $product?->vat_rate ?? 20,
+                    'vat_amount' => $item['vat_amount'] ?? 0,
+                    'additional_taxes' => $item['additional_taxes'] ?? null,
+                    'additional_tax_amount' => $item['additional_tax_amount'] ?? 0,
+                    'total' => $item['total'] ?? 0,
+                ]);
+                
+                // Update stock
+                if ($product && !$product->is_service) {
+                    $product->decrement('stock_quantity', $item['quantity'] ?? 1);
+                    
+                    // Create stock movement
+                    StockMovement::create([
+                        'tenant_id' => $tenantId,
+                        'type' => 'sale',
+                        'barcode' => $product->barcode,
+                        'product_id' => $product->id,
+                        'product_name' => $product->name,
+                        'transaction_code' => $receiptNo,
+                        'quantity' => -($item['quantity'] ?? 1),
+                        'remaining' => $product->stock_quantity,
+                        'unit_price' => $item['unit_price'] ?? $product->sale_price,
+                        'total' => $item['total'] ?? 0,
+                        'movement_date' => Carbon::now(),
+                    ]);
+                }
+            }
+            
+            // Handle credit/veresiye payment - update customer balance
+            if (($data['payment_method'] === 'credit') && !empty($data['customer_id'])) {
+                $customer = Customer::find($data['customer_id']);
+                if ($customer) {
+                    $customer->decrement('balance', $calculated['grand_total']);
+                    
+                    AccountTransaction::create([
+                        'tenant_id' => $tenantId,
+                        'customer_id' => $customer->id,
+                        'type' => 'sale',
+                        'amount' => -$calculated['grand_total'],
+                        'balance_after' => $customer->balance,
+                        'description' => "Satış: {$receiptNo}",
+                        'reference' => $receiptNo,
+                        'transaction_date' => Carbon::now(),
+                    ]);
+                }
+            }
+            
+            // Handle campaign usage
+            if (!empty($data['campaign_id'])) {
+                CampaignUsage::create([
+                    'campaign_id' => $data['campaign_id'],
+                    'customer_id' => $data['customer_id'] ?? null,
+                    'sale_id' => $sale->id,
+                    'discount_applied' => $calculated['discount_total'],
+                ]);
+            }
+            
+            // Handle loyalty points earning
+            if (!empty($data['customer_id']) && !empty($data['loyalty_program_id'])) {
+                $program = \App\Models\LoyaltyProgram::find($data['loyalty_program_id']);
+                if ($program && $program->is_active) {
+                    $earnedPoints = (int)floor($calculated['grand_total'] * $program->points_per_currency);
+                    if ($earnedPoints > 0) {
+                        $lastPoint = LoyaltyPoint::where('customer_id', $data['customer_id'])
+                            ->where('loyalty_program_id', $program->id)
+                            ->latest()
+                            ->first();
+                        $currentBalance = $lastPoint ? $lastPoint->balance_after : 0;
+                        
+                        LoyaltyPoint::create([
+                            'customer_id' => $data['customer_id'],
+                            'loyalty_program_id' => $program->id,
+                            'points' => $earnedPoints,
+                            'type' => 'earn',
+                            'description' => "Satış puanı: {$receiptNo}",
+                            'sale_id' => $sale->id,
+                            'balance_after' => $currentBalance + $earnedPoints,
+                        ]);
+                    }
+                }
+            }
+            
+            return $sale->load('items');
+        });
+    }
+    
+    /**
+     * Calculate totals from items array
+     */
+    public function calculateTotals(array $items, float $generalDiscount = 0): array
+    {
+        $subtotal = 0;
+        $vatTotal = 0;
+        $additionalTaxTotal = 0;
+        $discountTotal = $generalDiscount;
+        
+        foreach ($items as &$item) {
+            $qty = $item['quantity'] ?? 1;
+            $unitPrice = $item['unit_price'] ?? 0;
+            $itemDiscount = $item['discount'] ?? 0;
+            $vatRate = $item['vat_rate'] ?? 20;
+            
+            $lineTotal = ($qty * $unitPrice) - $itemDiscount;
+            $vatAmount = round($lineTotal * $vatRate / (100 + $vatRate), 2); // KDV dahil hesaplama
+            $additionalTax = $item['additional_tax_amount'] ?? 0;
+            
+            $item['vat_amount'] = $vatAmount;
+            $item['total'] = $lineTotal;
+            
+            $subtotal += ($lineTotal - $vatAmount);
+            $vatTotal += $vatAmount;
+            $additionalTaxTotal += $additionalTax;
+            $discountTotal += $itemDiscount;
+        }
+        
+        return [
+            'subtotal' => round($subtotal, 2),
+            'vat_total' => round($vatTotal, 2),
+            'additional_tax_total' => round($additionalTaxTotal, 2),
+            'discount_total' => round($discountTotal, 2),
+            'grand_total' => round($subtotal + $vatTotal + $additionalTaxTotal - $generalDiscount, 2),
+            'items' => $items,
+        ];
+    }
+    
+    /**
+     * Generate receipt number: POS-YYYY-NNNNNN
+     */
+    public function generateReceiptNo(int $branchId): string
+    {
+        $year = Carbon::now()->format('Y');
+        $lastSale = Sale::where('branch_id', $branchId)
+            ->where('receipt_no', 'like', "POS-{$year}-%")
+            ->orderBy('id', 'desc')
+            ->first();
+        
+        $nextNum = 1;
+        if ($lastSale && $lastSale->receipt_no) {
+            $parts = explode('-', $lastSale->receipt_no);
+            $nextNum = (int)end($parts) + 1;
+        }
+        
+        return "POS-{$year}-" . str_pad($nextNum, 6, '0', STR_PAD_LEFT);
+    }
+    
+    /**
+     * Refund a sale
+     */
+    public function refundSale(int $saleId, ?string $reason = null): Sale
+    {
+        return DB::transaction(function () use ($saleId, $reason) {
+            $sale = Sale::with('items')->findOrFail($saleId);
+            
+            if ($sale->status !== 'completed') {
+                throw new \Exception('Sadece tamamlanmış satışlar iade edilebilir.');
+            }
+            
+            $sale->update([
+                'status' => 'refunded',
+                'notes' => ($sale->notes ? $sale->notes . "\n" : '') . "İade: " . ($reason ?? 'Belirtilmedi'),
+            ]);
+            
+            // Restore stock
+            foreach ($sale->items as $item) {
+                if ($item->product_id) {
+                    $product = Product::find($item->product_id);
+                    if ($product && !$product->is_service) {
+                        $product->increment('stock_quantity', $item->quantity);
+                        
+                        StockMovement::create([
+                            'tenant_id' => $sale->tenant_id,
+                            'type' => 'return',
+                            'product_id' => $product->id,
+                            'product_name' => $product->name,
+                            'barcode' => $product->barcode,
+                            'transaction_code' => $sale->receipt_no,
+                            'note' => "İade: " . ($reason ?? ''),
+                            'quantity' => $item->quantity,
+                            'remaining' => $product->stock_quantity,
+                            'unit_price' => $item->unit_price,
+                            'total' => $item->total,
+                            'movement_date' => Carbon::now(),
+                        ]);
+                    }
+                }
+            }
+            
+            // Refund customer balance if credit sale
+            if ($sale->payment_method === 'credit' && $sale->customer_id) {
+                $customer = Customer::find($sale->customer_id);
+                if ($customer) {
+                    $customer->increment('balance', $sale->grand_total);
+                    
+                    AccountTransaction::create([
+                        'tenant_id' => $sale->tenant_id,
+                        'customer_id' => $customer->id,
+                        'type' => 'refund',
+                        'amount' => $sale->grand_total,
+                        'balance_after' => $customer->balance,
+                        'description' => "İade: {$sale->receipt_no}",
+                        'reference' => $sale->receipt_no,
+                        'transaction_date' => Carbon::now(),
+                    ]);
+                }
+            }
+            
+            return $sale;
+        });
+    }
+    
+    /**
+     * Cancel a sale (same as refund but status = cancelled)
+     */
+    public function cancelSale(int $saleId, ?string $reason = null): Sale
+    {
+        return DB::transaction(function () use ($saleId, $reason) {
+            $sale = Sale::with('items')->findOrFail($saleId);
+            
+            $sale->update([
+                'status' => 'cancelled',
+                'notes' => ($sale->notes ? $sale->notes . "\n" : '') . "İptal: " . ($reason ?? 'Belirtilmedi'),
+            ]);
+            
+            // Same stock restoration logic
+            foreach ($sale->items as $item) {
+                if ($item->product_id) {
+                    $product = Product::find($item->product_id);
+                    if ($product && !$product->is_service) {
+                        $product->increment('stock_quantity', $item->quantity);
+                    }
+                }
+            }
+            
+            if ($sale->payment_method === 'credit' && $sale->customer_id) {
+                $customer = Customer::find($sale->customer_id);
+                if ($customer) {
+                    $customer->increment('balance', $sale->grand_total);
+                    AccountTransaction::create([
+                        'tenant_id' => $sale->tenant_id,
+                        'customer_id' => $customer->id,
+                        'type' => 'refund',
+                        'amount' => $sale->grand_total,
+                        'balance_after' => $customer->balance,
+                        'description' => "İptal: {$sale->receipt_no}",
+                        'reference' => $sale->receipt_no,
+                        'transaction_date' => \Carbon\Carbon::now(),
+                    ]);
+                }
+            }
+            
+            return $sale;
+        });
+    }
+}

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="tr" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', 'Emare POS') — Emare Finance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pos-dark': '#0f172a',
+                        'pos-sidebar': '#1e293b',
+                        'pos-card': '#1e293b',
+                        'pos-hover': '#334155',
+                        'pos-accent': '#3b82f6',
+                        'pos-success': '#22c55e',
+                        'pos-warning': '#f59e0b',
+                        'pos-danger': '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        [x-cloak] { display: none !important; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        /* Print styles */
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; }
+        }
+    </style>
+    @stack('styles')
+</head>
+<body class="h-full bg-pos-dark text-gray-200">
+    <div x-data="{ sidebarOpen: true, sidebarMobile: false }" class="h-full flex">
+        <!-- Sidebar -->
+        <aside class="no-print transition-all duration-300 bg-pos-sidebar border-r border-gray-700 flex flex-col"
+               :class="sidebarOpen ? 'w-56' : 'w-16'"
+               x-cloak>
+            <!-- Logo -->
+            <div class="p-3 border-b border-gray-700 flex items-center" :class="sidebarOpen ? 'justify-between' : 'justify-center'">
+                <div x-show="sidebarOpen" class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-pos-accent rounded-lg flex items-center justify-center">
+                        <i class="fas fa-cash-register text-white text-sm"></i>
+                    </div>
+                    <span class="text-white font-bold text-sm">Emare POS</span>
+                </div>
+                <button @click="sidebarOpen = !sidebarOpen" class="text-gray-400 hover:text-white p-1">
+                    <i class="fas" :class="sidebarOpen ? 'fa-chevron-left' : 'fa-chevron-right'"></i>
+                </button>
+            </div>
+
+            <!-- Nav Links -->
+            <nav class="flex-1 py-2 overflow-y-auto">
+                @php
+                    $navItems = [
+                        ['route' => 'pos.dashboard', 'icon' => 'fa-chart-line', 'label' => 'Özet'],
+                        ['route' => 'pos.branches', 'icon' => 'fa-building', 'label' => 'Şubeler'],
+                        ['route' => 'pos.orders', 'icon' => 'fa-clipboard-list', 'label' => 'Siparişler'],
+                        ['route' => 'pos.sales', 'icon' => 'fa-bolt', 'label' => 'Hızlı Satış'],
+                        ['route' => 'pos.tables', 'icon' => 'fa-utensils', 'label' => 'Masalar'],
+                        ['route' => 'pos.kitchen', 'icon' => 'fa-fire-burner', 'label' => 'Mutfak'],
+                        ['route' => 'pos.day-operations', 'icon' => 'fa-calendar-day', 'label' => 'Gün İşlemleri'],
+                        ['route' => 'pos.cash-register', 'icon' => 'fa-cash-register', 'label' => 'Kasa'],
+                        ['route' => 'pos.cash-report', 'icon' => 'fa-file-invoice-dollar', 'label' => 'Kasa Raporu'],
+                        ['route' => 'pos.sales.list', 'icon' => 'fa-receipt', 'label' => 'Satışlar'],
+                        ['route' => 'pos.customers', 'icon' => 'fa-users', 'label' => 'Müşteriler'],
+                        ['route' => 'pos.firms', 'icon' => 'fa-handshake', 'label' => 'Cariler'],
+                        ['route' => 'pos.categories', 'icon' => 'fa-layer-group', 'label' => 'Kategoriler'],
+                        ['route' => 'pos.products', 'icon' => 'fa-boxes-stacked', 'label' => 'Ürünler'],
+                        ['route' => 'pos.users', 'icon' => 'fa-user-gear', 'label' => 'Kullanıcılar'],
+                        ['route' => 'pos.reports', 'icon' => 'fa-chart-pie', 'label' => 'Raporlar'],
+                        ['route' => 'pos.stock', 'icon' => 'fa-warehouse', 'label' => 'Depo'],
+                        ['route' => 'pos.settings', 'icon' => 'fa-gear', 'label' => 'Ayarlar'],
+                    ];
+                @endphp
+
+                @foreach($navItems as $item)
+                    <a href="{{ route($item['route']) }}"
+                       class="flex items-center gap-3 px-3 py-2.5 mx-2 rounded-lg text-sm transition-colors
+                              {{ request()->routeIs($item['route'].'*') ? 'bg-pos-accent text-white' : 'text-gray-400 hover:text-white hover:bg-pos-hover' }}"
+                       :class="sidebarOpen ? '' : 'justify-center'"
+                       title="{{ $item['label'] }}">
+                        <i class="fas {{ $item['icon'] }} w-5 text-center"></i>
+                        <span x-show="sidebarOpen">{{ $item['label'] }}</span>
+                    </a>
+                @endforeach
+            </nav>
+
+            <!-- User & Logout -->
+            <div class="border-t border-gray-700 p-3">
+                <div x-show="sidebarOpen" class="text-xs text-gray-500 mb-2">
+                    <div class="text-gray-300 font-medium">{{ auth()->user()->name }}</div>
+                    <div>{{ auth()->user()->role?->name ?? 'Yönetici' }}</div>
+                </div>
+                <form method="POST" action="{{ route('pos.logout') }}">
+                    @csrf
+                    <button type="submit" class="flex items-center gap-2 text-gray-400 hover:text-red-400 text-sm w-full"
+                            :class="sidebarOpen ? '' : 'justify-center'">
+                        <i class="fas fa-sign-out-alt w-5 text-center"></i>
+                        <span x-show="sidebarOpen">Çıkış</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            @yield('content')
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div x-data="toast()" x-on:show-toast.window="show($event.detail)" x-cloak>
+        <template x-for="(t, i) in toasts" :key="i">
+            <div x-show="t.visible"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-2"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-xl text-white text-sm max-w-sm"
+                 :class="t.type === 'success' ? 'bg-green-600' : t.type === 'error' ? 'bg-red-600' : 'bg-blue-600'">
+                <div class="flex items-center gap-2">
+                    <i class="fas" :class="t.type === 'success' ? 'fa-check-circle' : t.type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'"></i>
+                    <span x-text="t.message"></span>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <script>
+        // CSRF token for AJAX
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        
+        function posAjax(url, options = {}) {
+            return fetch(url, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    ...options.headers,
+                },
+                ...options,
+            }).then(async r => {
+                const data = await r.json();
+                if (!r.ok) throw { status: r.status, ...data };
+                return data;
+            });
+        }
+        
+        function toast() {
+            return {
+                toasts: [],
+                show(detail) {
+                    const t = { message: detail.message, type: detail.type || 'success', visible: true };
+                    this.toasts.push(t);
+                    setTimeout(() => { t.visible = false; }, 3000);
+                    setTimeout(() => { this.toasts = this.toasts.filter(x => x !== t); }, 3500);
+                }
+            };
+        }
+        
+        function showToast(message, type = 'success') {
+            window.dispatchEvent(new CustomEvent('show-toast', { detail: { message, type } }));
+        }
+        
+        // Format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
+        }
+    </script>
+    @stack('scripts')
+</body>
+</html>

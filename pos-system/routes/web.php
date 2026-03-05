@@ -1,0 +1,125 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\PosLoginController;
+use App\Http\Controllers\Pos\DashboardController;
+use App\Http\Controllers\Pos\SaleController;
+use App\Http\Controllers\Pos\TableController;
+use App\Http\Controllers\Pos\KitchenController;
+use App\Http\Controllers\Pos\CashRegisterController;
+use App\Http\Controllers\Pos\ProductController;
+use App\Http\Controllers\Pos\CustomerController;
+use App\Http\Controllers\Pos\ReportController;
+use App\Http\Controllers\Pos\OrderController;
+use App\Http\Controllers\Pos\CategoryController;
+use App\Http\Controllers\Pos\BranchController;
+use App\Http\Controllers\Pos\UserController;
+use App\Http\Controllers\Pos\StockController;
+use App\Http\Controllers\Pos\FirmController;
+use App\Http\Controllers\Pos\DayOperationController;
+use App\Http\Controllers\Pos\CashReportController;
+use App\Http\Controllers\Pos\SettingController;
+
+// Auth routes
+Route::get('/login', [PosLoginController::class, 'showLogin'])->name('pos.login');
+Route::post('/login', [PosLoginController::class, 'login']);
+Route::post('/logout', [PosLoginController::class, 'logout'])->name('pos.logout');
+
+// POS Routes (authenticated)
+Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class])->group(function () {
+    
+    // Dashboard
+    Route::get('/', [DashboardController::class, 'index'])->name('pos.dashboard');
+    
+    // Hızlı Satış (Quick Sale / POS Screen)
+    Route::get('/pos', [SaleController::class, 'index'])->name('pos.sales');
+    Route::post('/pos/sale', [SaleController::class, 'store'])->name('pos.sales.store');
+    Route::get('/pos/products/search', [SaleController::class, 'searchProducts'])->name('pos.products.search');
+    Route::get('/pos/customers/search', [SaleController::class, 'searchCustomers'])->name('pos.customers.search');
+    Route::get('/pos/recent-sales', [SaleController::class, 'recentSales'])->name('pos.sales.recent');
+    Route::get('/pos/sale/{sale}', [SaleController::class, 'show'])->name('pos.sales.show');
+    Route::post('/pos/sale/{sale}/refund', [SaleController::class, 'refund'])->name('pos.sales.refund');
+    Route::get('/pos/sales-list', [SaleController::class, 'list'])->name('pos.sales.list');
+    
+    // Masalar (Tables)
+    Route::get('/tables', [TableController::class, 'index'])->name('pos.tables');
+    Route::post('/tables/{table}/open', [TableController::class, 'open'])->name('pos.tables.open');
+    Route::get('/tables/{table}/detail', [TableController::class, 'detail'])->name('pos.tables.detail');
+    Route::post('/tables/{table}/order', [TableController::class, 'addOrder'])->name('pos.tables.order');
+    Route::post('/tables/{table}/pay', [TableController::class, 'pay'])->name('pos.tables.pay');
+    Route::post('/tables/{table}/transfer', [TableController::class, 'transfer'])->name('pos.tables.transfer');
+    
+    // Mutfak (Kitchen)
+    Route::get('/kitchen', [KitchenController::class, 'index'])->name('pos.kitchen');
+    Route::get('/kitchen/orders', [KitchenController::class, 'getOrders'])->name('pos.kitchen.orders');
+    Route::post('/kitchen/order/{order}/status', [KitchenController::class, 'updateOrderStatus'])->name('pos.kitchen.order.status');
+    Route::post('/kitchen/item/{item}/status', [KitchenController::class, 'updateItemStatus'])->name('pos.kitchen.item.status');
+    
+    // Kasa (Cash Register)
+    Route::get('/cash-register', [CashRegisterController::class, 'index'])->name('pos.cash-register');
+    Route::post('/cash-register/open', [CashRegisterController::class, 'open'])->name('pos.cash-register.open');
+    Route::post('/cash-register/close', [CashRegisterController::class, 'close'])->name('pos.cash-register.close');
+    Route::get('/cash-register/{register}/report', [CashRegisterController::class, 'report'])->name('pos.cash-register.report');
+    
+    // Ürünler (Products)
+    Route::get('/products', [ProductController::class, 'index'])->name('pos.products');
+    Route::post('/products', [ProductController::class, 'store'])->name('pos.products.store');
+    Route::put('/products/{product}', [ProductController::class, 'update'])->name('pos.products.update');
+    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('pos.products.destroy');
+    
+    // Müşteriler (Customers)
+    Route::get('/customers', [CustomerController::class, 'index'])->name('pos.customers');
+    Route::post('/customers', [CustomerController::class, 'store'])->name('pos.customers.store');
+    Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('pos.customers.show');
+    Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('pos.customers.update');
+    Route::post('/customers/{customer}/payment', [CustomerController::class, 'addPayment'])->name('pos.customers.payment');
+    
+    // Raporlar (Reports)
+    Route::get('/reports', [ReportController::class, 'index'])->name('pos.reports');
+    Route::get('/reports/daily', [ReportController::class, 'daily'])->name('pos.reports.daily');
+    Route::get('/reports/top-products', [ReportController::class, 'topProducts'])->name('pos.reports.top-products');
+    
+    // Siparişler (Orders)
+    Route::get('/orders', [OrderController::class, 'index'])->name('pos.orders');
+    Route::get('/orders/{order}', [OrderController::class, 'show'])->name('pos.orders.show');
+    Route::put('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('pos.orders.status');
+    
+    // Kategoriler (Categories)
+    Route::get('/categories', [CategoryController::class, 'index'])->name('pos.categories');
+    Route::post('/categories', [CategoryController::class, 'store'])->name('pos.categories.store');
+    Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('pos.categories.update');
+    Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('pos.categories.destroy');
+    
+    // Şubeler (Branches)
+    Route::get('/branches', [BranchController::class, 'index'])->name('pos.branches');
+    Route::post('/branches', [BranchController::class, 'store'])->name('pos.branches.store');
+    Route::put('/branches/{branch}', [BranchController::class, 'update'])->name('pos.branches.update');
+    
+    // Kullanıcılar (Users)
+    Route::get('/users', [UserController::class, 'index'])->name('pos.users');
+    Route::post('/users', [UserController::class, 'store'])->name('pos.users.store');
+    Route::put('/users/{user}', [UserController::class, 'update'])->name('pos.users.update');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('pos.users.destroy');
+    
+    // Depo / Stok (Stock)
+    Route::get('/stock', [StockController::class, 'index'])->name('pos.stock');
+    Route::post('/stock', [StockController::class, 'store'])->name('pos.stock.store');
+    
+    // Cariler (Firms)
+    Route::get('/firms', [FirmController::class, 'index'])->name('pos.firms');
+    Route::post('/firms', [FirmController::class, 'store'])->name('pos.firms.store');
+    Route::put('/firms/{firm}', [FirmController::class, 'update'])->name('pos.firms.update');
+    Route::post('/firms/{firm}/payment', [FirmController::class, 'addPayment'])->name('pos.firms.payment');
+    
+    // Gün İşlemleri (Day Operations)
+    Route::get('/day-operations', [DayOperationController::class, 'index'])->name('pos.day-operations');
+    
+    // Kasa Raporu (Cash Report)
+    Route::get('/cash-report', [CashReportController::class, 'index'])->name('pos.cash-report');
+    Route::get('/cash-report/{register}', [CashReportController::class, 'show'])->name('pos.cash-report.show');
+    
+    // Ayarlar (Settings)
+    Route::get('/settings', [SettingController::class, 'index'])->name('pos.settings');
+    Route::put('/settings/branch', [SettingController::class, 'updateBranch'])->name('pos.settings.branch');
+    Route::put('/settings/general', [SettingController::class, 'updateGeneral'])->name('pos.settings.general');
+});
