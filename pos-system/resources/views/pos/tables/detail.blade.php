@@ -233,7 +233,7 @@ function tableDetail() {
 
         async loadProducts() {
             try {
-                const data = await posAjax('{{ route("pos.products.search") }}');
+                const data = await posAjax('{{ route("pos.products.search") }}', {}, 'GET');
                 this.products = data;
                 this.filteredProducts = data;
             } catch(e) { console.error(e); }
@@ -242,7 +242,7 @@ function tableDetail() {
         async searchProducts() {
             if (!this.searchQuery.trim()) { this.applyFilter(); return; }
             try {
-                const data = await posAjax('{{ route("pos.products.search") }}?q=' + encodeURIComponent(this.searchQuery));
+                const data = await posAjax('{{ route("pos.products.search") }}?q=' + encodeURIComponent(this.searchQuery), {}, 'GET');
                 this.products = data;
                 this.filteredProducts = data;
             } catch(e) { console.error(e); }
@@ -285,17 +285,16 @@ function tableDetail() {
             if (this.pendingItems.length === 0) return;
             try {
                 const data = await posAjax('{{ route("pos.tables.order", $table->id) }}', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        items: this.pendingItems,
-                        notes: this.orderNote,
-                    }),
-                });
+                    items: this.pendingItems,
+                    notes: this.orderNote,
+                }, 'POST');
                 if (data.success) {
                     showToast('Sipariş mutfağa gönderildi!');
                     this.pendingItems = [];
                     this.orderNote = '';
                     location.reload();
+                } else {
+                    showToast(data.message || 'Sipariş gönderilemedi.', 'error');
                 }
             } catch(e) {
                 showToast(e.message || 'Sipariş gönderilemedi.', 'error');
@@ -305,12 +304,13 @@ function tableDetail() {
         async payTable() {
             try {
                 const data = await posAjax('{{ route("pos.tables.pay", $table->id) }}', {
-                    method: 'POST',
-                    body: JSON.stringify({ payment_method: 'cash' }),
-                });
+                    payment_method: 'cash',
+                }, 'POST');
                 if (data.success) {
                     showToast('Hesap alındı! Satış: ' + (data.receipt_no || ''));
                     window.location.href = '{{ route("pos.tables") }}';
+                } else {
+                    showToast(data.message || 'Hesap alınamadı.', 'error');
                 }
             } catch(e) {
                 showToast(e.message || 'Hesap alınamadı.', 'error');
@@ -321,12 +321,13 @@ function tableDetail() {
             if (!this.transferTarget) return;
             try {
                 const data = await posAjax('{{ route("pos.tables.transfer", $table->id) }}', {
-                    method: 'POST',
-                    body: JSON.stringify({ target_table_id: this.transferTarget }),
-                });
+                    target_table_id: this.transferTarget,
+                }, 'POST');
                 if (data.success) {
                     showToast('Masa transfer edildi!');
                     window.location.href = '{{ route("pos.tables") }}';
+                } else {
+                    showToast(data.message || 'Transfer başarısız.', 'error');
                 }
             } catch(e) {
                 showToast(e.message || 'Transfer başarısız.', 'error');

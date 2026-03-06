@@ -149,6 +149,46 @@ class SaleService
                 }
             }
             
+            // Mutfak siparişi oluştur (hızlı satış / POS = takeaway)
+            $kitchenItems = array_filter($calculated['items'], function ($item) {
+                $p = Product::find($item['product_id']);
+                return !$p || !$p->is_service;
+            });
+            if (count($kitchenItems) > 0) {
+                $order = \App\Models\Order::create([
+                    'tenant_id'      => $tenantId,
+                    'branch_id'      => $branchId,
+                    'sale_id'        => $sale->id,
+                    'order_number'   => 'POS-' . str_pad($sale->id, 6, '0', STR_PAD_LEFT),
+                    'user_id'        => $data['user_id'] ?? auth()->id(),
+                    'customer_id'    => $data['customer_id'] ?? null,
+                    'status'         => 'pending',
+                    'order_type'     => 'takeaway',
+                    'total_items'    => count($kitchenItems),
+                    'subtotal'       => $calculated['subtotal'],
+                    'vat_total'      => $calculated['vat_total'],
+                    'discount_total' => $calculated['discount_total'],
+                    'grand_total'    => $calculated['grand_total'],
+                    'notes'          => $data['notes'] ?? null,
+                    'ordered_at'     => Carbon::now(),
+                ]);
+                foreach ($kitchenItems as $item) {
+                    $kProduct = Product::find($item['product_id']);
+                    \App\Models\OrderItem::create([
+                        'order_id'     => $order->id,
+                        'product_id'   => $item['product_id'],
+                        'product_name' => $item['product_name'] ?? $kProduct?->name ?? 'Bilinmeyen Ürün',
+                        'quantity'     => $item['quantity'] ?? 1,
+                        'unit_price'   => $item['unit_price'] ?? 0,
+                        'discount'     => $item['discount'] ?? 0,
+                        'vat_rate'     => $item['vat_rate'] ?? 20,
+                        'vat_amount'   => $item['vat_amount'] ?? 0,
+                        'total'        => $item['total'] ?? 0,
+                        'status'       => 'pending',
+                    ]);
+                }
+            }
+
             return $sale->load('items');
         });
     }
