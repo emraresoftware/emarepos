@@ -21,7 +21,8 @@
     "cd /var/www/emarepos/pos-system && php artisan config:cache",
     "cd /var/www/emarepos/pos-system && php artisan route:cache",
     "cd /var/www/emarepos/pos-system && php artisan view:cache",
-    "chown -R nginx:nginx /var/www/emarepos/pos-system/storage /var/www/emarepos/pos-system/bootstrap/cache"
+    "chown -R nginx:nginx /var/www/emarepos/pos-system/storage /var/www/emarepos/pos-system/bootstrap/cache",
+    "restorecon -R /var/www/emarepos/pos-system/storage /var/www/emarepos/pos-system/bootstrap/cache"
   ],
   "restart_command": "systemctl reload nginx",
   "health_check_url": "https://pos.emarecloud.tr",
