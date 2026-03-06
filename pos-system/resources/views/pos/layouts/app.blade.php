@@ -153,8 +153,8 @@
 
     <!-- Toast Notification -->
     <div x-data="toast()" x-on:show-toast.window="show($event.detail)" x-cloak>
-        <template x-for="(t, i) in toasts" :key="i">
-            <div x-show="t.visible"
+        <template x-for="t in toasts" :key="t.id">
+            <div
                  x-transition:enter="transition ease-out duration-300"
                  x-transition:enter-start="opacity-0 translate-y-2"
                  x-transition:enter-end="opacity-100 translate-y-0"
@@ -201,10 +201,11 @@
             return {
                 toasts: [],
                 show(detail) {
-                    const t = { message: detail.message, type: detail.type || 'success', visible: true };
-                    this.toasts.push(t);
-                    setTimeout(() => { t.visible = false; }, 3000);
-                    setTimeout(() => { this.toasts = this.toasts.filter(x => x !== t); }, 3500);
+                    const id = Date.now() + Math.random();
+                    this.toasts.push({ id, message: detail.message, type: detail.type || 'success' });
+                    setTimeout(() => {
+                        this.toasts = this.toasts.filter(x => x.id !== id);
+                    }, 3000);
                 }
             };
         }
