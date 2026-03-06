@@ -377,6 +377,24 @@
 @endsection
 
 @push('scripts')
+@php
+$tablesJson = $tables->map(fn($t) => [
+    'id'              => $t->id,
+    'table_no'        => $t->table_no,
+    'name'            => $t->name,
+    'capacity'        => $t->capacity,
+    'status'          => $t->status,
+    'shape'           => $t->shape ?? 'square',
+    'color'           => $t->color,
+    'table_region_id' => $t->table_region_id,
+    'pos_x'           => $t->pos_x ?? 5.0,
+    'pos_y'           => $t->pos_y ?? 5.0,
+    'active_session'  => $t->activeSession ? [
+        'id'    => $t->activeSession->id,
+        'total' => round($t->activeSession->orders->sum(fn($o) => $o->items->sum('total')), 2),
+    ] : null,
+]);
+@endphp
 <script>
 function masaHaritasi() {
     return {
@@ -385,24 +403,7 @@ function masaHaritasi() {
         layoutDirty: false,
 
         regions: @json($regions),
-        tables: @json($tables->map(function($t) {
-            return [
-                'id'              => $t->id,
-                'table_no'        => $t->table_no,
-                'name'            => $t->name,
-                'capacity'        => $t->capacity,
-                'status'          => $t->status,
-                'shape'           => $t->shape ?? 'square',
-                'color'           => $t->color,
-                'table_region_id' => $t->table_region_id,
-                'pos_x'           => $t->pos_x ?? 5.0,
-                'pos_y'           => $t->pos_y ?? 5.0,
-                'active_session'  => $t->activeSession ? [
-                    'id'    => $t->activeSession->id,
-                    'total' => round($t->activeSession->orders->sum(fn($o) => $o->items->sum('total')), 2),
-                ] : null,
-            ];
-        })),
+        tables: @json($tablesJson),
 
         showRegionModal: false,
         editingRegion: null,
