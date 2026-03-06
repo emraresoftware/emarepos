@@ -28,6 +28,8 @@ class Sale extends Model
         'discount',
         'cash_amount',
         'card_amount',
+        'credit_amount',
+        'transfer_amount',
         'status',
         'notes',
         'staff_name',
@@ -48,6 +50,8 @@ class Sale extends Model
             'discount' => 'decimal:2',
             'cash_amount' => 'decimal:2',
             'card_amount' => 'decimal:2',
+            'credit_amount' => 'decimal:2',
+            'transfer_amount' => 'decimal:2',
             'sold_at' => 'datetime',
         ];
     }

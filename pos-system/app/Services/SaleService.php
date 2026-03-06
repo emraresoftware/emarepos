@@ -48,6 +48,8 @@ class SaleService
                 'discount' => $data['discount'] ?? 0,
                 'cash_amount' => $data['cash_amount'] ?? 0,
                 'card_amount' => $data['card_amount'] ?? 0,
+                'credit_amount' => $data['credit_amount'] ?? 0,
+                'transfer_amount' => $data['transfer_amount'] ?? 0,
                 'status' => 'completed',
                 'staff_name' => $data['staff_name'] ?? auth()->user()?->name,
                 'application' => $data['application'] ?? 'pos',

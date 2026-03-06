@@ -52,6 +52,7 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class])->group(fu
     Route::get('/tables/{table}/detail', [TableController::class, 'detail'])->name('pos.tables.detail');
     Route::post('/tables/{table}/order', [TableController::class, 'addOrder'])->name('pos.tables.order');
     Route::post('/tables/{table}/pay', [TableController::class, 'pay'])->name('pos.tables.pay');
+    Route::post('/tables/{table}/pay-partial', [TableController::class, 'payPartial'])->name('pos.tables.pay.partial');
     Route::post('/tables/{table}/transfer', [TableController::class, 'transfer'])->name('pos.tables.transfer');
     // Masa Tasarımcı — CRUD
     Route::post('/tables/layout', [TableController::class, 'updateLayout'])->name('pos.tables.layout');

@@ -333,10 +333,10 @@
                     <i class="fas fa-credit-card block text-lg mb-1"></i>
                     Kart
                 </button>
-                <button @click="showMixedPayment = true" :disabled="cart.length === 0"
+                <button @click="showMixedPayment = true; mixedRemaining = totals.grand_total" :disabled="cart.length === 0"
                         class="py-3 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-semibold text-white transition-all">
                     <i class="fas fa-layer-group block text-lg mb-1"></i>
-                    Süper Ödeme
+                    Parçalı Ödeme
                 </button>
             </div>
             <div class="grid grid-cols-2 gap-2">
@@ -352,32 +352,124 @@
         </div>
     </div>
 
-    {{-- Karışık Ödeme Modal --}}
+    {{-- Parçalı (Karışık) Ödeme Modal --}}
     <div x-show="showMixedPayment" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm" x-cloak>
-        <div class="bg-white rounded-2xl border border-gray-200 p-6 w-96 shadow-2xl" @click.away="showMixedPayment = false">
-            <h3 class="text-lg font-bold text-gray-900 mb-4">Karışık Ödeme</h3>
-            <div class="space-y-3">
-                <div>
-                    <label class="text-xs text-gray-500">Toplam Tutar</label>
-                    <div class="text-xl font-bold text-brand-600" x-text="formatCurrency(totals.grand_total)"></div>
+        <div class="bg-white rounded-2xl border border-gray-200 p-6 w-[440px] shadow-2xl" @click.away="showMixedPayment = false">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-lg font-bold text-gray-900"><i class="fas fa-layer-group mr-2 text-brand-500"></i>Parçalı Ödeme</h3>
+                <button @click="showMixedPayment = false" class="text-gray-400 hover:text-gray-700"><i class="fas fa-times"></i></button>
+            </div>
+
+            {{-- Toplam & Kalan --}}
+            <div class="grid grid-cols-2 gap-3 mb-5">
+                <div class="bg-gray-50 rounded-xl p-3 text-center">
+                    <div class="text-xs text-gray-500 mb-1">Toplam Tutar</div>
+                    <div class="text-xl font-bold text-gray-900" x-text="formatCurrency(totals.grand_total)"></div>
                 </div>
-                <div>
-                    <label class="text-xs text-gray-500 mb-1 block">Nakit Tutar</label>
-                    <input type="number" x-model.number="mixedCash" @input="mixedCard = Math.max(0, totals.grand_total - mixedCash)"
-                           class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-                           min="0" step="0.01">
-                </div>
-                <div>
-                    <label class="text-xs text-gray-500 mb-1 block">Kart Tutar</label>
-                    <input type="number" x-model.number="mixedCard" @input="mixedCash = Math.max(0, totals.grand_total - mixedCard)"
-                           class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-                           min="0" step="0.01">
+                <div class="rounded-xl p-3 text-center border-2"
+                     :class="mixedRemaining < -0.01 ? 'border-red-400 bg-red-50' : mixedRemaining < 0.01 ? 'border-emerald-400 bg-emerald-50' : 'border-amber-300 bg-amber-50'">
+                    <div class="text-xs mb-1"
+                         :class="mixedRemaining < -0.01 ? 'text-red-500' : mixedRemaining < 0.01 ? 'text-emerald-600' : 'text-amber-600'"
+                         x-text="mixedRemaining < -0.01 ? 'Fazla Girilen' : mixedRemaining < 0.01 ? '✓ Tamamlandı' : 'Kalan Tutar'"></div>
+                    <div class="text-xl font-bold"
+                         :class="mixedRemaining < -0.01 ? 'text-red-600' : mixedRemaining < 0.01 ? 'text-emerald-600' : 'text-amber-600'"
+                         x-text="formatCurrency(Math.abs(mixedRemaining))"></div>
                 </div>
             </div>
-            <div class="flex gap-2 mt-4">
+
+            {{-- Tutar Girişleri --}}
+            <div class="space-y-3 mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center shrink-0">
+                        <i class="fas fa-money-bill-wave text-emerald-600 text-sm"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 w-16">Nakit</span>
+                    <input type="number" x-model.number="mixedCash" @input="recalcMixedRemaining()" min="0" step="0.01" placeholder="0,00"
+                           class="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/20 focus:border-emerald-400">
+                    <span class="text-sm text-gray-400 w-4">₺</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+                        <i class="fas fa-credit-card text-blue-600 text-sm"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 w-16">Kart</span>
+                    <input type="number" x-model.number="mixedCard" @input="recalcMixedRemaining()" min="0" step="0.01" placeholder="0,00"
+                           class="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400">
+                    <span class="text-sm text-gray-400 w-4">₺</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
+                        <i class="fas fa-building-columns text-purple-600 text-sm"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 w-16">Havale</span>
+                    <input type="number" x-model.number="mixedTransfer" @input="recalcMixedRemaining()" min="0" step="0.01" placeholder="0,00"
+                           class="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400/20 focus:border-purple-400">
+                    <span class="text-sm text-gray-400 w-4">₺</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
+                        <i class="fas fa-user-clock text-amber-600 text-sm"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 w-16">Veresiye</span>
+                    <input type="number" x-model.number="mixedCredit" @input="recalcMixedRemaining()" min="0" step="0.01" placeholder="0,00"
+                           class="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/20 focus:border-amber-400">
+                    <span class="text-sm text-gray-400 w-4">₺</span>
+                </div>
+            </div>
+
+            {{-- Veresiye için müşteri --}}
+            <div x-show="mixedCredit > 0" x-transition class="mb-4">
+                <p class="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-2"><i class="fas fa-user mr-1"></i>Veresiye Müşterisi <span class="text-red-500">*</span></p>
+                <div class="relative">
+                    <input type="text" x-model="customerSearch"
+                           @input.debounce.300ms="searchCustomers(customerSearch)"
+                           @focus="searchCustomers(customerSearch)"
+                           placeholder="Müşteri adı veya telefon..." 
+                           class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/20 focus:border-amber-400">
+                    <div x-show="showCustomerDropdown" class="absolute z-10 left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg max-h-32 overflow-y-auto">
+                        <template x-for="c in customerResults" :key="c.id">
+                            <button @click="selectedCustomer = c; customerSearch = c.name; showCustomerDropdown = false"
+                                    class="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0">
+                                <span class="font-medium text-gray-900" x-text="c.name"></span>
+                                <span class="text-xs text-gray-400 ml-2" x-text="c.phone || ''"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+                <div x-show="selectedCustomer" class="mt-2 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                    <i class="fas fa-user-check text-amber-500 text-xs"></i>
+                    <span class="text-sm text-amber-700 font-medium" x-text="selectedCustomer?.name"></span>
+                    <button @click="selectedCustomer = null; customerSearch = ''" class="ml-auto text-amber-400 hover:text-red-500">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                </div>
+            </div>
+
+            {{-- Hızlı Doldur --}}
+            <div class="flex gap-2 mb-4">
+                <button @click="mixedCash = totals.grand_total; mixedCard = 0; mixedTransfer = 0; mixedCredit = 0; recalcMixedRemaining()"
+                        class="flex-1 py-1.5 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-200 transition-colors">
+                    <i class="fas fa-money-bill-wave mr-1"></i>Tümü Nakit
+                </button>
+                <button @click="mixedCard = totals.grand_total; mixedCash = 0; mixedTransfer = 0; mixedCredit = 0; recalcMixedRemaining()"
+                        class="flex-1 py-1.5 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition-colors">
+                    <i class="fas fa-credit-card mr-1"></i>Tümü Kart
+                </button>
+                <button @click="mixedCredit = totals.grand_total; mixedCash = 0; mixedCard = 0; mixedTransfer = 0; recalcMixedRemaining()"
+                        class="flex-1 py-1.5 text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg border border-amber-200 transition-colors">
+                    <i class="fas fa-user-clock mr-1"></i>Tümü Veresiye
+                </button>
+            </div>
+
+            <div class="flex gap-2">
                 <button @click="showMixedPayment = false" class="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors">İptal</button>
-                <button @click="processMixedPayment()" class="flex-1 py-2.5 bg-gradient-to-r from-brand-500 to-purple-600 text-white hover:shadow-lg hover:shadow-brand-200 rounded-xl text-sm font-semibold transition-all">Ödeme Al</button>
+                <button @click="processMixedPayment()"
+                        :disabled="Math.abs(mixedRemaining) > 0.01 || (mixedCredit > 0 && !selectedCustomer)"
+                        class="flex-1 py-2.5 bg-gradient-to-r from-brand-500 to-purple-600 text-white hover:shadow-lg hover:shadow-brand-200 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-check-circle mr-1"></i>Ödemeyi Tamamla
+                </button>
             </div>
+            <p x-show="mixedCredit > 0 && !selectedCustomer" class="text-xs text-red-500 text-center mt-2">Veresiye için müşteri seçimi zorunludur.</p>
         </div>
     </div>
 
@@ -433,6 +525,8 @@ function posScreen() {
         mixedCash: 0,
         mixedCard: 0,
         mixedCredit: 0,
+        mixedTransfer: 0,
+        mixedRemaining: 0,
         lastSale: null,
         loading: false,
         totals: { subtotal: 0, vat_total: 0, discount_total: 0, grand_total: 0 },
@@ -651,6 +745,11 @@ function posScreen() {
             } catch(e) { console.error(e); }
         },
 
+        recalcMixedRemaining() {
+            const entered = (this.mixedCash || 0) + (this.mixedCard || 0) + (this.mixedCredit || 0) + (this.mixedTransfer || 0);
+            this.mixedRemaining = Math.round((this.totals.grand_total - entered) * 100) / 100;
+        },
+
         async processPayment(method) {
             if (this.cart.length === 0) return;
             if (method === 'credit' && !this.selectedCustomer) {
@@ -694,13 +793,13 @@ function posScreen() {
         },
 
         async processMixedPayment() {
-            const totalEntered = this.mixedCash + this.mixedCard + this.mixedCredit;
+            const totalEntered = (this.mixedCash || 0) + (this.mixedCard || 0) + (this.mixedCredit || 0) + (this.mixedTransfer || 0);
             if (Math.abs(totalEntered - this.totals.grand_total) > 0.01) {
-                showToast('Girilen toplam (₺' + this.mixedCash + '+₺' + this.mixedCard + '+₺' + this.mixedCredit + ') genel toplama eşit olmalı.', 'error');
+                showToast('Girilen tutarlar toplamı, satış tutarına (₺' + this.totals.grand_total.toFixed(2) + ') eşit olmalı.', 'error');
                 return;
             }
             if (this.mixedCredit > 0 && !this.selectedCustomer) {
-                showToast('Veresiye için müşteri seçiniz.', 'error');
+                showToast('Veresiye tutarı için müşteri seçiniz.', 'error');
                 return;
             }
 
@@ -720,9 +819,10 @@ function posScreen() {
                 payment_method: 'mixed',
                 customer_id: this.selectedCustomer?.id,
                 discount: this.generalDiscount,
-                cash_amount: this.mixedCash,
-                card_amount: this.mixedCard,
-                credit_amount: this.mixedCredit,
+                cash_amount: this.mixedCash || 0,
+                card_amount: this.mixedCard || 0,
+                credit_amount: this.mixedCredit || 0,
+                transfer_amount: this.mixedTransfer || 0,
             };
 
             try {
@@ -734,7 +834,7 @@ function posScreen() {
                     this.lastSale = data.sale;
                     this.showMixedPayment = false;
                     this.showReceipt = true;
-                    this.mixedCash = 0; this.mixedCard = 0; this.mixedCredit = 0;
+                    this.mixedCash = 0; this.mixedCard = 0; this.mixedCredit = 0; this.mixedTransfer = 0; this.mixedRemaining = 0;
                     showToast('Satış başarıyla kaydedildi!');
                 }
             } catch(e) {

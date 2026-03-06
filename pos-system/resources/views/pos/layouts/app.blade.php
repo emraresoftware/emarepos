@@ -92,7 +92,7 @@
                         ['route' => 'pos.cash-report', 'icon' => 'fa-file-invoice-dollar', 'label' => 'Kasa Raporu'],
                         ['route' => 'pos.sales.list', 'icon' => 'fa-receipt', 'label' => 'Satışlar'],
                         ['route' => 'pos.customers', 'icon' => 'fa-users', 'label' => 'Müşteriler'],
-                        ['route' => 'pos.firms', 'icon' => 'fa-handshake', 'label' => 'Cariler'],
+                        ['route' => 'pos.firms', 'icon' => 'fa-handshake', 'label' => 'Firmalar'],
                         ['route' => 'pos.categories', 'icon' => 'fa-layer-group', 'label' => 'Kategoriler'],
                         ['route' => 'pos.products', 'icon' => 'fa-boxes-stacked', 'label' => 'Ürünler'],
                         ['route' => 'pos.users', 'icon' => 'fa-user-gear', 'label' => 'Kullanıcılar'],

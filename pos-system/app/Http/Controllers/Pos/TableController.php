@@ -177,6 +177,93 @@ class TableController extends Controller
     }
 
     /**
+     * Ürün bazlı (parçalı) ödeme — seçili order item ID'lerine göre kısmi satış
+     */
+    public function payPartial(Request $request, RestaurantTable $table)
+    {
+        $session = $table->activeSession;
+        if (!$session) {
+            return response()->json(['success' => false, 'message' => 'Masa açık değil.'], 422);
+        }
+
+        $selectedItemIds = $request->item_ids ?? [];
+        if (empty($selectedItemIds)) {
+            return response()->json(['success' => false, 'message' => 'En az bir ürün seçiniz.'], 422);
+        }
+
+        try {
+            $session->load('orders.items');
+            $saleItems = [];
+            foreach ($session->orders as $order) {
+                if ($order->status === 'cancelled') continue;
+                foreach ($order->items as $item) {
+                    if ($item->status === 'cancelled') continue;
+                    if (in_array($item->id, $selectedItemIds)) {
+                        $saleItems[] = [
+                            'product_id'   => $item->product_id,
+                            'product_name' => $item->product_name,
+                            'quantity'     => $item->quantity,
+                            'unit_price'   => $item->unit_price,
+                            'discount'     => $item->discount,
+                            'vat_rate'     => $item->vat_rate,
+                            'vat_amount'   => $item->vat_amount,
+                            'total'        => $item->total,
+                        ];
+                    }
+                }
+            }
+
+            if (empty($saleItems)) {
+                return response()->json(['success' => false, 'message' => 'Seçili kalemler bulunamadı.'], 422);
+            }
+
+            $sale = $this->saleService->createSale([
+                'branch_id'      => session('branch_id'),
+                'tenant_id'      => session('tenant_id'),
+                'customer_id'    => $request->customer_id,
+                'user_id'        => auth()->id(),
+                'payment_method' => $request->payment_method ?? 'cash',
+                'items'          => $saleItems,
+                'discount'       => 0,
+                'cash_amount'    => $request->cash_amount ?? 0,
+                'card_amount'    => $request->card_amount ?? 0,
+                'credit_amount'  => $request->credit_amount ?? 0,
+                'staff_name'     => auth()->user()->name,
+                'application'    => 'pos',
+                'notes'          => "Masa: {$table->name} (Kısmi Ödeme)",
+            ]);
+
+            // Ödenen kalemleri cancelled/paid olarak işaretle
+            \App\Models\OrderItem::whereIn('id', $selectedItemIds)->update(['status' => 'paid']);
+
+            // Kalan ödenmemiş kalem var mı kontrol et
+            $session->load('orders.items');
+            $hasUnpaid = false;
+            foreach ($session->orders as $order) {
+                foreach ($order->items as $item) {
+                    if (!in_array($item->status, ['cancelled', 'paid'])) {
+                        $hasUnpaid = true;
+                        break 2;
+                    }
+                }
+            }
+
+            if (!$hasUnpaid) {
+                // Tüm kalemler ödendi, masayı kapat
+                foreach ($session->orders as $order) {
+                    $order->update(['status' => 'completed', 'sale_id' => $sale->id]);
+                }
+                $this->tableService->closeTable($session->id, auth()->id());
+                return response()->json(['success' => true, 'table_closed' => true, 'sale' => $sale, 'message' => 'Tüm kalemler ödendi, masa kapatıldı.']);
+            }
+
+            return response()->json(['success' => true, 'table_closed' => false, 'sale' => $sale, 'message' => 'Kısmi ödeme alındı.']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
      * Masa transfer — move session to another table
      */
     public function transfer(Request $request, RestaurantTable $table)
