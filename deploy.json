@@ -1,0 +1,31 @@
+{
+  "_comment": "EmareCloud Deploy Manifesti — Bu dosya EmareCloud paneli tarafından okunur. Manuel değiştirme.",
+  "slug": "emarepos",
+  "name": "Emare POS",
+  "github_repo": "emraresoftware/emarepos",
+  "branch": "main",
+  "dc": "dc2",
+  "server_host": "77.92.152.3",
+  "server_ssh_port": 2222,
+  "remote_path": "/var/www/emarepos",
+  "stack": "php-laravel",
+  "port": 8116,
+  "webroot": "/var/www/emarepos/public",
+  "domain": "pos.emarecloud.tr",
+  "pre_deploy": [],
+  "deploy_commands": [
+    "cd /var/www/emarepos",
+    "git pull origin main",
+    "composer install --no-dev --optimize-autoloader --no-interaction",
+    "php artisan migrate --force",
+    "php artisan config:cache",
+    "php artisan route:cache",
+    "php artisan view:cache",
+    "chown -R nginx:nginx /var/www/emarepos/storage /var/www/emarepos/bootstrap/cache"
+  ],
+  "restart_command": "systemctl reload nginx",
+  "health_check_url": "https://pos.emarecloud.tr",
+  "webhooks_enabled": true,
+  "auto_deploy_on_push": true,
+  "notify_on_fail": true
+}
