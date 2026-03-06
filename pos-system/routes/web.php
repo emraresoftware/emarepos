@@ -23,6 +23,7 @@ use App\Http\Controllers\Pos\IncomeExpenseController;
 use App\Http\Controllers\Pos\StaffController;
 use App\Http\Controllers\Pos\FeedbackController;
 use App\Http\Controllers\Pos\HardwareController;
+use App\Http\Controllers\Admin\AdminController;
 
 // Auth routes
 Route::get('/login', [PosLoginController::class, 'showLogin'])->name('pos.login');
@@ -169,3 +170,15 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class])->group(fu
     Route::post('/feedback/{feedback}/reply', [FeedbackController::class, 'reply'])->name('pos.feedback.reply');
     Route::delete('/feedback/{feedback}', [FeedbackController::class, 'destroy'])->name('pos.feedback.destroy');
 });
+
+// ─── Süper Admin Paneli ──────────────────────────────────────────────────────
+Route::middleware(['auth', \App\Http\Middleware\SuperAdmin::class])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        Route::get('/',           [AdminController::class, 'dashboard'])->name('dashboard');
+        Route::get('/tenants',    [AdminController::class, 'tenants'])->name('tenants');
+        Route::patch('/tenants/{tenant}/status', [AdminController::class, 'tenantStatus'])->name('tenants.status');
+        Route::get('/feedbacks',  [AdminController::class, 'feedbacks'])->name('feedbacks');
+        Route::get('/users',      [AdminController::class, 'users'])->name('users');
+    });

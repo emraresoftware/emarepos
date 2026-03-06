@@ -126,6 +126,14 @@
                     <div class="text-sm text-gray-900 font-semibold">{{ auth()->user()->name }}</div>
                     <div class="text-xs text-gray-500">{{ auth()->user()->role?->name ?? 'Yönetici' }}</div>
                 </div>
+                @if(auth()->user()->is_super_admin)
+                    <a href="{{ route('admin.dashboard') }}"
+                       class="flex items-center gap-2 text-brand-500 hover:text-brand-700 text-sm rounded-lg hover:bg-brand-50 px-2 py-1.5 transition-colors mb-2 border border-brand-200"
+                       :class="sidebarOpen ? '' : 'justify-center'">
+                        <i class="fas fa-shield-halved w-5 text-center text-xs"></i>
+                        <span x-show="sidebarOpen">Admin Panel</span>
+                    </a>
+                @endif
                 <form method="POST" action="{{ route('pos.logout') }}">
                     @csrf
                     <button type="submit" class="flex items-center gap-2 text-gray-400 hover:text-red-500 text-sm w-full rounded-lg hover:bg-red-50 px-2 py-1.5 transition-colors"
