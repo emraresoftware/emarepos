@@ -84,7 +84,9 @@
             <h3 class="text-sm font-medium text-gray-700 mb-3">
                 <i class="fas fa-chart-bar text-brand-500 mr-1"></i> Günlük Satışlar
             </h3>
-            <canvas id="dailySalesChart" height="260"></canvas>
+            <div style="position:relative; height:260px;">
+                <canvas id="dailySalesChart"></canvas>
+            </div>
         </div>
 
         {{-- Payment Methods Pie Chart --}}

@@ -164,17 +164,7 @@
                             <td class="px-4 py-3 text-center">
                                 <div class="flex items-center justify-center gap-1">
                                     {{-- View Detail --}}
-                                    <button @click="openEdit({{ json_encode([
-                                                'id' => $customer->id,
-                                                'name' => $customer->name,
-                                                'phone' => $customer->phone,
-                                                'email' => $customer->email,
-                                                'tax_number' => $customer->tax_number,
-                                                'tax_office' => $customer->tax_office,
-                                                'address' => $customer->address,
-                                                'type' => $customer->type,
-                                                'notes' => $customer->notes,
-                                            ]) }})"
+                                    <button @click="openDetail({{ $customer->id }})"
                                        class="p-2 text-gray-500 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-colors"
                                        title="Detay">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -236,6 +226,112 @@
                 {{ $customers->links() }}
             </div>
         @endif
+    </div>
+
+    {{-- Müşteri Detay Modalı --}}
+    <div x-show="showDetailModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;" x-cloak>
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showDetailModal = false"></div>
+        <div x-show="showDetailModal"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             class="relative bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+
+            {{-- Header --}}
+            <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between flex-shrink-0">
+                <div x-show="!detailLoading && detailData">
+                    <h2 class="text-lg font-bold text-gray-900" x-text="detailData?.customer?.name"></h2>
+                    <p class="text-xs text-gray-400 mt-0.5" x-text="(detailData?.customer?.phone || '') + (detailData?.customer?.email ? ' • ' + detailData.customer.email : '')"></p>
+                </div>
+                <div x-show="detailLoading" class="text-sm text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i>Yükleniyor...</div>
+                <button @click="showDetailModal = false" class="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-50 rounded-xl ml-auto">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div x-show="!detailLoading && detailData" class="flex flex-col overflow-hidden flex-1">
+                {{-- Özet Bakiye Kartları --}}
+                <div class="grid grid-cols-3 gap-3 p-4 border-b border-gray-100 flex-shrink-0">
+                    <div class="bg-gray-50 rounded-xl p-3 text-center">
+                        <p class="text-xs text-gray-400">Bakiye</p>
+                        <p class="font-bold text-lg mt-0.5" :class="(detailData?.customer?.balance??0)<0?'text-red-500':((detailData?.customer?.balance??0)>0?'text-emerald-600':'text-gray-700')" x-text="formatCurrency(detailData?.customer?.balance??0)"></p>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl p-3 text-center">
+                        <p class="text-xs text-gray-400">Toplam Alışveriş</p>
+                        <p class="font-bold text-lg mt-0.5 text-gray-900" x-text="detailData?.recent_sales?.length + ' satış'"></p>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl p-3 text-center">
+                        <p class="text-xs text-gray-400">Toplam Hareket</p>
+                        <p class="font-bold text-lg mt-0.5 text-gray-900" x-text="detailData?.transactions?.length + ' kayıt'"></p>
+                    </div>
+                </div>
+
+                {{-- Sekmeler --}}
+                <div class="flex gap-1 px-4 pt-3 flex-shrink-0">
+                    <button @click="detailTab='sales'" :class="detailTab==='sales'?'bg-brand-50 text-brand-700 border-brand-300':'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'"
+                            class="px-4 py-2 rounded-xl text-sm font-medium border transition-colors">
+                        <i class="fas fa-shopping-cart mr-1"></i> Satışlar (<span x-text="detailData?.recent_sales?.length"></span>)
+                    </button>
+                    <button @click="detailTab='transactions'" :class="detailTab==='transactions'?'bg-brand-50 text-brand-700 border-brand-300':'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'"
+                            class="px-4 py-2 rounded-xl text-sm font-medium border transition-colors">
+                        <i class="fas fa-exchange-alt mr-1"></i> Hesap Hareketleri (<span x-text="detailData?.transactions?.length"></span>)
+                    </button>
+                </div>
+
+                {{-- İçerik --}}
+                <div class="flex-1 overflow-y-auto px-4 pb-4 pt-3">
+
+                    {{-- Satışlar --}}
+                    <div x-show="detailTab==='sales'">
+                        <template x-if="detailData?.recent_sales?.length === 0">
+                            <div class="text-center py-12 text-gray-400"><i class="fas fa-shopping-cart text-3xl mb-2"></i><p class="text-sm">Henüz satış yok</p></div>
+                        </template>
+                        <template x-for="sale in (detailData?.recent_sales || [])" :key="sale.id">
+                            <div class="flex items-center justify-between py-3 border-b border-gray-50 hover:bg-gray-50 rounded-xl px-2 transition-colors">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs"
+                                         :class="sale.payment_method==='cash'?'bg-emerald-50 text-emerald-600':sale.payment_method==='card'?'bg-blue-50 text-blue-600':sale.payment_method==='credit'?'bg-amber-50 text-amber-600':'bg-purple-50 text-purple-600'">
+                                        <i :class="sale.payment_method==='cash'?'fas fa-money-bill-wave':sale.payment_method==='card'?'fas fa-credit-card':sale.payment_method==='credit'?'fas fa-user-clock':'fas fa-layer-group'"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900" x-text="'#' + (sale.receipt_no || sale.id)"></p>
+                                        <p class="text-xs text-gray-400" x-text="sale.sold_at ? new Date(sale.sold_at).toLocaleDateString('tr-TR', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-'"></p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-bold text-gray-900" x-text="formatCurrency(sale.grand_total)"></p>
+                                    <p class="text-xs text-gray-400" x-text="sale.payment_method==='cash'?'Nakit':sale.payment_method==='card'?'Kart':sale.payment_method==='credit'?'Veresiye':'Karışık'"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    {{-- Hesap Hareketleri --}}
+                    <div x-show="detailTab==='transactions'">
+                        <template x-if="detailData?.transactions?.length === 0">
+                            <div class="text-center py-12 text-gray-400"><i class="fas fa-exchange-alt text-3xl mb-2"></i><p class="text-sm">Henüz hareket yok</p></div>
+                        </template>
+                        <template x-for="tx in (detailData?.transactions || [])" :key="tx.id">
+                            <div class="flex items-center justify-between py-3 border-b border-gray-50 hover:bg-gray-50 rounded-xl px-2 transition-colors">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs"
+                                         :class="tx.amount>=0?'bg-emerald-50 text-emerald-600':'bg-red-50 text-red-500'">
+                                        <i :class="tx.amount>=0?'fas fa-arrow-down':'fas fa-arrow-up'"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900" x-text="tx.description || (tx.type==='payment'?'Tahsilat':tx.type==='sale'?'Veresiye Alışveriş':'İşlem')"></p>
+                                        <p class="text-xs text-gray-400" x-text="tx.transaction_date ? new Date(tx.transaction_date).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : new Date(tx.created_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric'})"></p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-bold" :class="tx.amount>=0?'text-emerald-600':'text-red-500'" x-text="(tx.amount>=0?'+':'') + formatCurrency(tx.amount)"></p>
+                                    <p class="text-xs text-gray-400" x-text="'Bakiye: ' + formatCurrency(tx.balance_after)"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                </div>
+            </div>
+        </div>
     </div>
 
     {{-- Customer Form Modal --}}
@@ -502,6 +598,10 @@ function customerManager() {
     return {
         showFormModal: false,
         showCollectModal: false,
+        showDetailModal: false,
+        detailLoading: false,
+        detailData: null,
+        detailTab: 'sales',
         editingId: null,
         saving: false,
         collecting: false,
@@ -551,6 +651,22 @@ function customerManager() {
             this.collectCustomerId = null;
             this.collectCustomerName = '';
             this.collectCustomerBalance = 0;
+        },
+
+        async openDetail(id) {
+            this.detailData = null;
+            this.detailLoading = true;
+            this.detailTab = 'sales';
+            this.showDetailModal = true;
+            try {
+                const data = await posAjax('/pos/customers/' + id, {}, 'GET');
+                this.detailData = data;
+            } catch(e) {
+                showToast('Detay yüklenemedi.', 'error');
+                this.showDetailModal = false;
+            } finally {
+                this.detailLoading = false;
+            }
         },
 
         openCreate() {
