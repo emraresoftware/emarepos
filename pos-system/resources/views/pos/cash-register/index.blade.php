@@ -123,6 +123,18 @@
                 <div class="text-xs text-gray-500 mt-1">Kredi/banka kartı toplamı</div>
             </div>
 
+            {{-- Veresiye Satışlar --}}
+            <div class="bg-white rounded-xl border border-amber-200 p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-medium text-amber-600 uppercase tracking-wider">Veresiye</span>
+                    <span class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-user-clock text-amber-500 text-sm"></i>
+                    </span>
+                </div>
+                <div class="text-2xl font-bold text-amber-500">{{ number_format($stats['credit_total'] ?? 0, 2) }} ₺</div>
+                <div class="text-xs text-gray-500 mt-1">Cari hesaba yazılan satışlar</div>
+            </div>
+
             {{-- Toplam Satış --}}
             <div class="bg-white rounded-xl border border-gray-700 p-4">
                 <div class="flex items-center justify-between mb-3">
@@ -131,7 +143,7 @@
                         <i class="fas fa-chart-line text-purple-600 text-sm"></i>
                     </span>
                 </div>
-                <div class="text-2xl font-bold text-gray-900">{{ number_format(($stats['cash_total'] ?? 0) + ($stats['card_total'] ?? 0), 2) }} ₺</div>
+                <div class="text-2xl font-bold text-gray-900">{{ number_format(($stats['cash_total'] ?? 0) + ($stats['card_total'] ?? 0) + ($stats['credit_total'] ?? 0), 2) }} ₺</div>
                 <div class="text-xs text-gray-500 mt-1">{{ $stats['sale_count'] ?? 0 }} adet satış</div>
             </div>
         </div>

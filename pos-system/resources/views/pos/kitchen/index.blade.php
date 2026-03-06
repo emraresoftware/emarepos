@@ -87,7 +87,8 @@
                         {{-- Masa --}}
                         @if($order->tableSession && $order->tableSession->table)
                         <span class="px-2 py-0.5 bg-slate-700 rounded text-xs text-white">
-                            <i class="fas fa-utensils mr-1 text-gray-300"></i>{{ $order->tableSession->table->name ?? 'Masa ' . $order->tableSession->table->table_no }}</span>
+                            <i class="fas fa-utensils mr-1 text-gray-300"></i>{{ ($order->tableSession->table->region->name ?? '') ? ($order->tableSession->table->region->name . ' ') : '' }}{{ $order->tableSession->table->name ?? ('Masa ' . $order->tableSession->table->table_no) }}
+                        </span>
                         </span>
                         @endif
                     </div>
@@ -145,7 +146,7 @@
                         Hazırlığa Başla
                     </button>
                     @elseif($order->status === 'preparing')
-                    <button @click="updateOrderStatus({{ $order->id }}, 'completed')"
+                    <button @click="updateOrderStatus({{ $order->id }}, 'ready')"
                             class="flex-1 py-2 bg-emerald-500 hover:bg-green-500 text-gray-900 text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5">
                         <i class="fas fa-check-double"></i>
                         Hazır
