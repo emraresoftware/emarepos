@@ -127,7 +127,7 @@
                         <template x-if="!selectedCustomer">
                             <input type="text" x-model="customerSearch"
                                    @input.debounce.300ms="searchCustomers(customerSearch)"
-                                   @focus="showCustomerDropdown = true"
+                                   @focus="showCustomerDropdown = true; searchCustomers(customerSearch)"
                                    placeholder="Müşteri seçin (opsiyonel)..."
                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-xs transition-all">
                         </template>
@@ -270,8 +270,8 @@
                 </button>
                 <button @click="showMixedPayment = true" :disabled="cart.length === 0"
                         class="py-3 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-semibold text-white transition-all">
-                    <i class="fas fa-split block text-lg mb-1"></i>
-                    Karışık
+                    <i class="fas fa-layer-group block text-lg mb-1"></i>
+                    Süper Ödeme
                 </button>
             </div>
             <div class="grid grid-cols-2 gap-2">
@@ -367,6 +367,7 @@ function posScreen() {
         showReceipt: false,
         mixedCash: 0,
         mixedCard: 0,
+        mixedCredit: 0,
         lastSale: null,
         loading: false,
         totals: { subtotal: 0, vat_total: 0, discount_total: 0, grand_total: 0 },
@@ -519,7 +520,15 @@ function posScreen() {
         },
 
         async searchCustomers(query) {
-            if (!query || query.length < 2) { this.customerResults = []; return; }
+            if (query !== null && query !== undefined && query.length === 0) {
+                // Boş sorguda tüm cariler
+                try {
+                    const data = await posAjax('{{ route("pos.customers.search") }}', {}, 'GET');
+                    this.customerResults = data;
+                } catch(e) { console.error(e); }
+                return;
+            }
+            if (!query || query.length < 1) { this.customerResults = []; return; }
             try {
                 const data = await posAjax('{{ route("pos.customers.search") }}?q=' + encodeURIComponent(query), {}, 'GET');
                 this.customerResults = data;
@@ -569,8 +578,13 @@ function posScreen() {
         },
 
         async processMixedPayment() {
-            if (Math.abs((this.mixedCash + this.mixedCard) - this.totals.grand_total) > 0.01) {
-                showToast('Nakit + Kart toplamı genel toplama eşit olmalı.', 'error');
+            const totalEntered = this.mixedCash + this.mixedCard + this.mixedCredit;
+            if (Math.abs(totalEntered - this.totals.grand_total) > 0.01) {
+                showToast('Girilen toplam (₺' + this.mixedCash + '+₺' + this.mixedCard + '+₺' + this.mixedCredit + ') genel toplama eşit olmalı.', 'error');
+                return;
+            }
+            if (this.mixedCredit > 0 && !this.selectedCustomer) {
+                showToast('Veresiye için müşteri seçiniz.', 'error');
                 return;
             }
 
@@ -592,6 +606,7 @@ function posScreen() {
                 discount: this.generalDiscount,
                 cash_amount: this.mixedCash,
                 card_amount: this.mixedCard,
+                credit_amount: this.mixedCredit,
             };
 
             try {
@@ -603,6 +618,7 @@ function posScreen() {
                     this.lastSale = data.sale;
                     this.showMixedPayment = false;
                     this.showReceipt = true;
+                    this.mixedCash = 0; this.mixedCard = 0; this.mixedCredit = 0;
                     showToast('Satış başarıyla kaydedildi!');
                 }
             } catch(e) {

@@ -78,14 +78,19 @@ class SaleController extends Controller
     public function searchCustomers(Request $request)
     {
         $query = $request->get('q', '');
+        $tenantId = session('tenant_id');
 
         $customers = Customer::where('is_active', true)
-            ->where(function ($q) use ($query) {
-                $q->where('name', 'like', "%{$query}%")
-                  ->orWhere('phone', 'like', "%{$query}%")
-                  ->orWhere('email', 'like', "%{$query}%");
+            ->where('tenant_id', $tenantId)
+            ->when($query, function ($q) use ($query) {
+                $q->where(function ($sub) use ($query) {
+                    $sub->where('name', 'like', "%{$query}%")
+                        ->orWhere('phone', 'like', "%{$query}%")
+                        ->orWhere('email', 'like', "%{$query}%");
+                });
             })
-            ->limit(20)
+            ->orderBy('name')
+            ->limit(30)
             ->get(['id', 'name', 'phone', 'email', 'balance', 'type']);
 
         return response()->json($customers);
@@ -115,6 +120,7 @@ class SaleController extends Controller
                 'discount' => $request->discount ?? 0,
                 'cash_amount' => $request->cash_amount ?? 0,
                 'card_amount' => $request->card_amount ?? 0,
+                'credit_amount' => $request->credit_amount ?? 0,
                 'staff_name' => auth()->user()->name,
                 'application' => 'pos',
                 'notes' => $request->notes,

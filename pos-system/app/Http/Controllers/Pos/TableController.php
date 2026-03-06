@@ -152,6 +152,7 @@ class TableController extends Controller
                 'discount' => $request->discount ?? 0,
                 'cash_amount' => $request->cash_amount ?? 0,
                 'card_amount' => $request->card_amount ?? 0,
+                'credit_amount' => $request->credit_amount ?? 0,
                 'staff_name' => auth()->user()->name,
                 'application' => 'pos',
                 'notes' => "Masa: {$table->name}",

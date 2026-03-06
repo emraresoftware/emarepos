@@ -15,25 +15,25 @@
             <div class="flex gap-1.5">
                 <button @click="statusFilter = 'all'"
                         class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                        :class="statusFilter === 'all' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-gray-900' : 'bg-slate-700 text-gray-500 hover:text-gray-800'">
+                        :class="statusFilter === 'all' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-700'">
                     Tümü
-                    <span class="ml-1 bg-black/20 px-1.5 py-0.5 rounded-full text-[10px]" x-text="counts.all"></span>
+                    <span class="ml-1 bg-black/10 px-1.5 py-0.5 rounded-full text-[10px]" x-text="counts.all"></span>
                 </button>
                 <button @click="statusFilter = 'pending'"
                         class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                        :class="statusFilter === 'pending' ? 'bg-brand-500 text-gray-900' : 'bg-slate-700 text-gray-500 hover:text-gray-800'">
+                        :class="statusFilter === 'pending' ? 'bg-brand-500 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-700'">
                     <i class="fas fa-clock mr-1"></i>Bekliyor
-                    <span class="ml-1 bg-black/20 px-1.5 py-0.5 rounded-full text-[10px]" x-text="counts.pending"></span>
+                    <span class="ml-1 bg-black/10 px-1.5 py-0.5 rounded-full text-[10px]" x-text="counts.pending"></span>
                 </button>
                 <button @click="statusFilter = 'preparing'"
                         class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                        :class="statusFilter === 'preparing' ? 'bg-amber-500 text-gray-900' : 'bg-slate-700 text-gray-500 hover:text-gray-800'">
+                        :class="statusFilter === 'preparing' ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-700'">
                     <i class="fas fa-utensils mr-1"></i>Hazırlanıyor
-                    <span class="ml-1 bg-black/20 px-1.5 py-0.5 rounded-full text-[10px]" x-text="counts.preparing"></span>
+                    <span class="ml-1 bg-black/10 px-1.5 py-0.5 rounded-full text-[10px]" x-text="counts.preparing"></span>
                 </button>
                 <button @click="statusFilter = 'ready'"
                         class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                        :class="statusFilter === 'ready' ? 'bg-green-500 text-gray-900' : 'bg-slate-700 text-gray-500 hover:text-gray-800'">
+                        :class="statusFilter === 'ready' ? 'bg-emerald-500 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-700'">
                     <i class="fas fa-check mr-1"></i>Hazır
                     <span class="ml-1 bg-black/20 px-1.5 py-0.5 rounded-full text-[10px]" x-text="counts.ready"></span>
                 </button>
@@ -44,7 +44,7 @@
             {{-- Ses Bildirimi --}}
             <button @click="soundEnabled = !soundEnabled"
                     class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                    :class="soundEnabled ? 'bg-emerald-500 text-gray-900' : 'bg-slate-700 text-gray-500 hover:text-gray-800'"
+                    :class="soundEnabled ? 'bg-emerald-500 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-700'"
                     :title="soundEnabled ? 'Ses bildirimi açık' : 'Ses bildirimi kapalı'">
                 <i class="fas" :class="soundEnabled ? 'fa-volume-high' : 'fa-volume-xmark'"></i>
             </button>
@@ -59,7 +59,7 @@
             </div>
 
             {{-- Manuel Yenile --}}
-            <button @click="refreshPage()" class="px-3 py-1.5 bg-slate-700 hover:bg-gray-200 rounded-lg text-xs text-gray-700 transition-colors">
+            <button @click="refreshPage()" class="px-3 py-1.5 bg-white hover:bg-gray-100 border border-gray-200 rounded-lg text-xs text-gray-600 transition-colors">
                 <i class="fas fa-arrows-rotate mr-1"></i>Yenile
             </button>
         </div>
@@ -86,8 +86,8 @@
                         <span class="text-gray-900 font-bold text-sm">#{{ $order->order_number }}</span>
                         {{-- Masa --}}
                         @if($order->tableSession && $order->tableSession->table)
-                        <span class="px-2 py-0.5 bg-slate-700 rounded text-xs text-gray-700">
-                            <i class="fas fa-utensils mr-1 text-gray-500"></i>{{ $order->tableSession->table->name ?? 'Masa ' . $order->tableSession->table->table_no }}
+                        <span class="px-2 py-0.5 bg-slate-700 rounded text-xs text-white">
+                            <i class="fas fa-utensils mr-1 text-gray-300"></i>{{ $order->tableSession->table->name ?? 'Masa ' . $order->tableSession->table->table_no }}</span>
                         </span>
                         @endif
                     </div>
@@ -216,10 +216,7 @@ function kitchenScreen() {
 
         async updateOrderStatus(orderId, status) {
             try {
-                const res = await posAjax(`{{ url('/kitchen/order') }}/${orderId}/status`, {
-                    method: 'POST',
-                    body: JSON.stringify({ status }),
-                });
+                const res = await posAjax(`{{ url('/kitchen/order') }}/${orderId}/status`, { status }, 'POST');
                 showToast(res.message || 'Sipariş durumu güncellendi', 'success');
 
                 // Update card visually
@@ -238,10 +235,7 @@ function kitchenScreen() {
         async toggleItemReady(itemId, currentStatus) {
             const newStatus = currentStatus === 'ready' ? 'pending' : 'ready';
             try {
-                const res = await posAjax(`{{ url('/kitchen/item') }}/${itemId}/status`, {
-                    method: 'POST',
-                    body: JSON.stringify({ status: newStatus }),
-                });
+                const res = await posAjax(`{{ url('/kitchen/item') }}/${itemId}/status`, { status: newStatus }, 'POST');
                 showToast(res.message || 'Ürün durumu güncellendi', 'success');
 
                 // Update item visually

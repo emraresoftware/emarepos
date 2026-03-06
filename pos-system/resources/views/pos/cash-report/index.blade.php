@@ -5,7 +5,7 @@
 @section('content')
 <div class="p-6 overflow-y-auto h-full">
     {{-- Stats --}}
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+    <div class="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
         <div class="bg-white rounded-xl border border-gray-100 p-4 text-center">
             <p class="text-xs text-gray-500">Toplam Kasa</p>
             <p class="text-xl font-bold text-gray-900 mt-1">{{ $stats['total_registers'] }}</p>
@@ -21,6 +21,10 @@
         <div class="bg-white rounded-xl border border-gray-100 p-4 text-center">
             <p class="text-xs text-gray-500">Kart Toplam</p>
             <p class="text-xl font-bold text-brand-500 mt-1">{{ formatCurrency($stats['total_card_all']) }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4 text-center border-l-4 border-l-amber-400">
+            <p class="text-xs text-gray-500">Veresiye Toplam</p>
+            <p class="text-xl font-bold text-amber-500 mt-1">{{ formatCurrency($stats['total_credit_all']) }}</p>
         </div>
         <div class="bg-white rounded-xl border border-gray-100 p-4 text-center">
             <p class="text-xs text-gray-500">Ort. Fark</p>
@@ -56,6 +60,7 @@
                         <th class="px-4 py-3.5 text-right">Satış</th>
                         <th class="px-4 py-3.5 text-right">Nakit</th>
                         <th class="px-4 py-3.5 text-right">Kart</th>
+                        <th class="px-4 py-3.5 text-right text-amber-600">Veresiye</th>
                         <th class="px-4 py-3.5 text-right">Fark</th>
                         <th class="px-4 py-3.5 text-center">Durum</th>
                     </tr>
@@ -70,6 +75,7 @@
                             <td class="px-4 py-3 text-right font-mono font-medium text-gray-900">{{ formatCurrency($reg->total_sales) }}</td>
                             <td class="px-4 py-3 text-right font-mono text-emerald-600">{{ formatCurrency($reg->total_cash) }}</td>
                             <td class="px-4 py-3 text-right font-mono text-brand-500">{{ formatCurrency($reg->total_card) }}</td>
+                            <td class="px-4 py-3 text-right font-mono text-amber-500">{{ formatCurrency($creditByRegister[$reg->id] ?? 0) }}</td>
                             <td class="px-4 py-3 text-right font-mono {{ ($reg->difference ?? 0) >= 0 ? 'text-emerald-600' : 'text-red-500' }}">
                                 {{ formatCurrency($reg->difference ?? 0) }}
                             </td>
@@ -83,7 +89,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-4 py-12 text-center">
+                            <td colspan="10" class="px-4 py-12 text-center">
                                 <p class="text-gray-500 text-sm">Kasa raporu bulunamadı</p>
                             </td>
                         </tr>

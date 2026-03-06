@@ -96,18 +96,25 @@ class SaleService
             }
             
             // Handle credit/veresiye payment - update customer balance
-            if (($data['payment_method'] === 'credit') && !empty($data['customer_id'])) {
+            $creditAmount = 0;
+            if ($data['payment_method'] === 'credit') {
+                $creditAmount = $calculated['grand_total'];
+            } elseif ($data['payment_method'] === 'mixed' && !empty($data['credit_amount'])) {
+                $creditAmount = (float)$data['credit_amount'];
+            }
+
+            if ($creditAmount > 0 && !empty($data['customer_id'])) {
                 $customer = Customer::find($data['customer_id']);
                 if ($customer) {
-                    $customer->decrement('balance', $calculated['grand_total']);
+                    $customer->decrement('balance', $creditAmount);
                     
                     AccountTransaction::create([
                         'tenant_id' => $tenantId,
                         'customer_id' => $customer->id,
                         'type' => 'sale',
-                        'amount' => -$calculated['grand_total'],
+                        'amount' => -$creditAmount,
                         'balance_after' => $customer->balance,
-                        'description' => "Satış: {$receiptNo}",
+                        'description' => "Satış (Veresiye): {$receiptNo}",
                         'reference' => $receiptNo,
                         'transaction_date' => Carbon::now(),
                     ]);

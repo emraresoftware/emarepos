@@ -36,7 +36,7 @@
                 <button @click="showTransfer = true" class="px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl text-sm">
                     <i class="fas fa-exchange-alt mr-1"></i> Transfer
                 </button>
-                <button @click="payTable()" class="px-4 py-2 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 rounded-xl text-sm font-medium">
+                <button @click="showPayModal = true" class="px-4 py-2 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 rounded-xl text-sm font-medium">
                     <i class="fas fa-cash-register mr-1"></i> Hesap Al
                 </button>
                 @endif
@@ -190,6 +190,102 @@
         @endif
     </div>
 
+    {{-- Ödeme Modal --}}
+    <div x-show="showPayModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm" x-cloak>
+        <div class="bg-white rounded-2xl border border-gray-200 p-6 w-[420px] shadow-2xl" @click.away="showPayModal = false">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-lg font-bold text-gray-900"><i class="fas fa-cash-register mr-2 text-brand-500"></i>Hesap Al</h3>
+                <button @click="showPayModal = false" class="text-gray-400 hover:text-gray-700"><i class="fas fa-times"></i></button>
+            </div>
+
+            {{-- Toplam --}}
+            <div class="bg-gray-50 rounded-xl p-4 mb-5 flex items-center justify-between">
+                <span class="text-sm text-gray-500">Masa Tutarı</span>
+                <span class="text-xl font-bold text-gray-900">{{ number_format($session?->orders->sum(function($o) { return $o->items->sum('total'); }) ?? 0, 2) }} ₺</span>
+            </div>
+
+            {{-- Ödeme Tipi Seçimi --}}
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Ödeme Yöntemi</p>
+            <div class="grid grid-cols-2 gap-2 mb-4">
+                <button @click="payMethod = 'cash'" :class="payMethod === 'cash' ? 'ring-2 ring-brand-500 bg-brand-50 text-brand-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'"
+                        class="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all">
+                    <i class="fas fa-money-bill-wave"></i> Nakit
+                </button>
+                <button @click="payMethod = 'card'" :class="payMethod === 'card' ? 'ring-2 ring-blue-500 bg-blue-50 text-blue-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'"
+                        class="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all">
+                    <i class="fas fa-credit-card"></i> Kart
+                </button>
+                <button @click="payMethod = 'credit'; searchPayCustomers('')" :class="payMethod === 'credit' ? 'ring-2 ring-amber-500 bg-amber-50 text-amber-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'"
+                        class="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all">
+                    <i class="fas fa-user-clock"></i> Veresiye
+                </button>
+                <button @click="payMethod = 'mixed'" :class="payMethod === 'mixed' ? 'ring-2 ring-purple-500 bg-purple-50 text-purple-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'"
+                        class="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all">
+                    <i class="fas fa-layer-group"></i> Karışık
+                </button>
+            </div>
+
+            {{-- Veresiye: Müşteri Seçimi --}}
+            <div x-show="payMethod === 'credit' || payMethod === 'mixed'" class="mb-4">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Cari Seçin</p>
+                <div class="relative">
+                    <input type="text" x-model="payCustomerSearch" @input.debounce.300ms="searchPayCustomers(payCustomerSearch)"
+                           @focus="searchPayCustomers(payCustomerSearch)"
+                           placeholder="Müşteri adı veya telefon..." 
+                           class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+                    <div x-show="payCustomers.length > 0 && !payCustomerId" class="absolute z-10 left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg max-h-40 overflow-y-auto">
+                        <template x-for="c in payCustomers" :key="c.id">
+                            <button @click="payCustomerId = c.id; payCustomerName = c.name; payCustomerSearch = c.name; payCustomers = []"
+                                    class="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0">
+                                <span class="font-medium text-gray-900" x-text="c.name"></span>
+                                <span class="text-xs text-gray-400 ml-2" x-text="c.phone || ''"></span>
+                                <span x-show="c.balance" class="text-xs ml-1" :class="c.balance < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="(c.balance > 0 ? '+' : '') + parseFloat(c.balance).toFixed(2) + '₺'"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+                <div x-show="payCustomerId" class="mt-2 flex items-center gap-2 bg-brand-50 border border-brand-200 rounded-xl px-3 py-2">
+                    <i class="fas fa-user-check text-brand-500 text-xs"></i>
+                    <span class="text-sm text-brand-700 font-medium" x-text="payCustomerName"></span>
+                    <button @click="payCustomerId = null; payCustomerName = ''; payCustomerSearch = ''" class="ml-auto text-brand-400 hover:text-red-500">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                </div>
+            </div>
+
+            {{-- Karışık: Tutarlar --}}
+            <div x-show="payMethod === 'mixed'" class="mb-4 space-y-2">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tutar Dağılımı</p>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-500 w-20"><i class="fas fa-money-bill-wave mr-1 text-emerald-500"></i>Nakit</span>
+                    <input type="number" x-model.number="payMixedCash" min="0" step="0.01" placeholder="0.00"
+                           class="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none">
+                    <span class="text-xs text-gray-400">₺</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-500 w-20"><i class="fas fa-credit-card mr-1 text-blue-500"></i>Kart</span>
+                    <input type="number" x-model.number="payMixedCard" min="0" step="0.01" placeholder="0.00"
+                           class="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none">
+                    <span class="text-xs text-gray-400">₺</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-500 w-20"><i class="fas fa-user-clock mr-1 text-amber-500"></i>Veresiye</span>
+                    <input type="number" x-model.number="payMixedCredit" min="0" step="0.01" placeholder="0.00"
+                           class="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none">
+                    <span class="text-xs text-gray-400">₺</span>
+                </div>
+            </div>
+
+            {{-- Onay Butonu --}}
+            <button @click="confirmPayTable()" :disabled="payProcessing || (payMethod==='credit' && !payCustomerId) || (payMethod==='mixed' && !payCustomerId && payMixedCredit > 0)"
+                    class="w-full py-3 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 rounded-xl font-medium text-gray-900 disabled:opacity-50 flex items-center justify-center gap-2">
+                <template x-if="payProcessing"><i class="fas fa-spinner fa-spin"></i></template>
+                <template x-if="!payProcessing"><i class="fas fa-check-circle"></i></template>
+                <span x-text="payProcessing ? 'İşleniyor...' : 'Ödemeyi Tamamla'"></span>
+            </button>
+        </div>
+    </div>
+
     {{-- Transfer Modal --}}
     <div x-show="showTransfer" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm" x-cloak>
         <div class="bg-slate-800 rounded-2xl border border-gray-700 p-6 w-96 shadow-2xl" @click.away="showTransfer = false">
@@ -223,6 +319,18 @@ function tableDetail() {
         orderNote: '',
         showTransfer: false,
         transferTarget: '',
+
+        // Ödeme modal
+        showPayModal: false,
+        payMethod: 'cash',
+        payCustomerSearch: '',
+        payCustomers: [],
+        payCustomerId: null,
+        payCustomerName: '',
+        payMixedCash: 0,
+        payMixedCard: 0,
+        payMixedCredit: 0,
+        payProcessing: false,
 
         async init() {
             await this.loadProducts();
@@ -312,20 +420,54 @@ function tableDetail() {
             }
         },
 
-        async payTable() {
+        async searchPayCustomers(query) {
             try {
-                const data = await posAjax('{{ route("pos.tables.pay", $table->id) }}', {
-                    payment_method: 'cash',
-                }, 'POST');
+                const url = query && query.length > 0
+                    ? '{{ route("pos.customers.search") }}?q=' + encodeURIComponent(query)
+                    : '{{ route("pos.customers.search") }}';
+                const data = await posAjax(url, {}, 'GET');
+                this.payCustomers = data;
+            } catch(e) { console.error(e); }
+        },
+
+        async confirmPayTable() {
+            if (this.payProcessing) return;
+            if ((this.payMethod === 'credit') && !this.payCustomerId) {
+                showToast('Veresiye için müşteri seçiniz.', 'error'); return;
+            }
+            if (this.payMethod === 'mixed' && this.payMixedCredit > 0 && !this.payCustomerId) {
+                showToast('Veresiye tutarı için müşteri seçiniz.', 'error'); return;
+            }
+            this.payProcessing = true;
+            try {
+                const payload = { payment_method: this.payMethod };
+                if (this.payCustomerId) payload.customer_id = this.payCustomerId;
+                if (this.payMethod === 'cash') {
+                    payload.cash_amount = 0; // backend zaten grand_total'ı alır
+                } else if (this.payMethod === 'card') {
+                    payload.card_amount = 0;
+                } else if (this.payMethod === 'mixed') {
+                    payload.cash_amount  = this.payMixedCash;
+                    payload.card_amount  = this.payMixedCard;
+                    payload.credit_amount = this.payMixedCredit;
+                }
+                const data = await posAjax('{{ route("pos.tables.pay", $table->id) }}', payload, 'POST');
                 if (data.success) {
-                    showToast('Hesap alındı! Satış: ' + (data.receipt_no || ''));
+                    showToast('Hesap alındı! Satış: ' + (data.receipt_no || data.sale?.receipt_no || ''));
                     window.location.href = '{{ route("pos.tables") }}';
                 } else {
                     showToast(data.message || 'Hesap alınamadı.', 'error');
                 }
             } catch(e) {
                 showToast(e.message || 'Hesap alınamadı.', 'error');
+            } finally {
+                this.payProcessing = false;
             }
+        },
+
+        async payTable() {
+            // Artık modal açıyor
+            this.showPayModal = true;
         },
 
         async transferTable() {

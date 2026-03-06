@@ -27,15 +27,36 @@ class CashReportController extends Controller
 
         $registers = $query->paginate(30);
 
+        $branchId = session('branch_id');
+
         $stats = [
             'total_registers' => CashRegister::count(),
             'total_sales_all' => CashRegister::where('status', 'closed')->sum('total_sales'),
-            'total_cash_all' => CashRegister::where('status', 'closed')->sum('total_cash'),
-            'total_card_all' => CashRegister::where('status', 'closed')->sum('total_card'),
-            'avg_difference' => CashRegister::where('status', 'closed')->avg('difference') ?? 0,
+            'total_cash_all'  => CashRegister::where('status', 'closed')->sum('total_cash'),
+            'total_card_all'  => CashRegister::where('status', 'closed')->sum('total_card'),
+            'avg_difference'  => CashRegister::where('status', 'closed')->avg('difference') ?? 0,
+            // Veresiye: Sales tablosundan hesapla (cash_register'da sütun yok)
+            'total_credit_all' => Sale::where('branch_id', $branchId)
+                ->where('status', 'completed')
+                ->where('payment_method', 'credit')
+                ->when($request->filled('start_date'), fn($q) => $q->whereDate('sold_at', '>=', $request->start_date))
+                ->when($request->filled('end_date'),   fn($q) => $q->whereDate('sold_at', '<=', $request->end_date))
+                ->sum('grand_total'),
         ];
 
-        return view('pos.cash-report.index', compact('registers', 'stats'));
+        // Her kayıt için veresiye toplamını hesapla
+        $registerIds = $registers->pluck('id');
+        $creditByRegister = [];
+        foreach ($registers as $reg) {
+            $q = Sale::where('branch_id', $reg->branch_id)
+                ->where('status', 'completed')
+                ->where('payment_method', 'credit')
+                ->where('sold_at', '>=', $reg->opened_at);
+            if ($reg->closed_at) $q->where('sold_at', '<=', $reg->closed_at);
+            $creditByRegister[$reg->id] = $q->sum('grand_total');
+        }
+
+        return view('pos.cash-report.index', compact('registers', 'stats', 'creditByRegister'));
     }
 
     public function show(CashRegister $register)

@@ -48,6 +48,11 @@
                         style="background:#eef2ff;color:#6366f1;">
                         <i class="fas fa-plus text-[10px]"></i> Masa Ekle
                     </button>
+                    <button @click="showBulkTableModal = true"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-teal-100 transition-colors"
+                        style="background:#f0fdfa;color:#0d9488;">
+                        <i class="fas fa-layer-group text-[10px]"></i> Toplu Masa Ekle
+                    </button>
                     <button @click="saveLayout()"
                         :disabled="!layoutDirty"
                         class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
@@ -368,6 +373,93 @@
         </div>
     </template>
 
+    {{-- ─── TOPLU MASA MODAL ────────────────────────────────── --}}
+    <template x-teleport="body">
+        <div x-show="showBulkTableModal" x-cloak
+             class="fixed inset-0 z-50 flex items-center justify-center p-4"
+             @keydown.escape.window="showBulkTableModal = false">
+            <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" @click="showBulkTableModal = false"></div>
+            <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 z-10">
+                <h3 class="text-lg font-bold text-gray-900 mb-1">Toplu Masa Ekle</h3>
+                <p class="text-xs text-gray-400 mb-5">Belirttiğiniz aralıkta masalar otomatik oluşturulur</p>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Ön Ek (İsteğe Bağlı)</label>
+                            <input x-model="bulkForm.prefix" type="text" placeholder="Masa, Salon, VIP…"
+                                   class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-300 focus:border-teal-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Kapasite</label>
+                            <div class="flex items-center gap-2">
+                                <button @click="bulkForm.capacity = Math.max(1, bulkForm.capacity - 1)"
+                                    class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold">−</button>
+                                <span class="text-xl font-bold text-gray-900 w-8 text-center" x-text="bulkForm.capacity"></span>
+                                <button @click="bulkForm.capacity = Math.min(30, bulkForm.capacity + 1)"
+                                    class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Başlangıç No</label>
+                            <input x-model.number="bulkForm.start" type="number" min="1"
+                                   class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-300 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Adet (maks 50)</label>
+                            <input x-model.number="bulkForm.count" type="number" min="1" max="50"
+                                   class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-300 outline-none">
+                        </div>
+                    </div>
+                    <div class="bg-teal-50 rounded-xl px-4 py-2 text-xs text-teal-700">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Oluşturulacak masalar:
+                        <span class="font-semibold"
+                              x-text="(bulkForm.prefix ? bulkForm.prefix + ' ' : '') + bulkForm.start + ' → ' + (bulkForm.prefix ? bulkForm.prefix + ' ' : '') + (parseInt(bulkForm.start) + parseInt(bulkForm.count) - 1)"></span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Masa Şekli</label>
+                        <div class="flex gap-2">
+                            <button @click="bulkForm.shape = 'square'"
+                                class="flex-1 py-2 rounded-xl border-2 text-xs font-medium transition-all"
+                                :class="bulkForm.shape === 'square' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-200 text-gray-500'">Kare</button>
+                            <button @click="bulkForm.shape = 'circle'"
+                                class="flex-1 py-2 rounded-xl border-2 text-xs font-medium transition-all"
+                                :class="bulkForm.shape === 'circle' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-200 text-gray-500'">Yuvarlak</button>
+                            <button @click="bulkForm.shape = 'rectangle'"
+                                class="flex-1 py-2 rounded-xl border-2 text-xs font-medium transition-all"
+                                :class="bulkForm.shape === 'rectangle' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-200 text-gray-500'">Dikdörtgen</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Mekan</label>
+                        <select x-model="bulkForm.table_region_id"
+                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-300 outline-none bg-white">
+                            <option :value="null">— Mekansız —</option>
+                            <template x-for="region in regions" :key="region.id">
+                                <option :value="region.id" x-text="region.name"></option>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button @click="showBulkTableModal = false"
+                        class="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors">
+                        İptal
+                    </button>
+                    <button @click="saveBulkTables()"
+                        :disabled="bulkForm.count < 1"
+                        class="flex-1 py-2.5 rounded-xl text-white text-sm font-medium hover:shadow-lg transition-all disabled:opacity-50"
+                        style="background:linear-gradient(to right,#0d9488,#0891b2);">
+                        <i class="fas fa-layer-group mr-1.5"></i>
+                        <span x-text="bulkForm.count + ' Masa Ekle'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+
 </div>
 
 <style>
@@ -412,6 +504,9 @@ function masaHaritasi() {
         showTableModal: false,
         editingTable: null,
         tableForm: { table_no: '', name: '', capacity: 4, shape: 'square', table_region_id: null },
+
+        showBulkTableModal: false,
+        bulkForm: { prefix: 'Masa', start: 1, count: 5, capacity: 4, shape: 'square', table_region_id: null },
 
         draggingTable: null,
 
@@ -604,6 +699,39 @@ function masaHaritasi() {
                     showToast('Mekan silindi', 'success');
                 } else showToast(data.message || 'Hata', 'error');
             } catch { showToast('Sunucu hatası', 'error'); }
+        },
+
+        async saveBulkTables() {
+            const count = Math.min(Math.max(parseInt(this.bulkForm.count) || 1, 1), 50);
+            const start = parseInt(this.bulkForm.start) || 1;
+            const prefix = this.bulkForm.prefix.trim();
+            let added = 0;
+            for (let i = 0; i < count; i++) {
+                const no   = String(start + i);
+                const name = prefix ? prefix + ' ' + no : no;
+                try {
+                    const data = await posAjax('/tables/store', {
+                        table_no: no,
+                        name: name,
+                        capacity: this.bulkForm.capacity,
+                        shape: this.bulkForm.shape,
+                        table_region_id: this.bulkForm.table_region_id,
+                    }, 'POST');
+                    if (data.success) {
+                        this.tables.push({
+                            id: data.table.id, table_no: data.table.table_no, name: data.table.name,
+                            capacity: data.table.capacity, status: 'empty',
+                            shape: data.table.shape || 'square', color: data.table.color,
+                            table_region_id: data.table.table_region_id,
+                            pos_x: data.table.pos_x || 5 + (i * 12), pos_y: data.table.pos_y || 5,
+                            active_session: null,
+                        });
+                        added++;
+                    }
+                } catch (e) { /* devam et */ }
+            }
+            this.showBulkTableModal = false;
+            showToast(added + ' masa eklendi!', 'success');
         },
 
         // ─── Masa Modal ──────────────────────────────────────
