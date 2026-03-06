@@ -18,6 +18,9 @@ class TableRegion extends Model
         'name',
         'sort_order',
         'is_active',
+        'bg_color',
+        'icon',
+        'description',
     ];
 
     protected function casts(): array

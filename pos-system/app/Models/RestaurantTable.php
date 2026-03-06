@@ -22,6 +22,10 @@ class RestaurantTable extends Model
         'status',
         'sort_order',
         'is_active',
+        'pos_x',
+        'pos_y',
+        'shape',
+        'color',
     ];
 
     protected function casts(): array
@@ -29,6 +33,8 @@ class RestaurantTable extends Model
         return [
             'capacity' => 'integer',
             'is_active' => 'boolean',
+            'pos_x'    => 'float',
+            'pos_y'    => 'float',
         ];
     }
 

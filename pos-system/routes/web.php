@@ -52,6 +52,15 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class])->group(fu
     Route::post('/tables/{table}/order', [TableController::class, 'addOrder'])->name('pos.tables.order');
     Route::post('/tables/{table}/pay', [TableController::class, 'pay'])->name('pos.tables.pay');
     Route::post('/tables/{table}/transfer', [TableController::class, 'transfer'])->name('pos.tables.transfer');
+    // Masa Tasarımcı — CRUD
+    Route::post('/tables/layout', [TableController::class, 'updateLayout'])->name('pos.tables.layout');
+    Route::post('/tables/store', [TableController::class, 'storeTable'])->name('pos.tables.store');
+    Route::put('/tables/{table}/update', [TableController::class, 'updateTable'])->name('pos.tables.update');
+    Route::delete('/tables/{table}/destroy', [TableController::class, 'destroyTable'])->name('pos.tables.destroy');
+    // Mekan (Region) CRUD
+    Route::post('/regions', [TableController::class, 'storeRegion'])->name('pos.regions.store');
+    Route::put('/regions/{region}', [TableController::class, 'updateRegion'])->name('pos.regions.update');
+    Route::delete('/regions/{region}', [TableController::class, 'destroyRegion'])->name('pos.regions.destroy');
     
     // Mutfak (Kitchen)
     Route::get('/kitchen', [KitchenController::class, 'index'])->name('pos.kitchen');

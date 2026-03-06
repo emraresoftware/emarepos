@@ -167,15 +167,21 @@
         // CSRF token for AJAX
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-        function posAjax(url, options = {}) {
+        function posAjax(url, body = {}, method = 'POST') {
+            // body bir fetch options objesi ise eski imzayı destekle
+            const isOptions = body && (body.method || body.headers || body.body !== undefined);
+            const fetchOpts = isOptions ? body : {
+                method,
+                body: method !== 'GET' ? JSON.stringify(body) : undefined,
+            };
             return fetch(url, {
+                ...fetchOpts,
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
-                    ...options.headers,
+                    ...(fetchOpts.headers || {}),
                 },
-                ...options,
             }).then(async r => {
                 const data = await r.json();
                 if (!r.ok) throw { status: r.status, ...data };
