@@ -19,6 +19,10 @@ use App\Http\Controllers\Pos\FirmController;
 use App\Http\Controllers\Pos\DayOperationController;
 use App\Http\Controllers\Pos\CashReportController;
 use App\Http\Controllers\Pos\SettingController;
+use App\Http\Controllers\Pos\IncomeExpenseController;
+use App\Http\Controllers\Pos\StaffController;
+use App\Http\Controllers\Pos\FeedbackController;
+use App\Http\Controllers\Pos\HardwareController;
 
 // Auth routes
 Route::get('/login', [PosLoginController::class, 'showLogin'])->name('pos.login');
@@ -122,4 +126,37 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class])->group(fu
     Route::get('/settings', [SettingController::class, 'index'])->name('pos.settings');
     Route::put('/settings/branch', [SettingController::class, 'updateBranch'])->name('pos.settings.branch');
     Route::put('/settings/general', [SettingController::class, 'updateGeneral'])->name('pos.settings.general');
+
+    // Gelir / Gider (Income & Expense)
+    Route::get('/income-expense', [IncomeExpenseController::class, 'index'])->name('pos.income-expense');
+    Route::post('/income-expense/income', [IncomeExpenseController::class, 'storeIncome'])->name('pos.income-expense.income.store');
+    Route::delete('/income-expense/income/{income}', [IncomeExpenseController::class, 'destroyIncome'])->name('pos.income-expense.income.destroy');
+    Route::post('/income-expense/expense', [IncomeExpenseController::class, 'storeExpense'])->name('pos.income-expense.expense.store');
+    Route::delete('/income-expense/expense/{expense}', [IncomeExpenseController::class, 'destroyExpense'])->name('pos.income-expense.expense.destroy');
+    Route::post('/income-expense/type', [IncomeExpenseController::class, 'storeType'])->name('pos.income-expense.type.store');
+    Route::delete('/income-expense/type/{type}', [IncomeExpenseController::class, 'destroyType'])->name('pos.income-expense.type.destroy');
+
+    // Personel (Staff)
+    Route::get('/staff', [StaffController::class, 'index'])->name('pos.staff');
+    Route::post('/staff', [StaffController::class, 'store'])->name('pos.staff.store');
+    Route::put('/staff/{staff}', [StaffController::class, 'update'])->name('pos.staff.update');
+    Route::delete('/staff/{staff}', [StaffController::class, 'destroy'])->name('pos.staff.destroy');
+
+    // Donanım Yönetimi
+    Route::get('/hardware', [HardwareController::class, 'index'])->name('pos.hardware');
+    Route::post('/hardware', [HardwareController::class, 'store'])->name('pos.hardware.store');
+    Route::put('/hardware/{device}', [HardwareController::class, 'update'])->name('pos.hardware.update');
+    Route::delete('/hardware/{device}', [HardwareController::class, 'destroy'])->name('pos.hardware.destroy');
+    Route::post('/hardware/{device}/test', [HardwareController::class, 'test'])->name('pos.hardware.test');
+    Route::get('/hardware/drivers', [HardwareController::class, 'drivers'])->name('pos.hardware.drivers');
+
+    // Geri Bildirim — API (widget)
+    Route::post('/api/feedback', [FeedbackController::class, 'store'])->name('pos.feedback.store');
+    Route::get('/api/feedback/my', [FeedbackController::class, 'my'])->name('pos.feedback.my');
+
+    // Geri Bildirim — Admin yönetim sayfası
+    Route::get('/feedback', [FeedbackController::class, 'index'])->name('pos.feedback');
+    Route::patch('/feedback/{feedback}/status', [FeedbackController::class, 'updateStatus'])->name('pos.feedback.status');
+    Route::post('/feedback/{feedback}/reply', [FeedbackController::class, 'reply'])->name('pos.feedback.reply');
+    Route::delete('/feedback/{feedback}', [FeedbackController::class, 'destroy'])->name('pos.feedback.destroy');
 });

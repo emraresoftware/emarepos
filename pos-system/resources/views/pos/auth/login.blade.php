@@ -44,9 +44,9 @@
             <!-- Content -->
             <div class="relative z-10 text-center px-12">
                 <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-brand-500/30">
-                    <span class="text-white font-bold text-3xl">EF</span>
+                    <span class="text-white font-bold text-3xl">EP</span>
                 </div>
-                <h1 class="text-4xl font-extrabold text-white mb-3">Emare Finance</h1>
+                <h1 class="text-4xl font-extrabold text-white mb-3">Emare POS</h1>
                 <p class="text-brand-200 text-lg">POS ve muhasebe yazılımınız</p>
                 <div class="mt-10 grid grid-cols-3 gap-6 max-w-sm mx-auto">
                     <div class="text-center">
@@ -71,9 +71,9 @@
                 <!-- Mobile Logo -->
                 <div class="lg:hidden text-center mb-8">
                     <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-brand-500/30">
-                        <span class="text-white font-bold text-xl">EF</span>
+                        <span class="text-white font-bold text-xl">EP</span>
                     </div>
-                    <h1 class="text-xl font-bold text-gray-900">Emare <span class="gradient-text">Finance</span></h1>
+                    <h1 class="text-xl font-bold text-gray-900">Emare <span class="gradient-text">POS</span></h1>
                 </div>
 
                 <div class="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 p-8">
@@ -124,7 +124,7 @@
                 </div>
 
                 <div class="mt-6 text-center text-xs text-gray-400">
-                    Emare Finance POS Sistemi v1.0
+                    Emare POS Sistemi v1.0
                 </div>
             </div>
         </div>

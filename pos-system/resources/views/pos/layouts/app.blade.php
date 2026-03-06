@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Emare POS') — Emare Finance</title>
+    <title>@yield('title', 'Emare POS') — Emare POS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -68,7 +68,7 @@
             <div class="p-3.5 border-b border-gray-100 flex items-center" :class="sidebarOpen ? 'justify-between' : 'justify-center'">
                 <div x-show="sidebarOpen" class="flex items-center gap-2.5">
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center shadow-lg shadow-brand-500/30">
-                        <span class="text-white font-bold text-sm">EF</span>
+                        <span class="text-white font-bold text-sm">EP</span>
                     </div>
                     <span class="text-lg font-bold text-gray-900">Emare <span class="gradient-text">POS</span></span>
                 </div>
@@ -98,6 +98,10 @@
                         ['route' => 'pos.users', 'icon' => 'fa-user-gear', 'label' => 'Kullanıcılar'],
                         ['route' => 'pos.reports', 'icon' => 'fa-chart-pie', 'label' => 'Raporlar'],
                         ['route' => 'pos.stock', 'icon' => 'fa-warehouse', 'label' => 'Depo'],
+                        ['route' => 'pos.income-expense', 'icon' => 'fa-scale-balanced', 'label' => 'Gelir/Gider'],
+                        ['route' => 'pos.staff', 'icon' => 'fa-id-badge', 'label' => 'Personel'],
+                        ['route' => 'pos.hardware', 'icon' => 'fa-screwdriver-wrench', 'label' => 'Donanım'],
+                        ['route' => 'pos.feedback', 'icon' => 'fa-comments', 'label' => 'Geri Bildirimler'],
                         ['route' => 'pos.settings', 'icon' => 'fa-gear', 'label' => 'Ayarlar'],
                     ];
                 @endphp
@@ -201,5 +205,8 @@
         }
     </script>
     @stack('scripts')
+
+    {{-- Emare Geri Bildirim Widget --}}
+    <script src="/feedback_widget.js" data-api="/api/feedback"></script>
 </body>
 </html>

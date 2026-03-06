@@ -25,6 +25,7 @@ use App\Models\CashRegister;
 use App\Models\Firm;
 use App\Models\StockMovement;
 use App\Models\AccountTransaction;
+use App\Models\HardwareDriver;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -241,7 +242,7 @@ class DatabaseSeeder extends Seeder
             'status' => 'active',
             'plan_id' => $enterprisePlan->id,
             'trial_ends_at' => Carbon::now()->addDays(14),
-            'billing_email' => 'admin@emareposs.com',
+            'billing_email' => 'admin@emareas.com',
             'meta' => ['company' => 'Demo A.Ş.', 'tax_office' => 'Kadıköy', 'tax_number' => '1234567890'],
         ]);
 
@@ -318,8 +319,8 @@ class DatabaseSeeder extends Seeder
             'role_id' => $roles['admin']->id,
             'is_super_admin' => true,
             'name' => 'Sistem Yöneticisi',
-            'email' => 'admin@emareposs.com',
-            'password' => Hash::make('123456'),
+            'email' => 'admin@emareas.com',
+            'password' => Hash::make('Emre2025'),
         ]);
 
         // ─── 13. Sample Categories ──────────────────────────────
@@ -422,6 +423,76 @@ class DatabaseSeeder extends Seeder
                 'tenant_id' => $tenant->id,
                 'is_active' => true,
                 'balance' => 0,
+            ]));
+        }
+
+        // ─── 17b. Gelir / Gider Türleri ─────────────────────────
+        $incomeTypeNames  = ['Satış Geliri', 'Kira Geliri', 'Faiz Geliri', 'Diğer Gelir'];
+        $expenseTypeNames = ['Kira Gideri', 'Personel Gideri', 'Hammadde Alımı', 'Elektrik-Su-Doğalgaz', 'Temizlik Gideri', 'Diğer Gider'];
+
+        $incomeTypes = [];
+        foreach ($incomeTypeNames as $name) {
+            $incomeTypes[] = \App\Models\IncomeExpenseType::create([
+                'tenant_id' => $tenant->id,
+                'name'      => $name,
+                'direction' => 'income',
+                'is_active' => true,
+            ]);
+        }
+        $expenseTypes = [];
+        foreach ($expenseTypeNames as $name) {
+            $expenseTypes[] = \App\Models\IncomeExpenseType::create([
+                'tenant_id' => $tenant->id,
+                'name'      => $name,
+                'direction' => 'expense',
+                'is_active' => true,
+            ]);
+        }
+
+        // Demo gelir/gider kayıtları (son 7 gün)
+        for ($i = 6; $i >= 0; $i--) {
+            $d = now()->subDays($i)->toDateString();
+            \App\Models\Income::create([
+                'tenant_id'              => $tenant->id,
+                'income_expense_type_id' => $incomeTypes[0]->id,
+                'type_name'              => $incomeTypes[0]->name,
+                'amount'                 => rand(800, 3500),
+                'payment_type'           => 'cash',
+                'date'                   => $d,
+                'note'                   => 'Günlük satış geliri',
+            ]);
+        }
+        \App\Models\Expense::create([
+            'tenant_id'              => $tenant->id,
+            'income_expense_type_id' => $expenseTypes[0]->id,
+            'type_name'              => $expenseTypes[0]->name,
+            'amount'                 => 4500,
+            'payment_type'           => 'transfer',
+            'date'                   => now()->startOfMonth()->toDateString(),
+            'note'                   => 'Aylık kira ödemesi',
+        ]);
+        \App\Models\Expense::create([
+            'tenant_id'              => $tenant->id,
+            'income_expense_type_id' => $expenseTypes[2]->id,
+            'type_name'              => $expenseTypes[2]->name,
+            'amount'                 => 1200,
+            'payment_type'           => 'cash',
+            'date'                   => now()->subDays(3)->toDateString(),
+            'note'                   => 'Et ve sebze alımı',
+        ]);
+
+        // ─── 17c. Personel (Staff) ───────────────────────────────
+        $staffData = [
+            ['name' => 'Ali Veli',     'role' => 'Kasiyer',  'phone' => '0530 111 22 33', 'total_sales' => 45230.50, 'total_transactions' => 312],
+            ['name' => 'Ayşe Demir',   'role' => 'Garson',   'phone' => '0531 222 33 44', 'total_sales' => 32100.00, 'total_transactions' => 245],
+            ['name' => 'Mehmet Şahin', 'role' => 'Şef',      'phone' => '0532 333 44 55', 'total_sales' => 0,        'total_transactions' => 0],
+            ['name' => 'Fatma Kaya',   'role' => 'Garson',   'phone' => null,              'total_sales' => 18750.75, 'total_transactions' => 189],
+        ];
+        foreach ($staffData as $s) {
+            \App\Models\Staff::create(array_merge($s, [
+                'tenant_id' => $tenant->id,
+                'branch_id' => $branch->id,
+                'is_active' => true,
             ]));
         }
 
@@ -621,7 +692,46 @@ class DatabaseSeeder extends Seeder
             $order->update(['grand_total' => $orderTotal, 'subtotal' => $orderTotal]);
         }
 
-        // ─── 20. Stock Movements ────────────────────────────────
+        // ─── 20. Hardware Drivers (Evrensel Sürücü Kataloğu) ──────────
+        $hardwareDrivers = [
+            // Fiş Yazıcılar
+            ['device_type'=>'printer','manufacturer'=>'Epson','model'=>'TM-T88VI','vendor_id'=>'04b8','product_id'=>'0202','protocol'=>'ESC/POS','connections'=>['usb','serial','ethernet','bluetooth'],'features'=>['cut','cash_drawer','logo','barcode','80mm'],'specs'=>['paper_width'=>'80mm','print_speed'=>'350mm/s','dpi'=>180],'notes'=>'Türkiye\'de en yaygın. USB tak-çalıştır.'],
+            ['device_type'=>'printer','manufacturer'=>'Epson','model'=>'TM-T20III','vendor_id'=>'04b8','product_id'=>'0203','protocol'=>'ESC/POS','connections'=>['usb','serial','ethernet'],'features'=>['cut','cash_drawer','logo','barcode','80mm'],'specs'=>['paper_width'=>'80mm','print_speed'=>'200mm/s','dpi'=>180],'notes'=>'Ekonomik model. Küçük işletmeler için ideal.'],
+            ['device_type'=>'printer','manufacturer'=>'Epson','model'=>'TM-T82III','vendor_id'=>'04b8','product_id'=>'0204','protocol'=>'ESC/POS','connections'=>['usb','serial','ethernet'],'features'=>['cut','cash_drawer','logo','barcode','80mm'],'specs'=>['paper_width'=>'80mm','print_speed'=>'250mm/s','dpi'=>180],'notes'=>'Orta segment. Yoğun kullanım için.'],
+            ['device_type'=>'printer','manufacturer'=>'Bixolon','model'=>'SRP-350V','vendor_id'=>'1504','product_id'=>'0006','protocol'=>'ESC/POS','connections'=>['usb','serial','ethernet','bluetooth'],'features'=>['cut','cash_drawer','logo','barcode','80mm'],'specs'=>['paper_width'=>'80mm','print_speed'=>'300mm/s','dpi'=>180],'notes'=>'Güney Kore markası. Sağlam yapı, uzun ömür.'],
+            ['device_type'=>'printer','manufacturer'=>'Star Micronics','model'=>'TSP100IV','vendor_id'=>'0519','product_id'=>'0003','protocol'=>'StarPRNT','connections'=>['usb','ethernet','bluetooth','wifi'],'features'=>['cut','cash_drawer','logo','barcode','80mm','cloud_print'],'specs'=>['paper_width'=>'80mm','print_speed'=>'250mm/s','dpi'=>203],'notes'=>'Bulut yazdırma desteği. iOS/Android uyumlu.'],
+            ['device_type'=>'printer','manufacturer'=>'Rongta','model'=>'RP80USE','vendor_id'=>'0fe6','product_id'=>'811e','protocol'=>'ESC/POS','connections'=>['usb','serial','ethernet'],'features'=>['cut','cash_drawer','logo','barcode','80mm'],'specs'=>['paper_width'=>'80mm','print_speed'=>'260mm/s','dpi'=>180],'notes'=>'Ekonomik seçenek. Küçük işletmeler için.'],
+            ['device_type'=>'printer','manufacturer'=>'Custom','model'=>'Q3','vendor_id'=>'0dd4','product_id'=>'0101','protocol'=>'ESC/POS','connections'=>['usb','serial','ethernet'],'features'=>['cut','cash_drawer','logo','barcode','80mm'],'specs'=>['paper_width'=>'80mm','print_speed'=>'220mm/s','dpi'=>180],'notes'=>'İtalyan marka. Gelişmiş ESC/POS desteği.'],
+
+            // Barkod Okuyucular
+            ['device_type'=>'barcode_scanner','manufacturer'=>'Honeywell','model'=>'Voyager 1350g','vendor_id'=>'0c2e','product_id'=>'0200','protocol'=>'HID','connections'=>['usb','bluetooth'],'features'=>['1d','2d','qr','pdf417','omni_directional'],'specs'=>['scan_angle'=>'47°','resolution'=>'4mil','indicator'=>'beep+led'],'notes'=>'USB HID; sürücü gerekmez. Klavye gibi çalışır.'],
+            ['device_type'=>'barcode_scanner','manufacturer'=>'Zebra','model'=>'DS2208','vendor_id'=>'05e0','product_id'=>'1300','protocol'=>'HID','connections'=>['usb'],'features'=>['1d','2d','qr','pdf417','datamatrix'],'specs'=>['scan_angle'=>'42°','resolution'=>'5mil','indicator'=>'beep+led'],'notes'=>'Kurumsal sınıf. Yüksek okuma başarısı. Plug & play.'],
+            ['device_type'=>'barcode_scanner','manufacturer'=>'Datalogic','model'=>'QuickScan QD2430','vendor_id'=>'05f9','product_id'=>'2206','protocol'=>'HID','connections'=>['usb','rs232'],'features'=>['1d','2d','qr','pdf417'],'specs'=>['scan_angle'=>'36°','resolution'=>'4mil','indicator'=>'beep+led'],'notes'=>'İtalyan yapımı. Piyasada çok yaygın.'],
+            ['device_type'=>'barcode_scanner','manufacturer'=>'Newland','model'=>'HR2081','vendor_id'=>'1eab','product_id'=>'0101','protocol'=>'HID','connections'=>['usb','rs232'],'features'=>['1d','2d','qr','pdf417','datamatrix'],'specs'=>['scan_angle'=>'40°','resolution'=>'4mil','indicator'=>'beep+led'],'notes'=>'Ekonomik 2D okuyucu. QR kodlar için ideal.'],
+            ['device_type'=>'barcode_scanner','manufacturer'=>'Mindeo','model'=>'MS3690','vendor_id'=>'1e29','product_id'=>'0102','protocol'=>'HID','connections'=>['usb','bluetooth'],'features'=>['1d','2d','qr'],'specs'=>['scan_angle'=>'35°','resolution'=>'5mil','indicator'=>'beep+led'],'notes'=>'Türkiye pazarında yaygın ekonomik model.'],
+
+            // Tartı / Baskül
+            ['device_type'=>'scale','manufacturer'=>'CAS','model'=>'SW-1-5','vendor_id'=>null,'product_id'=>null,'protocol'=>'CAS Protocol / RS232','connections'=>['rs232','usb'],'features'=>['auto_send','stable_detect','tare','kg','g'],'specs'=>['capacity'=>'5kg','precision'=>'1g','baud_rate'=>9600,'data_bits'=>8,'parity'=>'none','stop_bits'=>1],'notes'=>'En yaygın tartı. 9600,8,N,1. Komut: S veya STS+CR+LF'],
+            ['device_type'=>'scale','manufacturer'=>'CAS','model'=>'ER Plus','vendor_id'=>null,'product_id'=>null,'protocol'=>'CAS Protocol / RS232','connections'=>['rs232'],'features'=>['printer','auto_send','stable_detect','tare','kg','label'],'specs'=>['capacity'=>'30kg','precision'=>'5g','baud_rate'=>9600,'data_bits'=>8,'parity'=>'none','stop_bits'=>1],'notes'=>'Etiketli baskül. Şarküteri/manav için.'],
+            ['device_type'=>'scale','manufacturer'=>'Dibal','model'=>'K-100','vendor_id'=>null,'product_id'=>null,'protocol'=>'Dibal Protocol / RS232','connections'=>['rs232','usb'],'features'=>['auto_send','stable_detect','tare','kg','label'],'specs'=>['capacity'=>'15kg','precision'=>'2g','baud_rate'=>9600,'data_bits'=>8,'parity'=>'none','stop_bits'=>1],'notes'=>'İspanyol yapımı. Market tartı çözümü.'],
+            ['device_type'=>'scale','manufacturer'=>'Mettler Toledo','model'=>'IND116','vendor_id'=>null,'product_id'=>null,'protocol'=>'MT-SICS / RS232','connections'=>['rs232','usb','ethernet'],'features'=>['auto_send','stable_detect','tare','kg','g','calibration'],'specs'=>['capacity'=>'30kg','precision'=>'1g','baud_rate'=>9600,'data_bits'=>8,'parity'=>'none','stop_bits'=>1],'notes'=>'Kurumsal sınıf. MT-SICS. Komut: S\r\n → S S 1.234 kg'],
+            ['device_type'=>'scale','manufacturer'=>'Bizerba','model'=>'BC II','vendor_id'=>null,'product_id'=>null,'protocol'=>'Bizerba Protocol / RS232','connections'=>['rs232'],'features'=>['printer','auto_send','tare','kg','label'],'specs'=>['capacity'=>'30kg','precision'=>'5g','baud_rate'=>9600,'data_bits'=>8,'parity'=>'none','stop_bits'=>1],'notes'=>'Alman markası premium baskül. Kasap/şarküteri.'],
+
+            // Para Çekmeceleri
+            ['device_type'=>'cash_drawer','manufacturer'=>'APG','model'=>'Vasario 1616','vendor_id'=>null,'product_id'=>null,'protocol'=>'ESC/POS Kick Pulse','connections'=>['rj11_via_printer'],'features'=>['3_slots','5_slots','auto_open'],'specs'=>['signal'=>'RJ11','pulse'=>'24V DC','open_time'=>'200ms'],'notes'=>'Yazıcı üzerinden açılır. Komut: 1B 70 00 19 FA'],
+            ['device_type'=>'cash_drawer','manufacturer'=>'Star Micronics','model'=>'SMD2-1317','vendor_id'=>null,'product_id'=>null,'protocol'=>'ESC/POS Kick Pulse','connections'=>['rj11_via_printer'],'features'=>['3_slots','5_slots','auto_open'],'specs'=>['signal'=>'RJ11','pulse'=>'24V DC'],'notes'=>'Star yazıcılarla uyumlu.'],
+            ['device_type'=>'cash_drawer','manufacturer'=>'Generic','model'=>'Standart RJ11','vendor_id'=>null,'product_id'=>null,'protocol'=>'ESC/POS Kick Pulse','connections'=>['rj11_via_printer'],'features'=>['auto_open'],'specs'=>['signal'=>'RJ11','pulse'=>'24V DC'],'notes'=>'Her ESC/POS yazıcıyla çalışan jenerik model.'],
+
+            // Müşteri Ekranları
+            ['device_type'=>'customer_display','manufacturer'=>'Epson','model'=>'DM-D110','vendor_id'=>'04b8','product_id'=>'0112','protocol'=>'ESC/POS DM-D','connections'=>['usb','serial'],'features'=>['2x20_chars','vfd','backlight'],'specs'=>['display'=>'VFD 2x20','char_set'=>'ASCII+CP1254'],'notes'=>'Epson yazıcıya doğrudan takılır.'],
+            ['device_type'=>'customer_display','manufacturer'=>'Bixolon','model'=>'BCD-1100','vendor_id'=>'1504','product_id'=>'0100','protocol'=>'ESC/POS','connections'=>['usb','serial'],'features'=>['2x20_chars','vfd'],'specs'=>['display'=>'VFD 2x20','char_set'=>'ASCII+CP1254'],'notes'=>'Bixolon yazıcılarla uyumlu müşteri ekranı.'],
+        ];
+
+        foreach ($hardwareDrivers as $driver) {
+            HardwareDriver::create($driver);
+        }
+
+        // ─── 21. Stock Movements ────────────────────────────────
         foreach ($products->take(5) as $product) {
             StockMovement::create([
                 'tenant_id' => $tenant->id,
