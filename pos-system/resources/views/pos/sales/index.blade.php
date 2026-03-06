@@ -4,7 +4,71 @@
 @section('content')
 <div x-data="posScreen()" x-init="init()" class="flex-1 flex overflow-hidden">
 
-    {{-- ─── Hızlı Kategori Ekleme Modalı ─── --}}
+    {{-- ─── Hızı Ürün Ekleme Modalı ─── --}}
+    <div x-show="showProductModal" x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+         @keydown.escape.window="showProductModal = false">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6" @click.stop>
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-base font-semibold text-gray-900"><i class="fas fa-box mr-2 text-brand-500"></i>Hızı Ürün Ekle</h3>
+                <button @click="showProductModal = false" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Ürün Adı *</label>
+                    <input type="text" x-model="productForm.name" @keydown.enter="saveQuickProduct()"
+                           placeholder="Ürün adını girin..."
+                           class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Satış Fiyatı *</label>
+                        <input type="number" x-model="productForm.sale_price" min="0" step="0.01" placeholder="0.00"
+                               class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Birim</label>
+                        <select x-model="productForm.unit" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-brand-500">
+                            <option value="Adet">Adet</option>
+                            <option value="Kg">Kg</option>
+                            <option value="Lt">Lt</option>
+                            <option value="Porsiyon">Porsiyon</option>
+                            <option value="Paket">Paket</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Kategori</label>
+                    <select x-model="productForm.category_id" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-brand-500">
+                        <option value="">Kategorisiz</option>
+                        @foreach($categories as $cat)
+                        <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                        @endforeach
+                        <template x-for="cat in dynamicCategories" :key="cat.id">
+                            <option :value="cat.id" x-text="cat.name"></option>
+                        </template>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Barkod <span class="text-gray-400">(opsiyonel)</span></label>
+                    <input type="text" x-model="productForm.barcode" placeholder="Barkod..."
+                           class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button @click="showProductModal = false"
+                            class="flex-1 px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">İptal</button>
+                    <button @click="saveQuickProduct()" :disabled="!productForm.name.trim() || !productForm.sale_price || productSaving"
+                            class="flex-1 px-4 py-2 text-sm text-white bg-gradient-to-r from-brand-500 to-purple-600 rounded-xl hover:opacity-90 disabled:opacity-50 font-medium flex items-center justify-center gap-2">
+                        <i class="fas fa-spinner fa-spin" x-show="productSaving"></i>
+                        <i class="fas fa-plus" x-show="!productSaving"></i>
+                        <span x-text="productSaving ? 'Kaydediliyor...' : 'Kaydet & Ekle'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ─── Hızı Kategori Ekleme Modalı ─── --}}
     <div x-show="showCatModal" x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
          @keydown.escape.window="showCatModal = false">
@@ -86,7 +150,13 @@
                 <button @click="showCatModal = true"
                         class="px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 shrink-0"
                         title="Yeni kategori ekle">
-                    <i class="fas fa-plus"></i>
+                    <i class="fas fa-tag"></i>
+                </button>
+                {{-- Hızı Ürün Ekle --}}
+                <button @click="openProductModal()"
+                        class="px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all bg-brand-50 text-brand-600 hover:bg-brand-100 border border-brand-200 shrink-0"
+                        title="Hızı ürün ekle">
+                    <i class="fas fa-box mr-1"></i>+
                 </button>
             </div>
         </div>
@@ -121,34 +191,29 @@
     <div class="w-96 flex flex-col bg-white">
         {{-- Müşteri Seçimi --}}
         <div class="p-3 border-b border-gray-200">
-            <div class="relative" x-data="{ customerSearch: '', showCustomerDropdown: false }">
-                <div class="flex items-center gap-2">
-                    <div class="flex-1 relative">
-                        <template x-if="!selectedCustomer">
-                            <input type="text" x-model="customerSearch"
-                                   @input.debounce.300ms="searchCustomers(customerSearch)"
-                                   @focus="showCustomerDropdown = true; searchCustomers(customerSearch)"
-                                   placeholder="Müşteri seçin (opsiyonel)..."
-                                   class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-xs transition-all">
-                        </template>
-                        <template x-if="selectedCustomer">
-                            <div class="flex items-center gap-2 px-3 py-2 bg-brand-50 border border-brand-200 rounded-lg">
-                                <i class="fas fa-user text-brand-500 text-xs"></i>
-                                <span class="text-sm text-gray-800 flex-1" x-text="selectedCustomer.name"></span>
-                                <span class="text-xs" :class="selectedCustomer.balance < 0 ? 'text-red-500' : 'text-emerald-500'" x-text="formatCurrency(selectedCustomer.balance) + ' bakiye'"></span>
-                                <button @click="selectedCustomer = null" class="text-gray-400 hover:text-red-500">
-                                    <i class="fas fa-times text-xs"></i>
-                                </button>
-                            </div>
-                        </template>
-                    </div>
+            <div class="relative">
+                <div x-show="!selectedCustomer">
+                    <input type="text" x-model="customerSearch"
+                           @input.debounce.300ms="searchCustomers(customerSearch)"
+                           @focus="showCustomerDropdown = true; searchCustomers(customerSearch)"
+                           @keydown.escape="showCustomerDropdown = false"
+                           placeholder="Müşteri seçin (opsiyonel)..."
+                           class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-xs transition-all">
+                </div>
+                <div x-show="selectedCustomer" class="flex items-center gap-2 px-3 py-2 bg-brand-50 border border-brand-200 rounded-lg">
+                    <i class="fas fa-user text-brand-500 text-xs"></i>
+                    <span class="text-sm text-gray-800 flex-1" x-text="selectedCustomer?.name"></span>
+                    <span class="text-xs" :class="(selectedCustomer?.balance ?? 0) < 0 ? 'text-red-500' : 'text-emerald-500'" x-text="formatCurrency(selectedCustomer?.balance ?? 0) + ' bakiye'"></span>
+                    <button @click="selectedCustomer = null; customerSearch = ''; customerResults = []" class="text-gray-400 hover:text-red-500">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
                 </div>
                 {{-- Müşteri Dropdown --}}
-                <div x-show="showCustomerDropdown && customerResults.length > 0" @click.away="showCustomerDropdown = false"
+                <div x-show="showCustomerDropdown && customerResults.length > 0"
                      class="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
                     <template x-for="c in customerResults" :key="c.id">
-                        <button @click="selectedCustomer = c; showCustomerDropdown = false; customerSearch = ''"
-                                class="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm flex items-center justify-between transition-colors">
+                        <button @click="selectedCustomer = c; showCustomerDropdown = false; customerSearch = ''; customerResults = []"
+                                class="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm flex items-center justify-between transition-colors border-b border-gray-50 last:border-0">
                             <div>
                                 <div class="text-gray-800 font-medium" x-text="c.name"></div>
                                 <div class="text-xs text-gray-400" x-text="c.phone || c.email || ''"></div>
@@ -376,6 +441,13 @@ function posScreen() {
         newCatName: '',
         dynamicCategories: [],
         catPresets: ['Ana Yemek', 'Çorba', 'Atıştırmalık', 'Tatlı', 'İçecek', 'Alkollü İçecek', 'Kahvaltı', 'Salata', 'Pizza', 'Burger', 'Sandviç', 'Sebze Yemeği'],
+        // Müşteri arama
+        customerSearch: '',
+        showCustomerDropdown: false,
+        // Hızlı ürün ekleme modal
+        showProductModal: false,
+        productSaving: false,
+        productForm: { name: '', sale_price: '', category_id: '', barcode: '', unit: 'Adet' },
 
         init() {
             this.showAllProducts();
@@ -519,19 +591,63 @@ function posScreen() {
             }
         },
 
+        openProductModal() {
+            this.productForm = { name: '', sale_price: '', category_id: '', barcode: '', unit: 'Adet' };
+            this.showProductModal = true;
+            this.$nextTick(() => this.$el.querySelector('[x-model="productForm.name"]')?.focus());
+        },
+
+        async saveQuickProduct() {
+            if (!this.productForm.name.trim() || !this.productForm.sale_price) return;
+            this.productSaving = true;
+            try {
+                const payload = {
+                    name: this.productForm.name,
+                    sale_price: this.productForm.sale_price,
+                    category_id: this.productForm.category_id || null,
+                    barcode: this.productForm.barcode || null,
+                    unit: this.productForm.unit || 'Adet',
+                    vat_rate: 10,
+                    purchase_price: 0,
+                    stock_quantity: 0,
+                };
+                const data = await posAjax('{{ route("pos.products.store") }}', payload, 'POST');
+                if (data.success) {
+                    const p = data.product;
+                    const newProd = {
+                        id: p.id, name: p.name, sale_price: parseFloat(p.sale_price),
+                        barcode: p.barcode, unit: p.unit, stock_quantity: p.stock_quantity,
+                        category_id: p.category_id, category: '', vat_rate: p.vat_rate,
+                        is_service: false,
+                    };
+                    this.products.unshift(newProd);
+                    this.filteredProducts = [...this.products];
+                    showToast('Ürün eklendi ve sepete eklendi!', 'success');
+                    this.addToCart(newProd);
+                    this.showProductModal = false;
+                } else {
+                    showToast(data.message || 'Ürün eklenemedi.', 'error');
+                }
+            } catch(e) {
+                showToast(e.message || 'Ürün eklenemedi.', 'error');
+            } finally {
+                this.productSaving = false;
+            }
+        },
+
         async searchCustomers(query) {
-            if (query !== null && query !== undefined && query.length === 0) {
-                // Boş sorguda tüm cariler
+            if (!query || query.length === 0) {
                 try {
                     const data = await posAjax('{{ route("pos.customers.search") }}', {}, 'GET');
                     this.customerResults = data;
+                    this.showCustomerDropdown = true;
                 } catch(e) { console.error(e); }
                 return;
             }
-            if (!query || query.length < 1) { this.customerResults = []; return; }
             try {
                 const data = await posAjax('{{ route("pos.customers.search") }}?q=' + encodeURIComponent(query), {}, 'GET');
                 this.customerResults = data;
+                this.showCustomerDropdown = data.length > 0;
             } catch(e) { console.error(e); }
         },
 
