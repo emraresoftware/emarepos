@@ -6,7 +6,158 @@
 
 @section('content')
 
-{{-- Filtreler --}}
+<div x-data="{ showCreate: {{ $errors->any() ? 'true' : 'false' }}, slugGenerated: false }"
+     @keydown.escape.window="showCreate = false">
+
+{{-- ─── Tenant Oluştur Modalı ─── --}}
+<div x-show="showCreate" x-cloak
+     class="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm overflow-y-auto pt-10 pb-10">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl mx-4" @click.stop>
+        <div class="flex items-center justify-between p-6 border-b border-slate-700">
+            <div>
+                <h3 class="text-base font-semibold text-white">Yeni İşletme Ekle</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Şube, vergi oranları ve admin kullanıcı otomatik oluşturulur.</p>
+            </div>
+            <button @click="showCreate = false" class="text-slate-500 hover:text-red-400 text-lg">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ route('admin.tenants.store') }}" class="p-6 space-y-5">
+            @csrf
+
+            {{-- Hata mesajları --}}
+            @if($errors->any())
+                <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                    <ul class="text-xs text-red-400 space-y-1">
+                        @foreach($errors->all() as $err)
+                            <li><i class="fas fa-exclamation-circle mr-1"></i>{{ $err }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            {{-- İşletme Bilgileri --}}
+            <div class="space-y-1">
+                <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">İşletme Bilgileri</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">İşletme Adı *</label>
+                        <input type="text" name="name" value="{{ old('name') }}" required
+                               placeholder="Örn: Lezzet Cafe"
+                               @input="
+                                   if (!slugGenerated) {
+                                       $el.closest('form').querySelector('[name=slug]').value =
+                                           $event.target.value.toLowerCase()
+                                           .replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s')
+                                           .replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c')
+                                           .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                                   }
+                               "
+                               class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-500 placeholder-slate-600">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Slug * (URL kimliği)</label>
+                        <input type="text" name="slug" value="{{ old('slug') }}" required
+                               placeholder="lezzet-cafe"
+                               @input="slugGenerated = true"
+                               class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-500 placeholder-slate-600 font-mono">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Fatura E-posta *</label>
+                        <input type="email" name="billing_email" value="{{ old('billing_email') }}" required
+                               placeholder="info@lezzetcafe.com"
+                               class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-500 placeholder-slate-600">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Plan *</label>
+                        <select name="plan_id" required
+                                class="w-full bg-slate-800 border border-slate-700 text-slate-300 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-500">
+                            <option value="">Plan seç…</option>
+                            @foreach($planlar as $plan)
+                                <option value="{{ $plan->id }}" {{ old('plan_id') == $plan->id ? 'selected' : '' }}>
+                                    {{ $plan->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Durum *</label>
+                        <select name="status" required
+                                class="w-full bg-slate-800 border border-slate-700 text-slate-300 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-500">
+                            <option value="active"  {{ old('status','active') === 'active'  ? 'selected' : '' }}>Aktif</option>
+                            <option value="trial"   {{ old('status') === 'trial'   ? 'selected' : '' }}>Deneme (14 gün)</option>
+                            <option value="suspended" {{ old('status') === 'suspended' ? 'selected' : '' }}>Askıda</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Şube Bilgileri --}}
+            <div class="space-y-1 border-t border-slate-800 pt-4">
+                <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Şube (İlk Şube)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Şube Adı</label>
+                        <input type="text" name="branch_name" value="{{ old('branch_name', 'Merkez Şube') }}"
+                               placeholder="Merkez Şube"
+                               class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-500 placeholder-slate-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Şehir</label>
+                        <input type="text" name="branch_city" value="{{ old('branch_city', 'İstanbul') }}"
+                               placeholder="İstanbul"
+                               class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-500 placeholder-slate-600">
+                    </div>
+                </div>
+            </div>
+
+            {{-- Admin Kullanıcı --}}
+            <div class="space-y-1 border-t border-slate-800 pt-4">
+                <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Admin Kullanıcı</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Ad Soyad *</label>
+                        <input type="text" name="admin_name" value="{{ old('admin_name') }}" required
+                               placeholder="Ahmet Yılmaz"
+                               class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-500 placeholder-slate-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">E-posta *</label>
+                        <input type="email" name="admin_email" value="{{ old('admin_email') }}" required
+                               placeholder="admin@isleme.com"
+                               class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-500 placeholder-slate-600">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs text-slate-400 mb-1">Şifre * (min. 6 karakter)</label>
+                        <input type="password" name="admin_password" required minlength="6"
+                               placeholder="••••••••"
+                               class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-500 placeholder-slate-600">
+                    </div>
+                </div>
+            </div>
+
+            {{-- Butonlar --}}
+            <div class="flex gap-3 border-t border-slate-800 pt-5">
+                <button type="button" @click="showCreate = false"
+                        class="flex-1 px-4 py-2.5 text-sm text-slate-400 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors">
+                    İptal
+                </button>
+                <button type="submit"
+                        class="flex-1 px-4 py-2.5 text-sm text-white font-medium bg-gradient-to-r from-brand-600 to-purple-700 hover:opacity-90 rounded-xl transition-opacity shadow-lg shadow-brand-900/30">
+                    <i class="fas fa-plus mr-1.5"></i> İşletmeyi Oluştur
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- Filtreler + Tenant Ekle Butonu --}}
 <form method="GET" class="flex flex-wrap items-center gap-3 mb-6">
     <div class="relative">
         <input type="text" name="search" value="{{ request('search') }}"
@@ -32,7 +183,11 @@
             <i class="fas fa-times mr-1"></i> Temizle
         </a>
     @endif
-    <span class="ml-auto text-xs text-slate-500">{{ $tenants->total() }} kayıt</span>
+    <span class="text-xs text-slate-500">{{ $tenants->total() }} kayıt</span>
+    <button type="button" @click="showCreate = true"
+            class="ml-auto flex items-center gap-2 bg-gradient-to-r from-brand-600 to-purple-700 hover:opacity-90 text-white text-sm px-4 py-2 rounded-lg transition-opacity font-medium shadow-lg shadow-brand-900/30">
+        <i class="fas fa-plus"></i> Yeni İşletme
+    </button>
 </form>
 
 {{-- Tablo --}}
@@ -91,7 +246,7 @@
                                 <i class="fas fa-ellipsis"></i>
                             </button>
                             <div x-show="open" x-cloak
-                                 class="absolute right-0 mt-1 w-40 bg-slate-900 border border-slate-700 rounded-xl shadow-xl z-20 overflow-hidden">
+                                 class="absolute right-0 mt-1 w-44 bg-slate-900 border border-slate-700 rounded-xl shadow-xl z-20 overflow-hidden">
                                 @foreach([
                                     ['status' => 'active',    'label' => 'Aktif Yap',    'icon' => 'fa-check-circle',   'cls' => 'text-emerald-400'],
                                     ['status' => 'trial',     'label' => 'Denemeye Al',  'icon' => 'fa-hourglass-half', 'cls' => 'text-amber-400'],
@@ -110,6 +265,15 @@
                                         </form>
                                     @endif
                                 @endforeach
+                                <div class="border-t border-slate-800"></div>
+                                <form method="POST" action="{{ route('admin.tenants.destroy', $tenant) }}"
+                                      onsubmit="return confirm('{{ $tenant->name }} silinsin mi? Bu işlem geri alınamaz.')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit"
+                                            class="w-full text-left px-4 py-2.5 text-xs text-red-500 hover:bg-slate-800 flex items-center gap-2 transition-colors">
+                                        <i class="fas fa-trash w-4"></i> Sil
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </td>
@@ -133,4 +297,5 @@
     </div>
 @endif
 
+</div>{{-- /x-data --}}
 @endsection

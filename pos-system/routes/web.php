@@ -178,7 +178,9 @@ Route::middleware(['auth', \App\Http\Middleware\SuperAdmin::class])
     ->group(function () {
         Route::get('/',           [AdminController::class, 'dashboard'])->name('dashboard');
         Route::get('/tenants',    [AdminController::class, 'tenants'])->name('tenants');
-        Route::patch('/tenants/{tenant}/status', [AdminController::class, 'tenantStatus'])->name('tenants.status');
+        Route::post('/tenants',   [AdminController::class, 'tenantStore'])->name('tenants.store');
+        Route::patch('/tenants/{tenant}/status',  [AdminController::class, 'tenantStatus'])->name('tenants.status');
+        Route::delete('/tenants/{tenant}',        [AdminController::class, 'tenantDestroy'])->name('tenants.destroy');
         Route::get('/feedbacks',  [AdminController::class, 'feedbacks'])->name('feedbacks');
         Route::get('/users',      [AdminController::class, 'users'])->name('users');
     });
