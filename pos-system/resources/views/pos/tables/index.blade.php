@@ -556,7 +556,7 @@ function masaHaritasi() {
         },
 
         goToTable(table) {
-            window.location.href = `/pos/tables/${table.id}/detail`;
+            window.location.href = `/tables/${table.id}/detail`;
         },
 
         // ─── Mekan Modal ─────────────────────────────────────
@@ -572,7 +572,7 @@ function masaHaritasi() {
         async saveRegion() {
             if (!this.regionForm.name.trim()) return;
             try {
-                const url    = this.editingRegion ? `/pos/regions/${this.editingRegion.id}` : '/pos/regions';
+                const url    = this.editingRegion ? `/regions/${this.editingRegion.id}` : '/regions';
                 const method = this.editingRegion ? 'PUT' : 'POST';
                 const data = await posAjax(url, this.regionForm, method);
                 if (data.success) {
@@ -596,7 +596,7 @@ function masaHaritasi() {
                 : `"${region?.name}" mekanını silmek istiyor musunuz?`;
             if (!confirm(msg)) return;
             try {
-                const data = await posAjax(`/pos/regions/${id}`, {}, 'DELETE');
+                const data = await posAjax(`/regions/${id}`, {}, 'DELETE');
                 if (data.success) {
                     this.regions = this.regions.filter(r => r.id !== id);
                     this.tables.forEach(t => { if (t.table_region_id === id) t.table_region_id = null; });
@@ -619,7 +619,7 @@ function masaHaritasi() {
         async saveTable() {
             if (!this.tableForm.table_no || !this.tableForm.name) return;
             try {
-                const url    = this.editingTable ? `/pos/tables/${this.editingTable.id}/update` : '/pos/tables/store';
+                const url    = this.editingTable ? `/tables/${this.editingTable.id}/update` : '/tables/store';
                 const method = this.editingTable ? 'PUT' : 'POST';
                 const data = await posAjax(url, this.tableForm, method);
                 if (data.success) {
@@ -646,7 +646,7 @@ function masaHaritasi() {
             const table = this.tables.find(t => t.id === id);
             if (!confirm(`"${table?.name}" masasını silmek istiyor musunuz?`)) return;
             try {
-                const data = await posAjax(`/pos/tables/${id}/destroy`, {}, 'DELETE');
+                const data = await posAjax(`/tables/${id}/destroy`, {}, 'DELETE');
                 if (data.success) { this.tables = this.tables.filter(t => t.id !== id); showToast('Masa silindi', 'success'); }
                 else showToast(data.message || 'Hata', 'error');
             } catch { showToast('Sunucu hatası', 'error'); }
