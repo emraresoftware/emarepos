@@ -15,7 +15,15 @@ class TableService
         $table = RestaurantTable::findOrFail($tableId);
         
         if ($table->status !== 'empty') {
-            throw new \Exception('Bu masa şu an müsait değil.');
+            // Aktif session yoksa statüsü stale — otomatik sıfırla
+            $activeSession = TableSession::where('restaurant_table_id', $tableId)
+                ->where('status', 'open')
+                ->first();
+            if (!$activeSession) {
+                $table->update(['status' => 'empty']);
+            } else {
+                throw new \Exception('Bu masa şu an müsait değil.');
+            }
         }
         
         return DB::transaction(function () use ($table, $userId, $customerId, $customerCount) {

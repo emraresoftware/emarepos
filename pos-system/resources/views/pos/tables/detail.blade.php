@@ -29,12 +29,9 @@
             </div>
             <div class="flex items-center gap-2">
                 @if(!$session)
-                <form method="POST" action="{{ route('pos.tables.open', $table->id) }}">
-                    @csrf
-                    <button type="submit" class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:shadow-lg hover:shadow-emerald-200 rounded-xl text-sm font-medium">
-                        <i class="fas fa-door-open mr-1"></i> Masa Aç
-                    </button>
-                </form>
+                <button @click="openTable()" class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:shadow-lg hover:shadow-emerald-200 rounded-xl text-sm font-medium">
+                    <i class="fas fa-door-open mr-1"></i> Masa Aç
+                </button>
                 @else
                 <button @click="showTransfer = true" class="px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl text-sm">
                     <i class="fas fa-exchange-alt mr-1"></i> Transfer
@@ -229,6 +226,20 @@ function tableDetail() {
 
         async init() {
             await this.loadProducts();
+        },
+
+        async openTable() {
+            try {
+                const data = await posAjax('{{ route("pos.tables.open", $table->id) }}', {}, 'POST');
+                if (data.success) {
+                    showToast('Masa açıldı!', 'success');
+                    setTimeout(() => location.reload(), 600);
+                } else {
+                    showToast(data.message || 'Masa açılamadı.', 'error');
+                }
+            } catch(e) {
+                showToast(e.message || 'Masa açılamadı.', 'error');
+            }
         },
 
         async loadProducts() {
