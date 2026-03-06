@@ -193,7 +193,7 @@ class AdminController extends Controller
      */
     public function feedbacks(Request $request)
     {
-        $query = Feedback::with('tenant')->orderByDesc('created_at');
+        $query = Feedback::orderByDesc('created_at');
 
         if ($s = $request->input('status')) {
             $query->where('status', $s);

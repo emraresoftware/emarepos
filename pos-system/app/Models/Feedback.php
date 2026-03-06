@@ -67,4 +67,9 @@ class Feedback extends Model
     {
         return self::STATUS_LABELS[$this->status] ?? $this->status;
     }
+
+    public function tenant()
+    {
+        return $this->belongsTo(\App\Models\Tenant::class);
+    }
 }
