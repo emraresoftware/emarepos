@@ -58,6 +58,7 @@ class SaleController extends Controller
                     'id' => $product->id,
                     'name' => $product->name,
                     'barcode' => $product->barcode,
+                    'category_id' => $product->category_id,
                     'category' => $product->category?->name,
                     'sale_price' => $branchProduct ? (float)$branchProduct->pivot->sale_price : (float)$product->sale_price,
                     'stock_quantity' => $branchProduct ? (float)$branchProduct->pivot->stock_quantity : (float)$product->stock_quantity,

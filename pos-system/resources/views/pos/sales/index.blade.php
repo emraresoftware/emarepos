@@ -3,6 +3,45 @@
 
 @section('content')
 <div x-data="posScreen()" x-init="init()" class="flex-1 flex overflow-hidden">
+
+    {{-- ─── Hızlı Kategori Ekleme Modalı ─── --}}
+    <div x-show="showCatModal" x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+         @keydown.escape.window="showCatModal = false">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6" @click.stop>
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-base font-semibold text-gray-900">Yeni Kategori Ekle</h3>
+                <button @click="showCatModal = false" class="text-gray-400 hover:text-red-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Kategori Adı *</label>
+                    <input type="text" x-model="newCatName" @keydown.enter="saveCategory()"
+                           placeholder="Örn: Ana Yemek, Atıştırmalık, İçecek..."
+                           class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20">
+                </div>
+                <div class="flex gap-2 flex-wrap">
+                    <template x-for="preset in catPresets" :key="preset">
+                        <button @click="newCatName = preset"
+                                class="px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs rounded-lg font-medium transition-colors border border-brand-200"
+                                x-text="preset"></button>
+                    </template>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button @click="showCatModal = false"
+                            class="flex-1 px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                        İptal
+                    </button>
+                    <button @click="saveCategory()" :disabled="!newCatName.trim()"
+                            class="flex-1 px-4 py-2 text-sm text-white bg-gradient-to-r from-brand-500 to-purple-600 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 font-medium">
+                        <i class="fas fa-plus mr-1"></i> Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     
     {{-- SOL PANEL: Ürünler --}}
     <div class="flex-1 flex flex-col overflow-hidden border-r border-gray-200">
@@ -23,7 +62,7 @@
             </div>
             
             {{-- Kategoriler --}}
-            <div class="flex gap-1.5 overflow-x-auto pb-1">
+            <div class="flex gap-1.5 overflow-x-auto pb-1 items-center">
                 <button @click="filterCategory(null)" 
                         class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all"
                         :class="selectedCategory === null ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200'">
@@ -36,6 +75,19 @@
                     {{ $cat->name }}
                 </button>
                 @endforeach
+                {{-- Kategorileri yeniden render etmek için dinamik kategoriler --}}
+                <template x-for="cat in dynamicCategories" :key="cat.id">
+                    <button @click="filterCategory(cat.id)"
+                            class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all"
+                            :class="selectedCategory === cat.id ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200'"
+                            x-text="cat.name"></button>
+                </template>
+                {{-- Yeni Kategori Ekle --}}
+                <button @click="showCatModal = true"
+                        class="px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 shrink-0"
+                        title="Yeni kategori ekle">
+                    <i class="fas fa-plus"></i>
+                </button>
             </div>
         </div>
 
@@ -318,6 +370,11 @@ function posScreen() {
         lastSale: null,
         loading: false,
         totals: { subtotal: 0, vat_total: 0, discount_total: 0, grand_total: 0 },
+        // Kategori modal
+        showCatModal: false,
+        newCatName: '',
+        dynamicCategories: [],
+        catPresets: ['Ana Yemek', 'Çorba', 'Atıştırmalık', 'Tatlı', 'İçecek', 'Alkollü İçecek', 'Kahvaltı', 'Salata', 'Pizza', 'Burger', 'Sandviç', 'Sebze Yemeği'],
 
         init() {
             this.showAllProducts();
@@ -334,7 +391,7 @@ function posScreen() {
         async showAllProducts() {
             this.loading = true;
             try {
-                const data = await posAjax('{{ route("pos.products.search") }}');
+                const data = await posAjax('{{ route("pos.products.search") }}', {}, 'GET');
                 this.products = data;
                 this.applyFilter();
             } catch(e) { console.error(e); }
@@ -347,7 +404,7 @@ function posScreen() {
             try {
                 const params = new URLSearchParams({ q: this.searchQuery });
                 if (this.selectedCategory) params.append('category_id', this.selectedCategory);
-                const data = await posAjax('{{ route("pos.products.search") }}?' + params);
+                const data = await posAjax('{{ route("pos.products.search") }}?' + params, {}, 'GET');
                 this.products = data;
                 this.filteredProducts = data;
             } catch(e) { console.error(e); }
@@ -443,6 +500,22 @@ function posScreen() {
             this.selectedCustomer = null;
             this.generalDiscount = 0;
             this.recalcTotals();
+        },
+
+        async saveCategory() {
+            const name = this.newCatName.trim();
+            if (!name) return;
+            try {
+                const data = await posAjax('{{ route("pos.categories.store") }}', { name, is_active: true });
+                if (data.success) {
+                    this.dynamicCategories.push(data.category);
+                    showToast('Kategori eklendi: ' + name);
+                    this.newCatName = '';
+                    this.showCatModal = false;
+                }
+            } catch(e) {
+                showToast(e.message || 'Kategori eklenemedi.', 'error');
+            }
         },
 
         async searchCustomers(query) {
