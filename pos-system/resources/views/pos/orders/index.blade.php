@@ -165,7 +165,7 @@ function orderManager() {
         },
         async showDetail(id) {
             try {
-                const res = await posAjax(`/orders/${id}`);
+                const res = await posAjax(`/orders/${id}`, {}, 'GET');
                 // TODO: open detail modal
                 showToast('Sipariş #' + id + ' detayı yüklendi', 'info');
             } catch (e) {

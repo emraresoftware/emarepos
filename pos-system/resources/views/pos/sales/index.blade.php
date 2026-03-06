@@ -521,7 +521,7 @@ function posScreen() {
         async searchCustomers(query) {
             if (!query || query.length < 2) { this.customerResults = []; return; }
             try {
-                const data = await posAjax('{{ route("pos.customers.search") }}?q=' + encodeURIComponent(query));
+                const data = await posAjax('{{ route("pos.customers.search") }}?q=' + encodeURIComponent(query), {}, 'GET');
                 this.customerResults = data;
             } catch(e) { console.error(e); }
         },
