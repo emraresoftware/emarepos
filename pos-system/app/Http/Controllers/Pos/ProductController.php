@@ -39,11 +39,11 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        // Boş string gelen sayısal alanları null'a çevir
+        // Boş string gelen sayısal alanları varsayılan değere çevir
         $request->merge([
-            'purchase_price' => $request->purchase_price !== '' && $request->purchase_price !== null ? $request->purchase_price : null,
-            'stock_quantity'  => $request->stock_quantity  !== '' && $request->stock_quantity  !== null ? $request->stock_quantity  : null,
-            'category_id'    => $request->category_id     !== '' && $request->category_id    !== null ? $request->category_id    : null,
+            'purchase_price' => ($request->purchase_price !== '' && $request->purchase_price !== null) ? $request->purchase_price : 0,
+            'stock_quantity'  => ($request->stock_quantity  !== '' && $request->stock_quantity  !== null) ? $request->stock_quantity  : 0,
+            'category_id'    => ($request->category_id     !== '' && $request->category_id    !== null) ? $request->category_id    : null,
         ]);
         $data = $request->validate([
             'name' => 'required|string|max:255',
@@ -65,9 +65,9 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $request->merge([
-            'purchase_price' => $request->purchase_price !== '' && $request->purchase_price !== null ? $request->purchase_price : null,
-            'stock_quantity'  => $request->stock_quantity  !== '' && $request->stock_quantity  !== null ? $request->stock_quantity  : null,
-            'category_id'    => $request->category_id     !== '' && $request->category_id    !== null ? $request->category_id    : null,
+            'purchase_price' => ($request->purchase_price !== '' && $request->purchase_price !== null) ? $request->purchase_price : 0,
+            'stock_quantity'  => ($request->stock_quantity  !== '' && $request->stock_quantity  !== null) ? $request->stock_quantity  : 0,
+            'category_id'    => ($request->category_id     !== '' && $request->category_id    !== null) ? $request->category_id    : null,
         ]);
         $data = $request->validate([
             'name' => 'required|string|max:255',
