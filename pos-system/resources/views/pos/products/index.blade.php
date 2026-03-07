@@ -5,124 +5,227 @@
 @section('content')
 <div x-data="productManager()" x-cloak>
     {{-- Top Bar --}}
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
         <h1 class="text-2xl font-bold text-gray-900">Ürünler</h1>
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 md:justify-end">
-            <div class="relative">
+        <div class="flex items-center gap-2 flex-wrap">
+            <button @click="showVariantTypeModal = true" class="px-3 py-2 text-xs font-medium bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl hover:bg-emerald-100 flex items-center gap-1.5 transition-colors">
+                <i class="fas fa-layer-group text-[10px]"></i> Varyantlı Ürünler
+            </button>
+            {{-- Filtreleme seçeneği --}}
+            <div class="relative" x-data="{ openFilter: false }">
+                <button @click="openFilter = !openFilter" class="px-3 py-2 text-xs font-medium bg-green-50 border border-green-200 text-green-700 rounded-xl hover:bg-green-100 flex items-center gap-1.5 transition-colors">
+                    <i class="fas fa-filter text-[10px]"></i> Filtreleme seçeneği
+                    <i class="fas fa-caret-down text-[10px]"></i>
+                </button>
+                <div x-show="openFilter" @click.away="openFilter=false" x-transition class="absolute right-0 top-full mt-1 bg-white rounded-xl border border-gray-200 shadow-xl z-30 p-3 w-60 space-y-2">
+                    <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                        <input type="checkbox" x-model="filters.low_stock" @change="applyFilters()" class="rounded text-brand-500 border-gray-300 w-3.5 h-3.5"> Kritik Stok Altı
+                    </label>
+                    <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                        <input type="checkbox" x-model="filters.is_service" @change="applyFilters()" class="rounded text-brand-500 border-gray-300 w-3.5 h-3.5"> Sadece Hizmetler
+                    </label>
+                    <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                        <input type="checkbox" x-model="filters.has_variant" @change="applyFilters()" class="rounded text-brand-500 border-gray-300 w-3.5 h-3.5"> Varyantlı Ürünler
+                    </label>
+                    <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                        <input type="checkbox" x-model="filters.show_on_pos_only" @change="applyFilters()" class="rounded text-brand-500 border-gray-300 w-3.5 h-3.5"> POS'ta Gösterilenler
+                    </label>
+                    <div class="pt-1 border-t border-gray-100">
+                        <label class="block text-[10px] text-gray-500 mb-1">Stok Durumu</label>
+                        <select x-model="filters.stock_status" @change="applyFilters()" class="w-full text-xs px-2 py-1.5 border border-gray-200 rounded-lg">
+                            <option value="">Hepsi</option>
+                            <option value="zero">Stok = 0</option>
+                            <option value="positive">Stok > 0</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            {{-- Sıralama Ölçütü --}}
+            <div class="relative" x-data="{ openSort: false }">
+                <button @click="openSort = !openSort" class="px-3 py-2 text-xs font-medium bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-xl hover:bg-yellow-100 flex items-center gap-1.5 transition-colors">
+                    <i class="fas fa-sort text-[10px]"></i> Sıralama ölçütü
+                    <i class="fas fa-caret-down text-[10px]"></i>
+                </button>
+                <div x-show="openSort" @click.away="openSort=false" x-transition class="absolute right-0 top-full mt-1 bg-white rounded-xl border border-gray-200 shadow-xl z-30 w-48 overflow-hidden">
+                    <template x-for="opt in [{v:'name',l:'Ada Göre'},{v:'sale_price',l:'Fiyata Göre'},{v:'stock_quantity',l:'Stoka Göre'},{v:'created_at',l:'Eklenme Tarihi'},{v:'sort_order',l:'Sıraya Göre'},{v:'barcode',l:'Barkoda Göre'}]" :key="opt.v">
+                        <button @click="sortBy = opt.v; applyFilters(); openSort = false"
+                                class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition-colors flex items-center justify-between"
+                                :class="sortBy === opt.v ? 'text-brand-600 font-semibold bg-brand-50' : 'text-gray-700'">
+                            <span x-text="opt.l"></span>
+                            <i x-show="sortBy === opt.v" class="fas fa-check text-brand-500 text-[10px]"></i>
+                        </button>
+                    </template>
+                </div>
+            </div>
+            {{-- Ürün Özet Dökümü --}}
+            <button @click="openSummaryModal()" class="px-3 py-2 text-xs font-medium bg-red-50 border border-red-200 text-red-700 rounded-xl hover:bg-red-100 flex items-center gap-1.5 transition-colors">
+                <i class="fas fa-chart-pie text-[10px]"></i> Ürün özet dökümü
+            </button>
+            {{-- Excel Aktar --}}
+            <div class="relative" x-data="{ openExcel: false }">
+                <button @click="openExcel = !openExcel" class="px-3 py-2 text-xs font-medium bg-blue-50 border border-blue-200 text-blue-700 rounded-xl hover:bg-blue-100 flex items-center gap-1.5 transition-colors">
+                    <i class="fas fa-file-excel text-[10px]"></i> Excel Aktar
+                    <i class="fas fa-caret-down text-[10px]"></i>
+                </button>
+                <div x-show="openExcel" @click.away="openExcel=false" x-transition class="absolute right-0 top-full mt-1 bg-white rounded-xl border border-gray-200 shadow-xl z-30 w-44 overflow-hidden">
+                    <a href="/products-export" class="flex items-center gap-2 px-3 py-2.5 text-xs text-gray-700 hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-file-export text-emerald-500"></i> Dışa Aktar (CSV)
+                    </a>
+                    <button @click="showImportModal = true; openExcel = false" class="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-gray-700 hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-file-import text-blue-500"></i> İçe Aktar (CSV)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Detaylı Arama Çubuğu (BenimPOS Tarzı) --}}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 mb-3">
+        <div class="flex flex-wrap items-center gap-2">
+            {{-- Metin Arama --}}
+            <div class="flex items-center gap-1 flex-1 min-w-[200px]">
                 <input type="text"
                        x-model="searchQuery"
                        @input.debounce.400ms="applyFilters()"
-                       placeholder="Ürün, barkod, stok kodu ara..."
-                       class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl pl-10 pr-4 py-2.5 w-full sm:w-72 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400 transition-all">
-                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                </svg>
+                       placeholder="Ürün adı, barkod, stok kodu, varyant kod"
+                       class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-3 py-2 w-full focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400 transition-all">
+                <button @click="applyFilters()" class="px-2.5 py-2 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors text-gray-500" title="Ara">
+                    <i class="fas fa-search text-xs"></i> <span class="text-xs font-medium">Ara</span>
+                </button>
             </div>
-            <select x-model="categoryFilter"
-                    @change="applyFilters()"
-                    class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
-                <option value="">Tüm Kategoriler</option>
-                @php
-                    if (!function_exists('renderCatOptions')) {
-                        function renderCatOptions($cats, $depth = 0) {
-                            foreach ($cats as $cat) {
-                                $prefix = str_repeat('&nbsp;&nbsp;', $depth) . ($depth > 0 ? '└ ' : '');
-                                echo '<option value="'.$cat->id.'">'.$prefix.e($cat->name).'</option>';
-                                if ($cat->relationLoaded('children') && $cat->children->count()) {
-                                    renderCatOptions($cat->children->sortBy('name'), $depth + 1);
+
+            {{-- Firma Filtresi --}}
+            <div class="flex items-center gap-1">
+                <select x-model="firmFilter" @change="applyFilters()"
+                        class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-3 py-2 min-w-[160px] focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                    <option value="">Tüm firmalar</option>
+                    @foreach($firms as $firm)
+                        <option value="{{ $firm->id }}">{{ $firm->name }}</option>
+                    @endforeach
+                </select>
+                <button @click="firmFilter = ''; applyFilters()" x-show="firmFilter" class="px-2 py-2 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors text-gray-400" title="Temizle">
+                    <i class="fas fa-search text-xs"></i>
+                </button>
+            </div>
+
+            {{-- Kategori (Grup) Filtresi --}}
+            <div class="flex items-center gap-1">
+                <select x-model="categoryFilter" @change="applyFilters()"
+                        class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-3 py-2 min-w-[160px] focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                    <option value="">Tüm gruplar</option>
+                    @php
+                        if (!function_exists('renderCatOptions')) {
+                            function renderCatOptions($cats, $depth = 0) {
+                                foreach ($cats as $cat) {
+                                    $prefix = str_repeat('&nbsp;&nbsp;', $depth) . ($depth > 0 ? '└ ' : '');
+                                    echo '<option value="'.$cat->id.'">'.$prefix.e($cat->name).'</option>';
+                                    if ($cat->relationLoaded('children') && $cat->children->count()) {
+                                        renderCatOptions($cat->children->sortBy('name'), $depth + 1);
+                                    }
                                 }
                             }
                         }
-                    }
-                    renderCatOptions($categories);
-                @endphp
-            </select>
+                        renderCatOptions($categories);
+                    @endphp
+                </select>
+                <button @click="categoryFilter = ''; applyFilters()" x-show="categoryFilter" class="px-2 py-2 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors text-gray-400" title="Temizle">
+                    <i class="fas fa-search text-xs"></i>
+                </button>
+            </div>
+
+            {{-- Varyant Filtresi --}}
+            <div class="flex items-center gap-1">
+                <select x-model="variantFilter" @change="applyFilters()"
+                        class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-3 py-2 min-w-[160px] focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                    <option value="">Tüm varyantlar</option>
+                    @foreach($variantTypes as $vt)
+                        <option value="{{ $vt->id }}">{{ $vt->name }}</option>
+                    @endforeach
+                </select>
+                <button @click="variantFilter = ''; applyFilters()" x-show="variantFilter" class="px-2 py-2 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors text-gray-400" title="Temizle">
+                    <i class="fas fa-search text-xs"></i>
+                </button>
+            </div>
+
+            {{-- Şablon --}}
+            <div class="flex items-center gap-1">
+                <select x-model="selectedTemplateId" @change="loadTemplate()"
+                        class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-3 py-2 min-w-[130px] focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                    <option value="">Şablon</option>
+                    @foreach($filterTemplates as $tpl)
+                        <option value="{{ $tpl->id }}" data-filters="{{ json_encode($tpl->filters) }}">{{ $tpl->name }}</option>
+                    @endforeach
+                </select>
+                {{-- Şablon Kaydet/Sil butonları --}}
+                <button @click="showSaveTemplateModal = true" class="px-2 py-2 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-colors text-blue-500" title="Mevcut filtreleri şablon olarak kaydet">
+                    <i class="fas fa-save text-xs"></i>
+                </button>
+                <button x-show="selectedTemplateId" @click="deleteTemplate()" class="px-2 py-2 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors text-red-400" title="Şablonu sil">
+                    <i class="fas fa-trash text-xs"></i>
+                </button>
+            </div>
+
+            {{-- Yeni Ürün --}}
             <button @click="openCreate()"
-                    class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-white font-semibold rounded-xl text-sm px-5 py-2.5 transition-all flex items-center gap-2 justify-center whitespace-nowrap">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                Yeni Ürün
+                    class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-white font-semibold rounded-xl text-sm px-4 py-2 transition-all flex items-center gap-1.5 whitespace-nowrap ml-auto">
+                <i class="fas fa-plus text-xs"></i> Yeni Ürün
+            </button>
+        </div>
+        
+        {{-- Aktif Filtre Etiketleri --}}
+        <div x-show="hasActiveFilters()" class="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-gray-100">
+            <span class="text-[10px] text-gray-400 font-medium">AKTİF FİLTRELER:</span>
+            <template x-if="searchQuery">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-[10px] text-gray-600">
+                    <i class="fas fa-search text-[8px]"></i> <span x-text="'\"' + searchQuery + '\"'"></span>
+                    <button @click="searchQuery=''; applyFilters()" class="text-gray-400 hover:text-red-500 ml-0.5"><i class="fas fa-times text-[8px]"></i></button>
+                </span>
+            </template>
+            <template x-if="firmFilter">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-50 rounded-full text-[10px] text-orange-600">
+                    <i class="fas fa-building text-[8px]"></i> Firma
+                    <button @click="firmFilter=''; applyFilters()" class="text-orange-400 hover:text-red-500 ml-0.5"><i class="fas fa-times text-[8px]"></i></button>
+                </span>
+            </template>
+            <template x-if="categoryFilter">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 rounded-full text-[10px] text-blue-600">
+                    <i class="fas fa-folder text-[8px]"></i> Grup
+                    <button @click="categoryFilter=''; applyFilters()" class="text-blue-400 hover:text-red-500 ml-0.5"><i class="fas fa-times text-[8px]"></i></button>
+                </span>
+            </template>
+            <template x-if="variantFilter">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 rounded-full text-[10px] text-purple-600">
+                    <i class="fas fa-layer-group text-[8px]"></i> Varyant
+                    <button @click="variantFilter=''; applyFilters()" class="text-purple-400 hover:text-red-500 ml-0.5"><i class="fas fa-times text-[8px]"></i></button>
+                </span>
+            </template>
+            <template x-if="filters.low_stock">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-red-50 rounded-full text-[10px] text-red-600">
+                    <i class="fas fa-exclamation-triangle text-[8px]"></i> Kritik Stok
+                    <button @click="filters.low_stock=false; applyFilters()" class="text-red-400 hover:text-red-600 ml-0.5"><i class="fas fa-times text-[8px]"></i></button>
+                </span>
+            </template>
+            <button @click="clearAllFilters()" class="text-[10px] text-red-500 hover:text-red-700 font-medium ml-1">
+                <i class="fas fa-times-circle"></i> Tümünü Temizle
             </button>
         </div>
     </div>
 
-    {{-- Toolbar --}}
-    <div class="flex flex-wrap items-center gap-2 mb-4">
-        {{-- Gelişmiş Filtreler --}}
-        <div class="relative" x-data="{ openFilter: false }">
-            <button @click="openFilter = !openFilter" class="px-3 py-2 text-xs font-medium bg-white border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 flex items-center gap-1.5">
-                <i class="fas fa-filter text-gray-400"></i> Filtre
-                <i class="fas fa-chevron-down text-[10px] text-gray-300"></i>
-            </button>
-            <div x-show="openFilter" @click.away="openFilter=false" x-transition class="absolute left-0 top-full mt-1 bg-white rounded-xl border border-gray-200 shadow-xl z-30 p-3 w-56 space-y-2">
-                <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
-                    <input type="checkbox" x-model="filters.low_stock" @change="applyFilters()" class="rounded text-brand-500 border-gray-300 w-3.5 h-3.5"> Kritik Stok
-                </label>
-                <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
-                    <input type="checkbox" x-model="filters.is_service" @change="applyFilters()" class="rounded text-brand-500 border-gray-300 w-3.5 h-3.5"> Sadece Hizmetler
-                </label>
-                <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
-                    <input type="checkbox" x-model="filters.has_variant" @change="applyFilters()" class="rounded text-brand-500 border-gray-300 w-3.5 h-3.5"> Varyantlı Ürünler
-                </label>
-                <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
-                    <input type="checkbox" x-model="filters.show_on_pos_only" @change="applyFilters()" class="rounded text-brand-500 border-gray-300 w-3.5 h-3.5"> POS'ta Gösterilenler
-                </label>
-                <div class="pt-1 border-t border-gray-100">
-                    <label class="block text-[10px] text-gray-500 mb-1">Stok Durumu</label>
-                    <select x-model="filters.stock_status" @change="applyFilters()" class="w-full text-xs px-2 py-1.5 border border-gray-200 rounded-lg">
-                        <option value="">Hepsi</option>
-                        <option value="zero">Stok = 0</option>
-                        <option value="positive">Stok > 0</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        {{-- Sıralama --}}
-        <select x-model="sortBy" @change="applyFilters()" class="px-3 py-2 text-xs font-medium bg-white border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600">
-            <option value="name">Ada Göre</option>
-            <option value="sale_price">Fiyata Göre</option>
-            <option value="stock_quantity">Stoka Göre</option>
-            <option value="created_at">Eklenme Tarihine Göre</option>
-            <option value="sort_order">Sıraya Göre</option>
-        </select>
-
-        <div class="h-5 w-px bg-gray-200"></div>
-
-        {{-- Toplu İşlemler --}}
-        <template x-if="selectedIds.length > 0">
-            <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500 font-medium" x-text="selectedIds.length + ' seçili'"></span>
-                <button @click="bulkDeleteProducts()" class="px-3 py-2 text-xs font-medium bg-red-50 border border-red-200 text-red-600 rounded-xl hover:bg-red-100 flex items-center gap-1.5">
-                    <i class="fas fa-trash-alt text-[10px]"></i> Toplu Sil
-                </button>
-                <button @click="showBulkCategoryModal = true" class="px-3 py-2 text-xs font-medium bg-blue-50 border border-blue-200 text-blue-600 rounded-xl hover:bg-blue-100 flex items-center gap-1.5">
-                    <i class="fas fa-folder text-[10px]"></i> Kategori Ata
-                </button>
-                <button @click="showBulkPriceModal = true" class="px-3 py-2 text-xs font-medium bg-amber-50 border border-amber-200 text-amber-600 rounded-xl hover:bg-amber-100 flex items-center gap-1.5">
-                    <i class="fas fa-dollar-sign text-[10px]"></i> Fiyat Güncelle
-                </button>
-                <button @click="openLabelModal()" class="px-3 py-2 text-xs font-medium bg-purple-50 border border-purple-200 text-purple-600 rounded-xl hover:bg-purple-100 flex items-center gap-1.5">
-                    <i class="fas fa-barcode text-[10px]"></i> Etiket Üret
-                </button>
-            </div>
-        </template>
-
-        <div class="ml-auto flex items-center gap-2">
-            <button @click="openSummaryModal()" class="px-3 py-2 text-xs font-medium bg-white border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 flex items-center gap-1.5" title="Ürün Özet Dökümü">
-                <i class="fas fa-chart-pie text-gray-400"></i> Özet
-            </button>
-            <a href="/products-export" class="px-3 py-2 text-xs font-medium bg-white border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 flex items-center gap-1.5" title="Excel Dışa Aktar">
-                <i class="fas fa-file-export text-emerald-500"></i> Dışa Aktar
-            </a>
-            <button @click="showImportModal = true" class="px-3 py-2 text-xs font-medium bg-white border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 flex items-center gap-1.5" title="Excel İçe Aktar">
-                <i class="fas fa-file-import text-blue-500"></i> İçe Aktar
-            </button>
-            <button @click="showVariantTypeModal = true" class="px-3 py-2 text-xs font-medium bg-white border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 flex items-center gap-1.5" title="Varyant Tipleri">
-                <i class="fas fa-layer-group text-purple-500"></i> Varyantlar
-            </button>
-        </div>
+    {{-- Toplu İşlemler Toolbar --}}
+    <div class="flex flex-wrap items-center gap-2 mb-3" x-show="selectedIds.length > 0" x-transition>
+        <span class="text-xs text-gray-500 font-medium" x-text="selectedIds.length + ' seçili'"></span>
+        <button @click="bulkDeleteProducts()" class="px-3 py-2 text-xs font-medium bg-red-50 border border-red-200 text-red-600 rounded-xl hover:bg-red-100 flex items-center gap-1.5">
+            <i class="fas fa-trash-alt text-[10px]"></i> Toplu Sil
+        </button>
+        <button @click="showBulkCategoryModal = true" class="px-3 py-2 text-xs font-medium bg-blue-50 border border-blue-200 text-blue-600 rounded-xl hover:bg-blue-100 flex items-center gap-1.5">
+            <i class="fas fa-folder text-[10px]"></i> Kategori Ata
+        </button>
+        <button @click="showBulkPriceModal = true" class="px-3 py-2 text-xs font-medium bg-amber-50 border border-amber-200 text-amber-600 rounded-xl hover:bg-amber-100 flex items-center gap-1.5">
+            <i class="fas fa-dollar-sign text-[10px]"></i> Fiyat Güncelle
+        </button>
+        <button @click="openLabelModal()" class="px-3 py-2 text-xs font-medium bg-purple-50 border border-purple-200 text-purple-600 rounded-xl hover:bg-purple-100 flex items-center gap-1.5">
+            <i class="fas fa-barcode text-[10px]"></i> Etiket Üret
+        </button>
     </div>
 
     {{-- Product Table --}}
@@ -139,6 +242,7 @@
                         <th class="px-3 py-3.5 font-semibold">Stok Kodu</th>
                         <th class="px-3 py-3.5 font-semibold">Ürün Adı</th>
                         <th class="px-3 py-3.5 font-semibold">Kategori</th>
+                        <th class="px-3 py-3.5 font-semibold">Firma</th>
                         <th class="px-3 py-3.5 text-right font-semibold">Alış</th>
                         <th class="px-3 py-3.5 text-right font-semibold">Satış</th>
                         <th class="px-3 py-3.5 text-center font-semibold">KDV%</th>
@@ -181,6 +285,15 @@
                                 @if($product->category)
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-brand-50 text-brand-600 border border-brand-200">
                                         {{ $product->category->name }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-300">-</span>
+                                @endif
+                            </td>
+                            <td class="px-3 py-3">
+                                @if($product->firm)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-orange-50 text-orange-600 border border-orange-200">
+                                        {{ $product->firm->name }}
                                     </span>
                                 @else
                                     <span class="text-gray-300">-</span>
@@ -230,6 +343,7 @@
                                                 'show_on_pos' => $product->show_on_pos ?? true,
                                                 'description' => $product->description,
                                                 'image_url' => $product->image_url,
+                                                'firm_id' => $product->firm_id,
                                             ]) }})"  
                                             class="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
                                             title="Düzenle">
@@ -265,7 +379,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="13" class="px-4 py-12 text-center">
+                            <td colspan="14" class="px-4 py-12 text-center">
                                 <div class="flex flex-col items-center gap-3">
                                     <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
@@ -361,7 +475,7 @@
                                 :class="catOpen ? 'ring-2 ring-brand-500/20 border-brand-500' : ''">
                             <span x-text="selectedCatName || 'Kategori seçin'" :class="selectedCatName ? 'text-gray-800' : 'text-gray-400'"></span>
                             <div class="flex items-center gap-1.5">
-                                <template x-if="$parent.form.category_id">
+                                <template x-if="form.category_id">
                                     <button type="button" @click.stop="clearCat()" class="text-gray-400 hover:text-red-500 transition-colors">
                                         <i class="fas fa-times text-xs"></i>
                                     </button>
@@ -385,7 +499,7 @@
                                 <template x-for="cat in filteredTree()" :key="cat.id">
                                     <div>
                                         <div class="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer group"
-                                             :class="$parent.form.category_id == cat.id ? 'bg-brand-50 text-brand-700' : ''">
+                                             :class="form.category_id == cat.id ? 'bg-brand-50 text-brand-700' : ''">
                                             <button type="button" x-show="cat.children && cat.children.length"
                                                     @click.stop="toggleExpand(cat.id)"
                                                     class="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 shrink-0">
@@ -404,7 +518,7 @@
                                                 <template x-for="sub in cat.children" :key="sub.id">
                                                     <div>
                                                         <div class="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer group"
-                                                             :class="$parent.form.category_id == sub.id ? 'bg-brand-50 text-brand-700' : ''">
+                                                             :class="form.category_id == sub.id ? 'bg-brand-50 text-brand-700' : ''">
                                                             <button type="button" x-show="sub.children && sub.children.length"
                                                                     @click.stop="toggleExpand(sub.id)"
                                                                     class="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 shrink-0">
@@ -423,7 +537,7 @@
                                                                 <template x-for="deep in sub.children" :key="deep.id">
                                                                     <div>
                                                                         <div class="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer group"
-                                                                             :class="$parent.form.category_id == deep.id ? 'bg-brand-50 text-brand-700' : ''">
+                                                                             :class="form.category_id == deep.id ? 'bg-brand-50 text-brand-700' : ''">
                                                                             <button type="button" x-show="deep.children && deep.children.length"
                                                                                     @click.stop="toggleExpand(deep.id)"
                                                                                     class="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 shrink-0">
@@ -441,7 +555,7 @@
                                                                             <div class="ml-4">
                                                                                 <template x-for="d4 in deep.children" :key="d4.id">
                                                                                     <div class="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer group"
-                                                                                         :class="$parent.form.category_id == d4.id ? 'bg-brand-50 text-brand-700' : ''">
+                                                                                         :class="form.category_id == d4.id ? 'bg-brand-50 text-brand-700' : ''">
                                                                                         <span class="w-5"></span>
                                                                                         <span @click="selectCat(d4)" class="flex-1 text-sm truncate" x-text="d4.name"></span>
                                                                                         <button type="button" @click.stop="startAddSub(d4)"
@@ -498,6 +612,18 @@
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {{-- Firma Seçimi --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Firma (Tedarikçi)</label>
+                    <select x-model="form.firm_id"
+                            class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                        <option value="">Firma seçin</option>
+                        @foreach($firms as $firm)
+                            <option value="{{ $firm->id }}">{{ $firm->name }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -1049,6 +1175,23 @@
     </div>
 
     {{-- ═══════════════════════════════════════════ --}}
+    {{-- MODAL: Filtre Şablonu Kaydet --}}
+    {{-- ═══════════════════════════════════════════ --}}
+    <div x-show="showSaveTemplateModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showSaveTemplateModal=false"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <h3 class="text-lg font-bold text-gray-900 mb-2"><i class="fas fa-save text-blue-500 mr-2"></i>Filtre Şablonu Kaydet</h3>
+            <p class="text-xs text-gray-500 mb-4">Mevcut filtre ayarlarınızı bir şablon olarak kaydedin. Daha sonra tek tıkla yükleyebilirsiniz.</p>
+            <input type="text" x-model="templateName" @keydown.enter="saveTemplate()" autofocus placeholder="Şablon adı girin..."
+                   class="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 mb-4 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400">
+            <div class="flex gap-3">
+                <button @click="showSaveTemplateModal=false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl">İptal</button>
+                <button @click="saveTemplate()" :disabled="!templateName.trim()" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-xl disabled:opacity-50">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    {{-- ═══════════════════════════════════════════ --}}
     {{-- MODAL: Toplu Kategori Atama --}}
     {{-- ═══════════════════════════════════════════ --}}
     <div x-show="showBulkCategoryModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
@@ -1129,13 +1272,13 @@ function categoryPicker() {
                 const res = await fetch('{{ route("pos.categories.tree") }}');
                 this.catTree = await res.json();
                 // Eğer form'da seçili kategori varsa ismini bul
-                if (this.$parent?.form?.category_id) {
-                    this.selectedCatName = this.findName(this.catTree, this.$parent.form.category_id);
-                    this.expandToId(this.catTree, this.$parent.form.category_id);
+                if (this.form?.category_id) {
+                    this.selectedCatName = this.findName(this.catTree, this.form.category_id);
+                    this.expandToId(this.catTree, this.form.category_id);
                 }
             } catch(e) { console.error('Kategori ağacı yüklenemedi', e); }
 
-            this.$watch('$parent.form.category_id', (val) => {
+            this.$watch('form.category_id', (val) => {
                 if (val) {
                     this.selectedCatName = this.findName(this.catTree, val);
                 } else {
@@ -1194,13 +1337,13 @@ function categoryPicker() {
         isExpanded(id) { return this.expandedIds.has(id); },
 
         selectCat(cat) {
-            this.$parent.form.category_id = String(cat.id);
+            this.form.category_id = String(cat.id);
             this.selectedCatName = cat.name;
             this.catOpen = false;
         },
 
         clearCat() {
-            this.$parent.form.category_id = '';
+            this.form.category_id = '';
             this.selectedCatName = '';
         },
 
@@ -1275,8 +1418,13 @@ function productManager() {
         deleting: false,
         searchQuery: new URLSearchParams(window.location.search).get('search') || '',
         categoryFilter: new URLSearchParams(window.location.search).get('category_id') || '',
+        firmFilter: new URLSearchParams(window.location.search).get('firm_id') || '',
+        variantFilter: new URLSearchParams(window.location.search).get('variant_type_id') || '',
         sortBy: new URLSearchParams(window.location.search).get('sort_by') || 'name',
         selectedIds: [],
+        selectedTemplateId: '',
+        showSaveTemplateModal: false,
+        templateName: '',
 
         // Filtreler
         filters: {
@@ -1362,7 +1510,7 @@ function productManager() {
         bulkPriceValue: '',
 
         form: {
-            name: '', barcode: '', stock_code: '', category_id: '',
+            name: '', barcode: '', stock_code: '', category_id: '', firm_id: '',
             purchase_price: '', sale_price: '', vat_rate: '10',
             stock_quantity: '', critical_stock: '', unit: 'Adet',
             country_of_origin: '', description: '',
@@ -1376,7 +1524,7 @@ function productManager() {
 
         resetForm() {
             this.form = {
-                name: '', barcode: '', stock_code: '', category_id: '',
+                name: '', barcode: '', stock_code: '', category_id: '', firm_id: '',
                 purchase_price: '', sale_price: '', vat_rate: '10',
                 stock_quantity: '', critical_stock: '', unit: 'Adet',
                 country_of_origin: '', description: '',
@@ -1401,6 +1549,7 @@ function productManager() {
                 barcode: product.barcode || '',
                 stock_code: product.stock_code || '',
                 category_id: product.category_id ? String(product.category_id) : '',
+                firm_id: product.firm_id ? String(product.firm_id) : '',
                 purchase_price: product.purchase_price ?? '',
                 sale_price: product.sale_price ?? '',
                 vat_rate: product.vat_rate != null ? String(product.vat_rate) : '10',
@@ -1447,6 +1596,8 @@ function productManager() {
             const params = new URLSearchParams();
             if (this.searchQuery) params.set('search', this.searchQuery);
             if (this.categoryFilter) params.set('category_id', this.categoryFilter);
+            if (this.firmFilter) params.set('firm_id', this.firmFilter);
+            if (this.variantFilter) params.set('variant_type_id', this.variantFilter);
             if (this.sortBy !== 'name') params.set('sort_by', this.sortBy);
             if (this.filters.low_stock) params.set('low_stock', '1');
             if (this.filters.is_service) params.set('is_service', '1');
@@ -1454,6 +1605,88 @@ function productManager() {
             if (this.filters.show_on_pos_only) params.set('show_on_pos_only', '1');
             if (this.filters.stock_status) params.set('stock_status', this.filters.stock_status);
             window.location.href = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        },
+
+        hasActiveFilters() {
+            return this.searchQuery || this.firmFilter || this.categoryFilter || this.variantFilter ||
+                   this.filters.low_stock || this.filters.is_service || this.filters.has_variant ||
+                   this.filters.show_on_pos_only || this.filters.stock_status;
+        },
+
+        clearAllFilters() {
+            this.searchQuery = '';
+            this.categoryFilter = '';
+            this.firmFilter = '';
+            this.variantFilter = '';
+            this.sortBy = 'name';
+            this.filters = { low_stock: false, is_service: false, has_variant: false, show_on_pos_only: false, stock_status: '' };
+            this.selectedTemplateId = '';
+            this.applyFilters();
+        },
+
+        // ── Şablon Yönetimi ─────────────────────
+        getCurrentFilters() {
+            return {
+                search: this.searchQuery,
+                category_id: this.categoryFilter,
+                firm_id: this.firmFilter,
+                variant_type_id: this.variantFilter,
+                sort_by: this.sortBy,
+                low_stock: this.filters.low_stock,
+                is_service: this.filters.is_service,
+                has_variant: this.filters.has_variant,
+                show_on_pos_only: this.filters.show_on_pos_only,
+                stock_status: this.filters.stock_status,
+            };
+        },
+
+        async saveTemplate() {
+            if (!this.templateName.trim()) { showToast('Şablon adı girin', 'warning'); return; }
+            try {
+                const res = await posAjax('{{ route("pos.products.filter-templates.store") }}', {
+                    name: this.templateName.trim(),
+                    filters: this.getCurrentFilters(),
+                });
+                if (res.success) {
+                    showToast('Şablon kaydedildi!', 'success');
+                    this.showSaveTemplateModal = false;
+                    this.templateName = '';
+                    window.location.reload();
+                }
+            } catch(e) { showToast(e.message || 'Hata', 'error'); }
+        },
+
+        loadTemplate() {
+            if (!this.selectedTemplateId) return;
+            const select = document.querySelector('select[x-model=selectedTemplateId]');
+            const option = select?.querySelector(`option[value="${this.selectedTemplateId}"]`);
+            if (!option) return;
+            try {
+                const f = JSON.parse(option.dataset.filters);
+                this.searchQuery = f.search || '';
+                this.categoryFilter = f.category_id || '';
+                this.firmFilter = f.firm_id || '';
+                this.variantFilter = f.variant_type_id || '';
+                this.sortBy = f.sort_by || 'name';
+                this.filters.low_stock = !!f.low_stock;
+                this.filters.is_service = !!f.is_service;
+                this.filters.has_variant = !!f.has_variant;
+                this.filters.show_on_pos_only = !!f.show_on_pos_only;
+                this.filters.stock_status = f.stock_status || '';
+                this.applyFilters();
+            } catch(e) { console.error('Şablon parse hatası', e); }
+        },
+
+        async deleteTemplate() {
+            if (!this.selectedTemplateId || !confirm('Bu şablonu silmek istediğinize emin misiniz?')) return;
+            try {
+                const res = await posAjax('/products/filter-templates/' + this.selectedTemplateId, {}, 'DELETE');
+                if (res.success) {
+                    showToast('Şablon silindi', 'success');
+                    this.selectedTemplateId = '';
+                    window.location.reload();
+                }
+            } catch(e) { showToast(e.message || 'Hata', 'error'); }
         },
 
         toggleSelectAll(event) {

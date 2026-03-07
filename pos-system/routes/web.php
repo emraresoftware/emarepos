@@ -126,6 +126,10 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class])->group(fu
     Route::get('/products-summary', [ProductController::class, 'summary'])->name('pos.products.summary');
     Route::post('/products-labels', [ProductController::class, 'generateLabels'])->name('pos.products.labels');
     Route::post('/products-sort', [ProductController::class, 'updateSortOrder'])->name('pos.products.sort');
+
+    // Filtre Şablonları
+    Route::post('/products/filter-templates', [ProductController::class, 'saveFilterTemplate'])->name('pos.products.filter-templates.store');
+    Route::delete('/products/filter-templates/{template}', [ProductController::class, 'deleteFilterTemplate'])->name('pos.products.filter-templates.destroy');
     
     // Müşteriler (Customers)
     Route::get('/customers', [CustomerController::class, 'index'])->name('pos.customers');

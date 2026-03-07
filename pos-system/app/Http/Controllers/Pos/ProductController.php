@@ -9,6 +9,8 @@ use App\Models\ProductVariantValue;
 use App\Models\ProductSubDefinition;
 use App\Models\Category;
 use App\Models\Branch;
+use App\Models\Firm;
+use App\Models\FilterTemplate;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +21,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $query = Product::where('is_active', true)
-            ->with('category')
+            ->with(['category', 'firm'])
             ->orderBy($request->get('sort_by', 'name'), $request->get('sort_dir', 'asc'));
         
         if ($request->filled('search')) {
@@ -27,7 +29,19 @@ class ProductController extends Controller
             $query->where(function ($q) use ($s) {
                 $q->where('name', 'like', "%{$s}%")
                   ->orWhere('barcode', 'like', "%{$s}%")
-                  ->orWhere('stock_code', 'like', "%{$s}%");
+                  ->orWhere('stock_code', 'like', "%{$s}%")
+                  ->orWhere('variant_type', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('firm_id')) {
+            $query->where('firm_id', $request->firm_id);
+        }
+
+        if ($request->filled('variant_type_id')) {
+            $query->whereHas('variantAssignments', function($q) use ($request) {
+                $vtId = $request->variant_type_id;
+                $q->whereHas('type', fn($tq) => $tq->where('id', $vtId));
             });
         }
         
@@ -69,8 +83,10 @@ class ProductController extends Controller
         $categories = $this->buildCategoryTree($allCategories);
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
         $variantTypes = ProductVariantType::where('tenant_id', session('tenant_id'))->with('values')->orderBy('sort_order')->get();
+        $firms = Firm::where('is_active', true)->orderBy('name')->get();
+        $filterTemplates = FilterTemplate::where('user_id', auth()->id())->where('page', 'products')->orderBy('sort_order')->get();
         
-        return view('pos.products.index', compact('products', 'categories', 'branches', 'variantTypes'));
+        return view('pos.products.index', compact('products', 'categories', 'branches', 'variantTypes', 'firms', 'filterTemplates'));
     }
 
     /**
@@ -684,6 +700,35 @@ class ProductController extends Controller
             Product::where('id', $item['id'])->update(['sort_order' => $item['sort_order']]);
         }
 
+        return response()->json(['success' => true]);
+    }
+
+    // ── Filtre Şablon CRUD ─────────────────────────────────
+
+    public function saveFilterTemplate(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:100',
+            'filters' => 'required|array',
+        ]);
+
+        $template = FilterTemplate::create([
+            'tenant_id' => session('tenant_id'),
+            'user_id' => auth()->id(),
+            'name' => $data['name'],
+            'page' => 'products',
+            'filters' => $data['filters'],
+        ]);
+
+        return response()->json(['success' => true, 'template' => $template]);
+    }
+
+    public function deleteFilterTemplate(FilterTemplate $template)
+    {
+        if ($template->user_id !== auth()->id()) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok'], 403);
+        }
+        $template->delete();
         return response()->json(['success' => true]);
     }
 }

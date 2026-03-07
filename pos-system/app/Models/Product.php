@@ -35,6 +35,7 @@ class Product extends Model
         'stock_code',
         'sort_order',
         'show_on_pos',
+        'firm_id',
     ];
 
     protected function casts(): array
@@ -58,6 +59,11 @@ class Product extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function firm()
+    {
+        return $this->belongsTo(Firm::class);
     }
 
     public function serviceCategory()
