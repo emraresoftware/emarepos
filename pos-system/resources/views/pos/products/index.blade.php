@@ -22,15 +22,20 @@
                     @change="applyFilters()"
                     class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
                 <option value="">Tüm Kategoriler</option>
-                @foreach($categories as $cat)
-                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                    @foreach($cat->children->sortBy('name') as $sub)
-                        <option value="{{ $sub->id }}">&nbsp;&nbsp;└ {{ $sub->name }}</option>
-                        @foreach($sub->children->sortBy('name') as $sub2)
-                            <option value="{{ $sub2->id }}">&nbsp;&nbsp;&nbsp;&nbsp;└ {{ $sub2->name }}</option>
-                        @endforeach
-                    @endforeach
-                @endforeach
+                @php
+                    if (!function_exists('renderCatOptions')) {
+                        function renderCatOptions($cats, $depth = 0) {
+                            foreach ($cats as $cat) {
+                                $prefix = str_repeat('&nbsp;&nbsp;', $depth) . ($depth > 0 ? '└ ' : '');
+                                echo '<option value="'.$cat->id.'">'.$prefix.e($cat->name).'</option>';
+                                if ($cat->relationLoaded('children') && $cat->children->count()) {
+                                    renderCatOptions($cat->children->sortBy('name'), $depth + 1);
+                                }
+                            }
+                        }
+                    }
+                    renderCatOptions($categories);
+                @endphp
             </select>
             <button @click="openCreate()"
                     class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-white font-semibold rounded-xl text-sm px-5 py-2.5 transition-all flex items-center gap-2 justify-center whitespace-nowrap">
@@ -346,21 +351,153 @@
                     </div>
                 </div>
 
-                <div>
+                <div x-data="categoryPicker()" x-init="initCategoryTree()">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-                    <select x-model="form.category_id"
-                            class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
-                        <option value="">Kategori seçin</option>
-                        @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                            @foreach($cat->children->sortBy('name') as $sub)
-                                <option value="{{ $sub->id }}">&nbsp;&nbsp;└ {{ $sub->name }}</option>
-                                @foreach($sub->children->sortBy('name') as $sub2)
-                                    <option value="{{ $sub2->id }}">&nbsp;&nbsp;&nbsp;&nbsp;└ {{ $sub2->name }}</option>
-                                @endforeach
-                            @endforeach
-                        @endforeach
-                    </select>
+                    
+                    {{-- Seçili kategori gösterimi + açma butonu --}}
+                    <div class="relative">
+                        <button type="button" @click="catOpen = !catOpen"
+                                class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 flex items-center justify-between transition-all"
+                                :class="catOpen ? 'ring-2 ring-brand-500/20 border-brand-500' : ''">
+                            <span x-text="selectedCatName || 'Kategori seçin'" :class="selectedCatName ? 'text-gray-800' : 'text-gray-400'"></span>
+                            <div class="flex items-center gap-1.5">
+                                <template x-if="$parent.form.category_id">
+                                    <button type="button" @click.stop="clearCat()" class="text-gray-400 hover:text-red-500 transition-colors">
+                                        <i class="fas fa-times text-xs"></i>
+                                    </button>
+                                </template>
+                                <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform" :class="catOpen ? 'rotate-180' : ''"></i>
+                            </div>
+                        </button>
+                        
+                        {{-- Dropdown panel --}}
+                        <div x-show="catOpen" x-transition @click.outside="catOpen = false"
+                             class="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-72 overflow-hidden flex flex-col">
+                            
+                            {{-- Arama --}}
+                            <div class="p-2 border-b border-gray-100">
+                                <input type="text" x-model="catSearch" placeholder="Kategori ara..."
+                                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400">
+                            </div>
+                            
+                            {{-- Ağaç --}}
+                            <div class="overflow-y-auto p-1 flex-1" style="max-height: 200px">
+                                <template x-for="cat in filteredTree()" :key="cat.id">
+                                    <div>
+                                        <div class="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer group"
+                                             :class="$parent.form.category_id == cat.id ? 'bg-brand-50 text-brand-700' : ''">
+                                            <button type="button" x-show="cat.children && cat.children.length"
+                                                    @click.stop="toggleExpand(cat.id)"
+                                                    class="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 shrink-0">
+                                                <i class="fas text-[9px]" :class="isExpanded(cat.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                                            </button>
+                                            <span x-show="!cat.children || !cat.children.length" class="w-5"></span>
+                                            <span @click="selectCat(cat)" class="flex-1 text-sm truncate" x-text="cat.name"></span>
+                                            <button type="button" @click.stop="startAddSub(cat)"
+                                                    class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-brand-600 transition-all shrink-0" title="Alt kategori ekle">
+                                                <i class="fas fa-plus text-[9px]"></i>
+                                            </button>
+                                        </div>
+                                        {{-- 2. Seviye --}}
+                                        <template x-if="isExpanded(cat.id) && cat.children">
+                                            <div class="ml-4">
+                                                <template x-for="sub in cat.children" :key="sub.id">
+                                                    <div>
+                                                        <div class="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer group"
+                                                             :class="$parent.form.category_id == sub.id ? 'bg-brand-50 text-brand-700' : ''">
+                                                            <button type="button" x-show="sub.children && sub.children.length"
+                                                                    @click.stop="toggleExpand(sub.id)"
+                                                                    class="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 shrink-0">
+                                                                <i class="fas text-[9px]" :class="isExpanded(sub.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                                                            </button>
+                                                            <span x-show="!sub.children || !sub.children.length" class="w-5"></span>
+                                                            <span @click="selectCat(sub)" class="flex-1 text-sm truncate" x-text="sub.name"></span>
+                                                            <button type="button" @click.stop="startAddSub(sub)"
+                                                                    class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-brand-600 transition-all shrink-0" title="Alt kategori ekle">
+                                                                <i class="fas fa-plus text-[9px]"></i>
+                                                            </button>
+                                                        </div>
+                                                        {{-- 3+ Seviye (recursive render) --}}
+                                                        <template x-if="isExpanded(sub.id) && sub.children">
+                                                            <div class="ml-4">
+                                                                <template x-for="deep in sub.children" :key="deep.id">
+                                                                    <div>
+                                                                        <div class="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer group"
+                                                                             :class="$parent.form.category_id == deep.id ? 'bg-brand-50 text-brand-700' : ''">
+                                                                            <button type="button" x-show="deep.children && deep.children.length"
+                                                                                    @click.stop="toggleExpand(deep.id)"
+                                                                                    class="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 shrink-0">
+                                                                                <i class="fas text-[9px]" :class="isExpanded(deep.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                                                                            </button>
+                                                                            <span x-show="!deep.children || !deep.children.length" class="w-5"></span>
+                                                                            <span @click="selectCat(deep)" class="flex-1 text-sm truncate" x-text="deep.name"></span>
+                                                                            <button type="button" @click.stop="startAddSub(deep)"
+                                                                                    class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-brand-600 transition-all shrink-0" title="Alt kategori ekle">
+                                                                                <i class="fas fa-plus text-[9px]"></i>
+                                                                            </button>
+                                                                        </div>
+                                                                        {{-- 4+ Seviye --}}
+                                                                        <template x-if="isExpanded(deep.id) && deep.children && deep.children.length">
+                                                                            <div class="ml-4">
+                                                                                <template x-for="d4 in deep.children" :key="d4.id">
+                                                                                    <div class="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer group"
+                                                                                         :class="$parent.form.category_id == d4.id ? 'bg-brand-50 text-brand-700' : ''">
+                                                                                        <span class="w-5"></span>
+                                                                                        <span @click="selectCat(d4)" class="flex-1 text-sm truncate" x-text="d4.name"></span>
+                                                                                        <button type="button" @click.stop="startAddSub(d4)"
+                                                                                                class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-brand-600 transition-all shrink-0" title="Alt kategori ekle">
+                                                                                            <i class="fas fa-plus text-[9px]"></i>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </template>
+                                                                            </div>
+                                                                        </template>
+                                                                    </div>
+                                                                </template>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <div x-show="filteredTree().length === 0" class="text-center text-gray-400 text-sm py-3">Sonuç bulunamadı</div>
+                            </div>
+                            
+                            {{-- Yeni Kategori Oluştur --}}
+                            <div class="border-t border-gray-100 p-2">
+                                <template x-if="!addingCat">
+                                    <button type="button" @click="addingCat = true; addingParent = null; newCatName = ''"
+                                            class="w-full text-sm text-brand-600 hover:bg-brand-50 rounded-lg py-2 font-medium transition-colors flex items-center justify-center gap-1.5">
+                                        <i class="fas fa-plus text-xs"></i> Yeni Kategori Oluştur
+                                    </button>
+                                </template>
+                                <template x-if="addingCat">
+                                    <div>
+                                        <div x-show="addingParent" class="text-[11px] text-gray-500 mb-1 flex items-center gap-1">
+                                            <i class="fas fa-level-down-alt text-gray-400"></i>
+                                            <span x-text="addingParent?.name"></span> altına ekleniyor
+                                            <button type="button" @click="addingParent = null" class="text-gray-400 hover:text-red-500 ml-1"><i class="fas fa-times text-[9px]"></i></button>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <input type="text" x-model="newCatName" x-ref="newCatInput" @keydown.enter="saveCat()" @keydown.escape="addingCat = false"
+                                                   placeholder="Kategori adı..." autofocus
+                                                   class="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400">
+                                            <button type="button" @click="saveCat()" :disabled="!newCatName.trim() || savingCat"
+                                                    class="px-3 py-1.5 bg-brand-600 text-white text-sm rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors">
+                                                <i class="fas" :class="savingCat ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                                            </button>
+                                            <button type="button" @click="addingCat = false"
+                                                    class="px-3 py-1.5 bg-gray-100 text-gray-600 text-sm rounded-lg hover:bg-gray-200 transition-colors">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -975,6 +1112,151 @@
 
 @push('scripts')
 <script>
+function categoryPicker() {
+    return {
+        catOpen: false,
+        catSearch: '',
+        catTree: [],
+        expandedIds: new Set(),
+        selectedCatName: '',
+        addingCat: false,
+        addingParent: null,
+        newCatName: '',
+        savingCat: false,
+
+        async initCategoryTree() {
+            try {
+                const res = await fetch('{{ route("pos.categories.tree") }}');
+                this.catTree = await res.json();
+                // Eğer form'da seçili kategori varsa ismini bul
+                if (this.$parent?.form?.category_id) {
+                    this.selectedCatName = this.findName(this.catTree, this.$parent.form.category_id);
+                    this.expandToId(this.catTree, this.$parent.form.category_id);
+                }
+            } catch(e) { console.error('Kategori ağacı yüklenemedi', e); }
+
+            this.$watch('$parent.form.category_id', (val) => {
+                if (val) {
+                    this.selectedCatName = this.findName(this.catTree, val);
+                } else {
+                    this.selectedCatName = '';
+                }
+            });
+        },
+
+        findName(nodes, id) {
+            for (const n of nodes) {
+                if (n.id == id) return n.name;
+                if (n.children?.length) {
+                    const found = this.findName(n.children, id);
+                    if (found) return found;
+                }
+            }
+            return '';
+        },
+
+        expandToId(nodes, id, path = []) {
+            for (const n of nodes) {
+                if (n.id == id) {
+                    path.forEach(p => this.expandedIds.add(p));
+                    return true;
+                }
+                if (n.children?.length) {
+                    if (this.expandToId(n.children, id, [...path, n.id])) return true;
+                }
+            }
+            return false;
+        },
+
+        filteredTree() {
+            if (!this.catSearch.trim()) return this.catTree;
+            return this.filterNodes(this.catTree, this.catSearch.toLowerCase());
+        },
+
+        filterNodes(nodes, q) {
+            const result = [];
+            for (const n of nodes) {
+                const match = n.name.toLowerCase().includes(q);
+                const childMatch = n.children ? this.filterNodes(n.children, q) : [];
+                if (match || childMatch.length) {
+                    result.push({ ...n, children: match ? n.children : childMatch });
+                    if (childMatch.length) this.expandedIds.add(n.id);
+                }
+            }
+            return result;
+        },
+
+        toggleExpand(id) {
+            if (this.expandedIds.has(id)) this.expandedIds.delete(id);
+            else this.expandedIds.add(id);
+        },
+
+        isExpanded(id) { return this.expandedIds.has(id); },
+
+        selectCat(cat) {
+            this.$parent.form.category_id = String(cat.id);
+            this.selectedCatName = cat.name;
+            this.catOpen = false;
+        },
+
+        clearCat() {
+            this.$parent.form.category_id = '';
+            this.selectedCatName = '';
+        },
+
+        startAddSub(parent) {
+            this.addingCat = true;
+            this.addingParent = parent;
+            this.newCatName = '';
+            this.$nextTick(() => {
+                if (this.$refs.newCatInput) this.$refs.newCatInput.focus();
+            });
+        },
+
+        async saveCat() {
+            if (!this.newCatName.trim() || this.savingCat) return;
+            this.savingCat = true;
+            try {
+                const res = await posAjax('{{ route("pos.categories.store") }}', {
+                    name: this.newCatName.trim(),
+                    parent_id: this.addingParent?.id || null,
+                });
+                if (res.success) {
+                    const newNode = { id: res.category.id, name: res.category.name, parent_id: res.category.parent_id, children: [] };
+                    if (this.addingParent) {
+                        const parent = this.findNode(this.catTree, this.addingParent.id);
+                        if (parent) {
+                            if (!parent.children) parent.children = [];
+                            parent.children.push(newNode);
+                            this.expandedIds.add(parent.id);
+                        }
+                    } else {
+                        this.catTree.push(newNode);
+                    }
+                    // Otomatik seç
+                    this.selectCat(newNode);
+                    this.addingCat = false;
+                    this.newCatName = '';
+                    this.addingParent = null;
+                    showToast('Kategori oluşturuldu!', 'success');
+                }
+            } catch(e) { showToast(e.message || 'Hata!', 'error'); }
+            finally { this.savingCat = false; }
+        },
+
+        findNode(nodes, id) {
+            for (const n of nodes) {
+                if (n.id == id) return n;
+                if (n.children?.length) {
+                    const found = this.findNode(n.children, id);
+                    if (found) return found;
+                }
+            }
+            return null;
+        },
+    };
+}
+
 function productManager() {
     return {
         // Temel State

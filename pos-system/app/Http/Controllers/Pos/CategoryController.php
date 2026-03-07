@@ -58,6 +58,34 @@ class CategoryController extends Controller
         return response()->json(['success' => true, 'category' => $category->fresh()]);
     }
 
+    /**
+     * Kategori ağacını JSON olarak döndür (AJAX)
+     * GET /categories/tree
+     */
+    public function tree()
+    {
+        $all = Category::where('tenant_id', session('tenant_id'))
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'parent_id', 'sort_order', 'is_active']);
+
+        $tree = $this->buildTree($all);
+        return response()->json($tree);
+    }
+
+    private function buildTree($categories, $parentId = null)
+    {
+        return $categories->where('parent_id', $parentId)->values()->map(function ($cat) use ($categories) {
+            return [
+                'id' => $cat->id,
+                'name' => $cat->name,
+                'parent_id' => $cat->parent_id,
+                'children' => $this->buildTree($categories, $cat->id),
+            ];
+        });
+    }
+
     public function destroy(Category $category)
     {
         if ($category->products()->exists()) {

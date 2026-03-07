@@ -65,19 +65,23 @@ class ProductController extends Controller
         }
         
         $products = $query->paginate(50);
-        $categories = Category::where('is_active', true)
-            ->whereNull('parent_id')
-            ->with(['children' => function($q) {
-                $q->where('is_active', true)->with(['children' => function($q2) {
-                    $q2->where('is_active', true)->orderBy('sort_order');
-                }])->orderBy('sort_order');
-            }])
-            ->orderBy('sort_order')
-            ->get();
+        $allCategories = Category::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
+        $categories = $this->buildCategoryTree($allCategories);
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
         $variantTypes = ProductVariantType::where('tenant_id', session('tenant_id'))->with('values')->orderBy('sort_order')->get();
         
         return view('pos.products.index', compact('products', 'categories', 'branches', 'variantTypes'));
+    }
+
+    /**
+     * Recursive kategori ağacı oluştur (sınırsız derinlik)
+     */
+    private function buildCategoryTree($categories, $parentId = null)
+    {
+        return $categories->where('parent_id', $parentId)->values()->map(function ($cat) use ($categories) {
+            $cat->setRelation('children', $this->buildCategoryTree($categories, $cat->id));
+            return $cat;
+        });
     }
 
     public function store(Request $request)

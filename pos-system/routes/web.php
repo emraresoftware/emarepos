@@ -151,6 +151,7 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class])->group(fu
     
     // Kategoriler (Categories)
     Route::get('/categories', [CategoryController::class, 'index'])->name('pos.categories');
+    Route::get('/categories/tree', [CategoryController::class, 'tree'])->name('pos.categories.tree');
     Route::post('/categories', [CategoryController::class, 'store'])->name('pos.categories.store');
     Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('pos.categories.update');
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('pos.categories.destroy');
