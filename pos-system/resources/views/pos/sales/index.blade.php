@@ -1302,7 +1302,11 @@ function posScreen() {
             });
 
             const printWindow = window.open('', '_blank', 'width=320,height=600');
-            printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Fiş</title>
+            if (!printWindow) {
+                showToast('Popup engelleyici aktif! Lütfen bu site için popup izni verin.', 'error');
+                return;
+            }
+            const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Fiş</title>
             <style>
                 body{font-family:'Courier New',monospace;font-size:12px;margin:0;padding:8px;width:280px}
                 .center{text-align:center}
@@ -1311,6 +1315,7 @@ function posScreen() {
                 table{width:100%;border-collapse:collapse}
                 td{padding:2px 0;font-size:11px}
                 .total-row td{font-weight:bold;font-size:13px;padding-top:4px}
+                @media print { @page { margin: 2mm; size: 80mm auto; } }
             </style></head><body>
                 <div class="center bold" style="font-size:14px">{{ config('app.name', 'EMARE POS') }}</div>
                 <div class="center" style="font-size:10px">${now}</div>
@@ -1327,11 +1332,14 @@ function posScreen() {
                 </table>
                 <div class="line"></div>
                 <div class="center" style="font-size:10px;margin-top:8px">Teşekkür ederiz!</div>
-            </body></html>`);
+            </body></html>`;
+            printWindow.document.write(htmlContent);
             printWindow.document.close();
-            printWindow.focus();
-            printWindow.print();
-            printWindow.close();
+            printWindow.onafterprint = () => printWindow.close();
+            setTimeout(() => {
+                printWindow.focus();
+                printWindow.print();
+            }, 300);
         },
 
         // ---- İskonto Oranı Uygula ----
