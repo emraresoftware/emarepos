@@ -83,6 +83,7 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class])->group(fu
     Route::post('/products', [ProductController::class, 'store'])->name('pos.products.store');
     Route::put('/products/{product}', [ProductController::class, 'update'])->name('pos.products.update');
     Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('pos.products.destroy');
+    Route::get('/products/{product}/history', [ProductController::class, 'history'])->name('pos.products.history');
     
     // Müşteriler (Customers)
     Route::get('/customers', [CustomerController::class, 'index'])->name('pos.customers');

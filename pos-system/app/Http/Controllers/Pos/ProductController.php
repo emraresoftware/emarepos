@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Pos;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\StockMovement;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -53,7 +54,9 @@ class ProductController extends Controller
             'purchase_price' => 'nullable|numeric|min:0',
             'vat_rate' => 'required|integer',
             'stock_quantity' => 'nullable|numeric|min:0',
+            'critical_stock' => 'nullable|numeric|min:0',
             'unit' => 'nullable|string|max:255',
+            'country_of_origin' => 'nullable|string|max:100',
         ]);
         
         $data['tenant_id'] = session('tenant_id');
@@ -77,7 +80,9 @@ class ProductController extends Controller
             'purchase_price' => 'nullable|numeric|min:0',
             'vat_rate' => 'required|integer',
             'stock_quantity' => 'nullable|numeric|min:0',
+            'critical_stock' => 'nullable|numeric|min:0',
             'unit' => 'nullable|string|max:255',
+            'country_of_origin' => 'nullable|string|max:100',
         ]);
         
         $product->update($data);
@@ -88,5 +93,14 @@ class ProductController extends Controller
     {
         $product->update(['is_active' => false]);
         return response()->json(['success' => true]);
+    }
+
+    public function history(Product $product)
+    {
+        $movements = StockMovement::where('product_id', $product->id)
+            ->orderByDesc('movement_date')
+            ->take(100)
+            ->get(['type','transaction_code','note','firm_customer','payment_type','quantity','remaining','unit_price','total','movement_date']);
+        return response()->json(['success' => true, 'movements' => $movements]);
     }
 }

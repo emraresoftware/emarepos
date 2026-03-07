@@ -122,14 +122,21 @@
                                                 'sale_price' => $product->sale_price,
                                                 'vat_rate' => $product->vat_rate,
                                                 'stock_quantity' => $product->stock_quantity,
+                                                'critical_stock' => $product->critical_stock,
                                                 'unit' => $product->unit,
+                                                'country_of_origin' => $product->country_of_origin,
                                                 'is_active' => $product->is_active,
-                                            ]) }})"
+                                            ]) }})"  
                                             class="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
                                             title="Düzenle">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                         </svg>
+                                    </button>
+                                    <button @click="openHistory({{ $product->id }}, '{{ addslashes($product->name) }}')"
+                                            class="p-2 text-gray-400 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-colors"
+                                            title="İşlem Geçmişi">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     </button>
                                     <button @click="confirmDelete({{ $product->id }}, '{{ addslashes($product->name) }}')"
                                             class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
@@ -227,7 +234,7 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Alış Fiyatı</label>
                         <div class="relative">
-                            <input type="number" x-model="form.purchase_price" step="0.01" min="0"
+                            <input type="number" x-model="form.purchase_price" @input="calcProfit()" step="0.01" min="0"
                                    class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl pl-4 pr-8 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400 transition-all"
                                    placeholder="0.00">
                             <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₺</span>
@@ -236,18 +243,24 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Satış Fiyatı <span class="text-red-500">*</span></label>
                         <div class="relative">
-                            <input type="number" x-model="form.sale_price" step="0.01" min="0" required
+                            <input type="number" x-model="form.sale_price" @input="calcProfit()" step="0.01" min="0" required
                                    class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl pl-4 pr-8 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400 transition-all"
                                    placeholder="0.00">
                             <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₺</span>
                         </div>
                     </div>
                 </div>
+                <div x-show="profitRate !== null" class="flex items-center gap-2 -mt-2 px-1">
+                    <span class="text-xs text-gray-500">Kâr Oranı:</span>
+                    <span class="text-xs font-semibold" :class="profitRate >= 0 ? 'text-emerald-600' : 'text-red-500'" x-text="profitRate !== null ? '%' + profitRate : ''"></span>
+                    <span class="text-xs text-gray-400" x-show="profitAmount !== null" x-text="profitAmount !== null ? '(' + profitAmount + ' ₺ kâr)' : ''"></span>
+                </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">KDV Oranı</label>
                     <select x-model="form.vat_rate"
                             class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                        <option value="0">%0</option>
                         <option value="1">%1</option>
                         <option value="10">%10</option>
                         <option value="20">%20</option>
@@ -257,19 +270,37 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Stok Miktarı</label>
-                        <input type="number" x-model="form.stock_quantity" min="0" step="1"
+                        <input type="number" x-model="form.stock_quantity" min="0" step="0.01"
                                class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400 transition-all"
                                placeholder="0">
                     </div>
                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Kritik Stok Uyarısı</label>
+                        <input type="number" x-model="form.critical_stock" min="0" step="0.01"
+                               class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400 transition-all"
+                               placeholder="0">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Birim</label>
                         <select x-model="form.unit"
                                 class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
-                            <option value="Adet">Adet</option>
-                            <option value="Kg">Kg</option>
-                            <option value="Lt">Lt</option>
-                            <option value="Porsiyon">Porsiyon</option>
+                            <option>Adet</option><option>Bardak</option><option>CL</option>
+                            <option>Dilim</option><option>Fincan</option><option>Gram</option>
+                            <option>Kaşık</option><option>Kavanoz</option><option>Kilo</option>
+                            <option>Koli</option><option>Külah</option><option>Kutu</option>
+                            <option>Litre</option><option>Miligram</option><option>Mililitre</option>
+                            <option>ML</option><option>Paket</option><option>Porsiyon</option>
+                            <option>Poşet</option><option>Şişe</option><option>Tabak</option>
+                            <option>Tencere</option><option>Top</option><option>Tutam</option>
                         </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Menşe Ülke</label>
+                        <input type="text" x-model="form.country_of_origin"
+                               class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400 transition-all"
+                               placeholder="örn. Türkiye, Almanya...">
                     </div>
                 </div>
 
@@ -300,6 +331,70 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    {{-- History Modal --}}
+    <div x-show="showHistoryModal"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style="display:none">
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showHistoryModal=false"></div>
+        <div x-show="showHistoryModal"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             class="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">İşlem Geçmişi</h3>
+                    <p class="text-sm text-gray-500" x-text="historyProductName"></p>
+                </div>
+                <button @click="showHistoryModal=false" class="text-gray-400 hover:text-gray-600 p-1"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="overflow-y-auto flex-1 p-4">
+                <div x-show="historyLoading" class="flex items-center justify-center py-12">
+                    <i class="fas fa-spinner fa-spin text-2xl text-brand-500"></i>
+                </div>
+                <div x-show="!historyLoading && historyList.length === 0" class="text-center py-12 text-gray-400">
+                    <i class="fas fa-history text-4xl mb-3 block"></i>
+                    <p>Henüz hareket kaydı yok</p>
+                </div>
+                <table x-show="!historyLoading && historyList.length > 0" class="w-full text-sm">
+                    <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                        <tr>
+                            <th class="px-3 py-2 text-left">Tarih</th>
+                            <th class="px-3 py-2 text-left">Tür</th>
+                            <th class="px-3 py-2 text-left">Firm/Müşteri</th>
+                            <th class="px-3 py-2 text-left">Not</th>
+                            <th class="px-3 py-2 text-right">Miktar</th>
+                            <th class="px-3 py-2 text-right">Kalan</th>
+                            <th class="px-3 py-2 text-right">Birim Fiyat</th>
+                            <th class="px-3 py-2 text-right">Toplam</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        <template x-for="m in historyList" :key="m.movement_date + m.quantity">
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-3 py-2 text-gray-500 whitespace-nowrap" x-text="m.movement_date ? m.movement_date.slice(0,16).replace('T',' ') : '-'"></td>
+                                <td class="px-3 py-2">
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                                          :class="m.type === 'in' ? 'bg-emerald-100 text-emerald-700' : m.type === 'out' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'"
+                                          x-text="m.type === 'in' ? 'Giriş' : m.type === 'out' ? 'Çıkış' : (m.type || '-')"></span>
+                                </td>
+                                <td class="px-3 py-2 text-gray-600" x-text="m.firm_customer || '-'"></td>
+                                <td class="px-3 py-2 text-gray-500 max-w-[160px] truncate" x-text="m.note || '-'"></td>
+                                <td class="px-3 py-2 text-right font-mono" x-text="m.quantity"></td>
+                                <td class="px-3 py-2 text-right font-mono text-gray-500" x-text="m.remaining ?? '-'"></td>
+                                <td class="px-3 py-2 text-right font-mono" x-text="m.unit_price ? parseFloat(m.unit_price).toFixed(2) + ' ₺' : '-'"></td>
+                                <td class="px-3 py-2 text-right font-mono font-medium" x-text="m.total ? parseFloat(m.total).toFixed(2) + ' ₺' : '-'"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -362,6 +457,12 @@ function productManager() {
     return {
         showPanel: false,
         showDeleteModal: false,
+        showHistoryModal: false,
+        historyLoading: false,
+        historyList: [],
+        historyProductName: '',
+        profitRate: null,
+        profitAmount: null,
         editingId: null,
         deleteId: null,
         deleteName: '',
@@ -390,10 +491,14 @@ function productManager() {
                 sale_price: '',
                 vat_rate: '10',
                 stock_quantity: '',
+                critical_stock: '',
                 unit: 'Adet',
+                country_of_origin: '',
                 is_active: true,
             };
             this.editingId = null;
+            this.profitRate = null;
+            this.profitAmount = null;
         },
 
         openCreate() {
@@ -411,9 +516,12 @@ function productManager() {
                 sale_price: product.sale_price ?? '',
                 vat_rate: product.vat_rate != null ? String(product.vat_rate) : '10',
                 stock_quantity: product.stock_quantity ?? '',
+                critical_stock: product.critical_stock ?? '',
                 unit: product.unit || 'Adet',
+                country_of_origin: product.country_of_origin || '',
                 is_active: product.is_active ? true : false,
             };
+            this.calcProfit();
             this.showPanel = true;
         },
 
@@ -480,6 +588,36 @@ function productManager() {
             if (this.searchQuery) params.set('search', this.searchQuery);
             if (this.categoryFilter) params.set('category_id', this.categoryFilter);
             window.location.href = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        },
+
+        calcProfit() {
+            const buy = parseFloat(this.form.purchase_price);
+            const sell = parseFloat(this.form.sale_price);
+            if (buy > 0 && sell > 0) {
+                const profit = sell - buy;
+                this.profitRate = ((profit / buy) * 100).toFixed(2);
+                this.profitAmount = profit.toFixed(2);
+            } else {
+                this.profitRate = null;
+                this.profitAmount = null;
+            }
+        },
+
+        async openHistory(productId, productName) {
+            this.historyProductName = productName;
+            this.historyList = [];
+            this.historyLoading = true;
+            this.showHistoryModal = true;
+            try {
+                const url = '{{ route("pos.products.history", ":id") }}'.replace(':id', productId);
+                const res = await posAjax(url, {}, 'GET');
+                this.historyList = res.movements || [];
+            } catch {
+                showToast('Geçmiş yüklenemedi', 'error');
+                this.showHistoryModal = false;
+            } finally {
+                this.historyLoading = false;
+            }
         },
     };
 }

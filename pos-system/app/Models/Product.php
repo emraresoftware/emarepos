@@ -29,6 +29,7 @@ class Product extends Model
         'stock_quantity',
         'critical_stock',
         'image_url',
+        'country_of_origin',
         'is_active',
         'is_service',
     ];
