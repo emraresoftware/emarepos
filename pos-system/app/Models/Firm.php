@@ -14,6 +14,7 @@ class Firm extends Model
     protected $fillable = [
         'tenant_id',
         'external_id',
+        'firm_group_id',
         'name',
         'tax_number',
         'tax_office',
@@ -35,7 +36,10 @@ class Firm extends Model
     }
 
     // ─── Relationships ───────────────────────────────────────
-
+    public function group()
+    {
+        return $this->belongsTo(FirmGroup::class, 'firm_group_id');
+    }
     public function stockMovements()
     {
         return $this->hasMany(StockMovement::class, 'firm_customer', 'name');

@@ -17,6 +17,13 @@ class CategoryController extends Controller
 
         $categories = $query->get();
         $tree = $categories->whereNull('parent_id')->values();
+        // Eager load children counts for tree
+        $tree->each(function ($group) use ($categories) {
+            $group->setRelation('children', $categories->where('parent_id', $group->id)->values());
+            $group->children->each(function ($sub) use ($categories) {
+                $sub->setRelation('children', $categories->where('parent_id', $sub->id)->values());
+            });
+        });
 
         return view('pos.categories.index', compact('categories', 'tree'));
     }

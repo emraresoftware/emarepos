@@ -3,6 +3,7 @@ namespace App\Http\Controllers\Pos;
 
 use App\Http\Controllers\Controller;
 use App\Models\Firm;
+use App\Models\FirmGroup;
 use App\Models\AccountTransaction;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -11,7 +12,7 @@ class FirmController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Firm::where('is_active', true)->orderBy('name');
+        $query = Firm::where('is_active', true)->with('group')->orderBy('name');
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -22,6 +23,10 @@ class FirmController extends Controller
             });
         }
 
+        if ($request->filled('group_id')) {
+            $query->where('firm_group_id', $request->group_id);
+        }
+
         $firms = $query->paginate(50);
 
         $stats = [
@@ -30,7 +35,9 @@ class FirmController extends Controller
             'total_credit' => Firm::where('is_active', true)->where('balance', '>', 0)->sum('balance'),
         ];
 
-        return view('pos.firms.index', compact('firms', 'stats'));
+        $groups = FirmGroup::where('is_active', true)->withCount('firms')->orderBy('name')->get();
+
+        return view('pos.firms.index', compact('firms', 'stats', 'groups'));
     }
 
     public function show(Firm $firm)
@@ -50,6 +57,7 @@ class FirmController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
+            'firm_group_id' => 'nullable|integer|exists:firm_groups,id',
             'tax_number' => 'nullable|string|max:50',
             'tax_office' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
@@ -63,13 +71,14 @@ class FirmController extends Controller
         $data['is_active'] = true;
         $firm = Firm::create($data);
 
-        return response()->json(['success' => true, 'firm' => $firm]);
+        return response()->json(['success' => true, 'firm' => $firm->load('group')]);
     }
 
     public function update(Request $request, Firm $firm)
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
+            'firm_group_id' => 'nullable|integer|exists:firm_groups,id',
             'tax_number' => 'nullable|string|max:50',
             'tax_office' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
@@ -80,7 +89,7 @@ class FirmController extends Controller
         ]);
 
         $firm->update($data);
-        return response()->json(['success' => true, 'firm' => $firm->fresh()]);
+        return response()->json(['success' => true, 'firm' => $firm->fresh()->load('group')]);
     }
 
     public function addPayment(Request $request, Firm $firm)
@@ -104,5 +113,36 @@ class FirmController extends Controller
         ]);
 
         return response()->json(['success' => true, 'firm' => $firm]);
+    }
+
+    // ─── Cari Grupları ────────────────────────────────────────
+
+    public function storeGroup(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+        $data['tenant_id'] = session('tenant_id');
+        $group = FirmGroup::create($data);
+        return response()->json(['success' => true, 'group' => $group]);
+    }
+
+    public function updateGroup(Request $request, FirmGroup $group)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+        $group->update($data);
+        return response()->json(['success' => true, 'group' => $group->fresh()]);
+    }
+
+    public function destroyGroup(FirmGroup $group)
+    {
+        if ($group->firms()->exists()) {
+            // Grubu silmeden önce carilerin group_id'sini null yap
+            $group->firms()->update(['firm_group_id' => null]);
+        }
+        $group->delete();
+        return response()->json(['success' => true]);
     }
 }

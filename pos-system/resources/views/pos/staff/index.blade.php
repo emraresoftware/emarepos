@@ -150,6 +150,10 @@
                         </td>
                         <td class="px-5 py-3.5 text-right">
                             <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button @click="showPerformance({{ $member->id }})"
+                                        class="p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors" title="Performans">
+                                    <i class="fas fa-chart-line text-xs"></i>
+                                </button>
                                 <button @click="editMember({{ json_encode($member) }})"
                                         class="p-1.5 text-gray-400 hover:text-brand-500 hover:bg-brand-50 rounded-lg transition-colors">
                                     <i class="fas fa-pen text-xs"></i>
@@ -321,6 +325,93 @@
         </div>
     </div>
 
+    {{-- Performans Modal --}}
+    <div x-show="perfModal" x-transition.opacity class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+        <div @click.outside="perfModal = false"
+             class="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-gray-100 flex items-center justify-between shrink-0">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900"><i class="fas fa-chart-line text-emerald-500 mr-2"></i>Performans Raporu</h2>
+                    <p class="text-sm text-gray-500 mt-0.5" x-text="perfData?.staff?.name || ''"></p>
+                </div>
+                <button @click="perfModal = false" class="text-gray-400 hover:text-gray-600 p-2 rounded-xl hover:bg-gray-100 transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1 space-y-5">
+                <template x-if="perfData">
+                <div>
+                    {{-- Stats Grid --}}
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <span class="text-xs text-gray-500">Satış Adedi</span>
+                            <p class="text-xl font-bold text-gray-900" x-text="perfData.stats.total_sales"></p>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <span class="text-xs text-gray-500">Toplam Gelir</span>
+                            <p class="text-xl font-bold text-emerald-600" x-text="Number(perfData.stats.total_revenue).toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' ₺'"></p>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <span class="text-xs text-gray-500">Ort. Sepet</span>
+                            <p class="text-xl font-bold text-brand-600" x-text="Number(perfData.stats.avg_basket).toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' ₺'"></p>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <span class="text-xs text-gray-500">Toplam Ürün</span>
+                            <p class="text-xl font-bold text-gray-900" x-text="perfData.stats.total_items"></p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <span class="text-xs text-gray-500">İskonto</span>
+                            <p class="text-lg font-bold text-amber-600" x-text="Number(perfData.stats.total_discount).toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' ₺'"></p>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <span class="text-xs text-gray-500">Nakit</span>
+                            <p class="text-lg font-bold text-green-600" x-text="Number(perfData.stats.cash_total).toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' ₺'"></p>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <span class="text-xs text-gray-500">Kart</span>
+                            <p class="text-lg font-bold text-purple-600" x-text="Number(perfData.stats.card_total).toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' ₺'"></p>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <span class="text-xs text-gray-500">İade / İptal</span>
+                            <p class="text-lg font-bold text-red-500" x-text="perfData.stats.refund_count + ' / ' + perfData.stats.cancel_count"></p>
+                        </div>
+                    </div>
+
+                    {{-- Günlük Satış Grafiği --}}
+                    <div class="bg-white rounded-xl p-4 border border-gray-100 mb-5">
+                        <h3 class="text-sm font-medium text-gray-700 mb-3"><i class="fas fa-chart-bar text-brand-500 mr-1"></i> Günlük Satışlar (Son 30 Gün)</h3>
+                        <div style="position:relative; height:200px;"><canvas id="perfDailyChart"></canvas></div>
+                    </div>
+
+                    {{-- En Çok Sattığı Ürünler --}}
+                    <div class="bg-white rounded-xl p-4 border border-gray-100" x-show="perfData.top_products && perfData.top_products.length > 0">
+                        <h3 class="text-sm font-medium text-gray-700 mb-3"><i class="fas fa-trophy text-amber-500 mr-1"></i> En Çok Sattığı Ürünler</h3>
+                        <table class="w-full text-sm">
+                            <thead><tr class="border-b border-gray-100">
+                                <th class="text-left py-2 px-3 text-gray-500 font-medium">Ürün</th>
+                                <th class="text-right py-2 px-3 text-gray-500 font-medium">Adet</th>
+                                <th class="text-right py-2 px-3 text-gray-500 font-medium">Tutar</th>
+                            </tr></thead>
+                            <tbody>
+                                <template x-for="p in perfData.top_products" :key="p.product_name">
+                                    <tr class="border-b border-gray-50">
+                                        <td class="py-2 px-3 text-gray-900" x-text="p.product_name"></td>
+                                        <td class="py-2 px-3 text-right text-gray-700" x-text="p.qty"></td>
+                                        <td class="py-2 px-3 text-right font-semibold text-emerald-600" x-text="Number(p.total).toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' ₺'"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                </template>
+                <div x-show="!perfData" class="text-center py-16 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i><p class="mt-2 text-sm">Yükleniyor...</p></div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 @push('scripts')
@@ -336,8 +427,56 @@ function staffManager() {
         saving: false,
         editId: null,
         form: emptyForm(),
+        perfModal: false,
+        perfData: null,
+        perfChart: null,
 
         init() {},
+
+        async showPerformance(staffId) {
+            this.perfData = null;
+            this.perfModal = true;
+            try {
+                this.perfData = await posAjax('/staff/' + staffId + '/performance', {}, 'GET');
+                this.$nextTick(() => {
+                    if (this.perfData.daily_sales && this.perfData.daily_sales.length > 0) {
+                        const ctx = document.getElementById('perfDailyChart');
+                        if (ctx) {
+                            if (this.perfChart) this.perfChart.destroy();
+                            this.perfChart = new Chart(ctx, {
+                                type: 'bar',
+                                data: {
+                                    labels: this.perfData.daily_sales.map(d => {
+                                        const dt = new Date(d.date);
+                                        return dt.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' });
+                                    }),
+                                    datasets: [{
+                                        label: 'Satış (₺)',
+                                        data: this.perfData.daily_sales.map(d => d.total),
+                                        backgroundColor: 'rgba(99,102,241,0.5)',
+                                        borderColor: '#6366f1',
+                                        borderWidth: 1,
+                                        borderRadius: 6,
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: { legend: { display: false } },
+                                    scales: {
+                                        y: { beginAtZero: true, ticks: { color: '#94a3b8', callback: v => '₺' + v.toLocaleString('tr-TR') } },
+                                        x: { ticks: { color: '#94a3b8', font: { size: 10 } } }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            } catch (e) {
+                showToast('Performans verisi yüklenemedi', 'error');
+                this.perfModal = false;
+            }
+        },
 
         openModal() {
             this.editId = null;

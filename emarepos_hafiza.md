@@ -1027,6 +1027,82 @@ php artisan migrate:status
 6. **Tasarım sistemi**: `DESIGN_GUIDE.md` hazırlandı, `app.blade.php` güncellendi
 7. **Teknik şartname**: `TECHNICAL_SPEC.md` hazırlandı (production yapısı ve genişletilmiş şema)
 8. **Durum (3 Mart 2026)**: Tüm 18 sayfa çalışıyor, tasarım yenileme devam ediyor
+9. **7 Mart 2026 — Yeni özellikler**:
+   - Ürün şube yönetimi (branch_product pivot CRUD, fiyat karşılaştırma)
+   - Kategori hiyerarşisi (3 seviye: Grup → Marka → Ürün)
+   - Cari gruplama (firm_groups tablosu, CRUD, filtre)
+   - Çoklu fiyat (ProductPrice modeli, CRUD UI)
+   - İskonto modal, Son Fişler, İade Al, Barkod fiyat seçimi
+
+---
+
+## BÖLÜM — RAKİP ANALİZİ: BENİMPOS.COM vs EMARE POS (7 Mart 2026)
+
+### benimpos.com Genel Bilgi
+- **Fiyatlandırma**: Lite (ücretsiz/sınırlı), Yıllık ₺5.349,90, Ömür Boyu ₺11.749,90
+- **Platform**: Web + Masaüstü (offline) + Mobil (Android/iOS)
+- **Hedef**: Küçük-orta perakende işletmeler
+
+### Özellik Karşılaştırma
+
+| Özellik | BenimPOS | Emare POS | Durum |
+|---------|----------|-----------|-------|
+| Barkodlu satış | ✅ | ✅ | Eşit |
+| Stok yönetimi | ✅ | ✅ | Eşit |
+| Cari hesap takibi | ✅ | ✅ | Eşit |
+| Kategori/Ürün grubu | ✅ | ✅ (3 seviye!) | Emare avantajlı |
+| Raporlama | ✅ (7 farklı yöntem) | ⚠️ (3 temel rapor) | **Eksik** |
+| Şube yönetimi | ✅ | ✅ | Eşit |
+| Şubeler arası transfer | ✅ | ❌ | **Eksik** |
+| Personel takibi (detaylı) | ✅ (satış, ödeme, ürün okutma) | ⚠️ (basit personel listesi) | **Eksik** |
+| Alış faturası ekleme | ✅ | ❌ | **Eksik** |
+| Stok sayımı | ✅ | ❌ | **Eksik** |
+| Hazır barkodlu ürün veritabanı | ✅ (3M+ ürün) | ❌ | **Eksik** |
+| Mobil uygulama | ✅ (Android + iOS) | ❌ | **Eksik** |
+| Masaüstü uygulama (offline) | ✅ | ❌ (sadece web) | **Eksik** |
+| E-fatura entegrasyonu | ✅ | ❌ | **Eksik** |
+| Yazarkasa POS entegrasyonu | ✅ | ❌ | **Eksik** |
+| Şüpheli işlem raporlama | ✅ | ❌ | **Eksik** |
+| Masa yönetimi | ❌ (perakende odaklı) | ✅ | **Emare avantajlı** |
+| Mutfak ekranı | ❌ | ✅ | **Emare avantajlı** |
+| Multi-tenant SaaS | ❌ (tek işletme) | ✅ | **Emare avantajlı** |
+| Kampanya/Sadakat | ❌ | ✅ (modüler) | **Emare avantajlı** |
+| Çoklu fiyat (ürün bazlı) | ❌ | ✅ | **Emare avantajlı** |
+| İskonto sistemi | ⚠️ | ✅ (grid + manuel) | **Emare avantajlı** |
+| Gelir/Gider takibi | ❌ | ✅ | **Emare avantajlı** |
+| Geri bildirim sistemi | ❌ | ✅ | **Emare avantajlı** |
+| Donanım yönetimi | ❌ | ✅ | **Emare avantajlı** |
+
+### Kritik Eksikler (Öncelik Sırasıyla)
+
+1. **📊 Gelişmiş Raporlama** — BenimPOS 7 farklı yöntem sunuyor. Bizde: günlük satış, kasa raporu, en çok satan var ama kar/zarar analizi, personel bazlı satış raporu, kategori raporu, dönemsel karşılaştırma, grafik rapor eksik.
+
+2. **📦 Stok Sayımı** — Fiziksel envanter sayımı yapıp farkları otomatik düzeltme. Depo yönetimi için kritik.
+
+3. **🔄 Şubeler Arası Ürün Transferi** — Bir şubeden diğerine stok transferi. Çoklu şube kullanan işletmeler için zorunlu.
+
+4. **🧾 Alış Faturası Yönetimi** — Tedarikçiden mal alımını fatura olarak kaydetme, düzeltme, silme. Cari hesap entegrasyonu ile birlikte çalışmalı.
+
+5. **👨‍💼 Personel Detaylı Takip** — Personel bazında: toplam satış, ödeme aldığı tutarlar, okutulan ürün sayısı, performans raporları.
+
+6. **📱 Mobil Uygulama** — Android/iOS native veya PWA. İleride düşünülecek.
+
+7. **🖥️ Masaüstü Uygulama** — Electron ile offline çalışan masaüstü versiyonu. İleride düşünülecek.
+
+8. **🧾 E-fatura / Yazarkasa** — Türkiye yasal gereksinimleri. 3. parti entegrasyon gerekli.
+
+9. **🔍 Şüpheli İşlem Raporlama** — İptal, iade, düşük fiyat gibi şüpheli işlemleri raporlama.
+
+10. **📊 Hazır Ürün Veritabanı** — Barkod ile 3M+ ürün bilgisine erişim (3. parti API gerekli).
+
+### Nerede Öndeyiz?
+- **Restoran/Kafe**: Masa yönetimi + mutfak ekranı = büyük avantaj
+- **SaaS Model**: Multi-tenant + plan bazlı = daha geniş pazar
+- **Modüler Yapı**: İşletme tipine göre modül aç/kapat
+- **Modern UI**: Tailwind + Alpine.js = hızlı, responsive
+- **Kampanya/Sadakat**: Müşteri bağlılık programları
+- **Gelir/Gider Takibi**: İşletme finansal yönetimi
+- **Çoklu Fiyat + İskonto**: Esnek fiyatlandırma
 
 ---
 

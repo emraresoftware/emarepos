@@ -53,11 +53,50 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
             </div>
+            <select x-model="groupFilter" @change="applySearch()"
+                    class="bg-white border border-gray-700 text-gray-700 text-sm rounded-lg px-3 py-2.5 focus:ring-brand-500/20 focus:border-brand-500">
+                <option value="">Tüm Gruplar</option>
+                @foreach($groups as $g)
+                    <option value="{{ $g->id }}">{{ $g->name }} ({{ $g->firms_count }})</option>
+                @endforeach
+            </select>
+            <button @click="showGroupPanel = !showGroupPanel"
+                    class="bg-white border border-gray-700 text-gray-700 hover:bg-gray-50 font-medium rounded-lg text-sm px-4 py-2.5 transition-colors flex items-center gap-2">
+                <i class="fas fa-layer-group"></i> Gruplar
+            </button>
             <button @click="openCreate()"
                     class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-gray-900 font-medium rounded-lg text-sm px-5 py-2.5 transition-colors flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Yeni Cari
             </button>
+        </div>
+    </div>
+
+    {{-- Grup Yönetim Paneli --}}
+    <div x-show="showGroupPanel" x-transition class="bg-white rounded-xl border border-gray-100 p-5 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-semibold text-gray-900"><i class="fas fa-layer-group text-brand-500 mr-2"></i>Cari Grupları</h3>
+            <button @click="showGroupPanel = false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-4">
+            @foreach($groups as $g)
+                <div class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+                    <span class="text-sm text-gray-700">{{ $g->name }}</span>
+                    <span class="text-xs text-gray-400">({{ $g->firms_count }})</span>
+                    <button @click="editGroup({{ $g->id }}, '{{ addslashes($g->name) }}')" class="text-gray-400 hover:text-yellow-500"><i class="fas fa-pen text-[10px]"></i></button>
+                    <button @click="deleteGroup({{ $g->id }})" class="text-gray-400 hover:text-red-500"><i class="fas fa-trash text-[10px]"></i></button>
+                </div>
+            @endforeach
+            <div x-show="!showGroupForm" class="flex items-center">
+                <button @click="showGroupForm = true; newGroupName = ''" class="text-sm text-brand-500 hover:text-brand-600"><i class="fas fa-plus mr-1"></i>Yeni Grup</button>
+            </div>
+        </div>
+        <div x-show="showGroupForm" class="flex items-center gap-2">
+            <input type="text" x-model="newGroupName" placeholder="Grup adı" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg px-3 py-2 flex-1 focus:border-brand-500">
+            <button @click="saveGroup()" :disabled="!newGroupName.trim()" class="px-4 py-2 bg-brand-500 text-white text-sm rounded-lg hover:bg-brand-600 disabled:opacity-50">
+                <span x-text="editingGroupId ? 'Güncelle' : 'Ekle'"></span>
+            </button>
+            <button @click="showGroupForm = false; editingGroupId = null" class="px-3 py-2 text-gray-500 hover:text-gray-700 text-sm">Vazgeç</button>
         </div>
     </div>
 
@@ -68,6 +107,7 @@
                 <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
                     <tr>
                         <th class="px-4 py-3.5">Firma Adı</th>
+                        <th class="px-4 py-3.5">Grup</th>
                         <th class="px-4 py-3.5">Telefon</th>
                         <th class="px-4 py-3.5">E-posta</th>
                         <th class="px-4 py-3.5">Vergi No</th>
@@ -86,6 +126,13 @@
                                     <p class="font-medium text-gray-900">{{ $firm->name }}</p>
                                 </div>
                             </td>
+                            <td class="px-4 py-3">
+                                @if($firm->group)
+                                    <span class="text-xs bg-purple-500/10 text-purple-600 px-2 py-0.5 rounded-full">{{ $firm->group->name }}</span>
+                                @else
+                                    <span class="text-xs text-gray-400">-</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3 text-gray-700">{{ $firm->phone ?? '-' }}</td>
                             <td class="px-4 py-3 text-gray-500">{{ $firm->email ?? '-' }}</td>
                             <td class="px-4 py-3 font-mono text-xs text-gray-500">{{ $firm->tax_number ?? '-' }}</td>
@@ -101,7 +148,7 @@
                                             class="p-2 text-gray-500 hover:text-brand-600 hover:bg-brand-500/10 rounded-lg transition-colors" title="Detay / Hareketler">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                                     </button>
-                                    <button @click="openEdit({{ json_encode(['id'=>$firm->id,'name'=>$firm->name,'tax_number'=>$firm->tax_number,'tax_office'=>$firm->tax_office,'phone'=>$firm->phone,'email'=>$firm->email,'address'=>$firm->address,'city'=>$firm->city,'notes'=>$firm->notes]) }})"
+                                    <button @click="openEdit({{ json_encode(['id'=>$firm->id,'name'=>$firm->name,'firm_group_id'=>$firm->firm_group_id,'tax_number'=>$firm->tax_number,'tax_office'=>$firm->tax_office,'phone'=>$firm->phone,'email'=>$firm->email,'address'=>$firm->address,'city'=>$firm->city,'notes'=>$firm->notes]) }})"
                                             class="p-2 text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors" title="Düzenle">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                     </button>
@@ -114,7 +161,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-4 py-12 text-center">
+                            <td colspan="7" class="px-4 py-12 text-center">
                                 <p class="text-gray-500 text-sm">Henüz cari kaydı eklenmemiş</p>
                                 <button @click="openCreate()" class="text-brand-500 hover:text-brand-600 text-sm font-medium mt-2">+ İlk cariyi ekle</button>
                             </td>
@@ -138,6 +185,14 @@
             </div>
             <form @submit.prevent="submitForm()" class="p-6 space-y-4">
                 <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Firma Adı <span class="text-red-500">*</span></label><input type="text" x-model="form.name" required class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Cari Grubu</label>
+                    <select x-model="form.firm_group_id" class="w-full bg-white border border-gray-700 text-gray-700 text-sm rounded-lg px-4 py-2.5">
+                        <option value="">Grup Seç (Opsiyonel)</option>
+                        @foreach($groups as $g)
+                            <option value="{{ $g->id }}">{{ $g->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Vergi No</label><input type="text" x-model="form.tax_number" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
                     <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Vergi Dairesi</label><input type="text" x-model="form.tax_office" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
@@ -261,13 +316,17 @@
 function firmManager() {
     return {
         showFormModal: false, showPaymentModal: false, showDetailModal: false,
+        showGroupPanel: false, showGroupForm: false,
         editingId: null, saving: false, paying: false, detailLoading: false,
         detailData: null,
         searchQuery: new URLSearchParams(window.location.search).get('search') || '',
-        form: { name: '', tax_number: '', tax_office: '', phone: '', email: '', address: '', city: '', notes: '' },
+        groupFilter: new URLSearchParams(window.location.search).get('group_id') || '',
+        // Grup y\u00f6netimi
+        newGroupName: '', editingGroupId: null,
+        form: { name: '', firm_group_id: '', tax_number: '', tax_office: '', phone: '', email: '', address: '', city: '', notes: '' },
         payForm: { amount: '', description: '' }, payFirmId: null, payFirmName: '', payFirmBalance: 0,
-        openCreate() { this.editingId = null; this.form = { name: '', tax_number: '', tax_office: '', phone: '', email: '', address: '', city: '', notes: '' }; this.showFormModal = true; },
-        openEdit(f) { this.editingId = f.id; this.form = { name: f.name||'', tax_number: f.tax_number||'', tax_office: f.tax_office||'', phone: f.phone||'', email: f.email||'', address: f.address||'', city: f.city||'', notes: f.notes||'' }; this.showFormModal = true; },
+        openCreate() { this.editingId = null; this.form = { name: '', firm_group_id: '', tax_number: '', tax_office: '', phone: '', email: '', address: '', city: '', notes: '' }; this.showFormModal = true; },
+        openEdit(f) { this.editingId = f.id; this.form = { name: f.name||'', firm_group_id: f.firm_group_id ? String(f.firm_group_id) : '', tax_number: f.tax_number||'', tax_office: f.tax_office||'', phone: f.phone||'', email: f.email||'', address: f.address||'', city: f.city||'', notes: f.notes||'' }; this.showFormModal = true; },
         openPayment(id, name, balance) { this.payFirmId = id; this.payFirmName = name; this.payFirmBalance = balance; this.payForm = { amount: '', description: '' }; this.showPaymentModal = true; },
         async openDetail(id) {
             this.detailData = null;
@@ -276,25 +335,46 @@ function firmManager() {
             try {
                 const data = await posAjax(`/firms/${id}`, {}, 'GET');
                 this.detailData = data;
-            } catch(e) { showToast('Detay yüklenemedi', 'error'); this.showDetailModal = false; }
+            } catch(e) { showToast('Detay y\u00fcklenemedi', 'error'); this.showDetailModal = false; }
             finally { this.detailLoading = false; }
         },
         applySearch() {
             const params = new URLSearchParams();
             if (this.searchQuery) params.set('search', this.searchQuery);
+            if (this.groupFilter) params.set('group_id', this.groupFilter);
             window.location.href = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
         },
         async submitForm() {
             this.saving = true;
             const url = this.editingId ? `/firms/${this.editingId}` : '/firms';
             const method = this.editingId ? 'PUT' : 'POST';
-            try { await posAjax(url, this.form, method); showToast(this.editingId ? 'Cari güncellendi' : 'Cari oluşturuldu', 'success'); this.showFormModal = false; window.location.reload(); }
+            try { await posAjax(url, this.form, method); showToast(this.editingId ? 'Cari g\u00fcncellendi' : 'Cari olu\u015fturuldu', 'success'); this.showFormModal = false; window.location.reload(); }
             catch (e) { showToast(e.message || 'Hata', 'error'); } finally { this.saving = false; }
         },
         async submitPayment() {
             this.paying = true;
-            try { await posAjax(`/firms/${this.payFirmId}/payment`, this.payForm, 'POST'); showToast('Ödeme kaydedildi', 'success'); this.showPaymentModal = false; window.location.reload(); }
+            try { await posAjax(`/firms/${this.payFirmId}/payment`, this.payForm, 'POST'); showToast('\u00d6deme kaydedildi', 'success'); this.showPaymentModal = false; window.location.reload(); }
             catch (e) { showToast(e.message || 'Hata', 'error'); } finally { this.paying = false; }
+        },
+        // Grup CRUD
+        editGroup(id, name) { this.editingGroupId = id; this.newGroupName = name; this.showGroupForm = true; },
+        async saveGroup() {
+            if (!this.newGroupName.trim()) return;
+            try {
+                if (this.editingGroupId) {
+                    await posAjax(`/firm-groups/${this.editingGroupId}`, { name: this.newGroupName }, 'PUT');
+                    showToast('Grup g\u00fcncellendi', 'success');
+                } else {
+                    await posAjax('/firm-groups', { name: this.newGroupName }, 'POST');
+                    showToast('Grup olu\u015fturuldu', 'success');
+                }
+                window.location.reload();
+            } catch(e) { showToast(e.message || 'Hata', 'error'); }
+        },
+        async deleteGroup(id) {
+            if (!confirm('Bu grubu silmek istedi\u011finize emin misiniz?')) return;
+            try { await posAjax(`/firm-groups/${id}`, {}, 'DELETE'); showToast('Grup silindi', 'success'); window.location.reload(); }
+            catch(e) { showToast(e.message || 'Silinemedi', 'error'); }
         },
         formatCur(v) { return new Intl.NumberFormat('tr-TR', {style:'currency', currency:'TRY'}).format(v||0); },
     };

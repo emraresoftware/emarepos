@@ -19,50 +19,78 @@
         </button>
     </div>
 
-    {{-- Category Grid --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        @forelse($categories as $category)
-            <div class="bg-white rounded-xl border border-gray-100 p-5 hover:border-blue-500/30 transition-colors group">
-                <div class="flex items-start justify-between mb-3">
-                    <div class="w-10 h-10 rounded-lg {{ $category->is_active ? 'bg-brand-500/10' : 'bg-gray-100/50' }} flex items-center justify-center">
-                        <svg class="w-5 h-5 {{ $category->is_active ? 'text-brand-500' : 'text-gray-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                        </svg>
+    {{-- Category Tree --}}
+    <div class="space-y-3">
+        @forelse($tree as $group)
+            {{-- Üst Grup (Seviye 1) --}}
+            <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                <div class="flex items-center justify-between p-4 bg-gray-50/80">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-brand-500/10 flex items-center justify-center">
+                            <i class="fas fa-folder text-brand-500"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-gray-900 font-semibold text-base">{{ $group->name }}</h3>
+                            <span class="text-xs text-gray-500">{{ $group->products_count }} ürün · {{ $group->children->count() }} alt kategori</span>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button @click="openEdit({{ json_encode(['id' => $category->id, 'name' => $category->name, 'parent_id' => $category->parent_id, 'sort_order' => $category->sort_order, 'is_active' => $category->is_active]) }})"
-                                class="p-1.5 text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors" title="Düzenle">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                            </svg>
-                        </button>
-                        <button @click="deleteCategory({{ $category->id }})"
-                                class="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Sil">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                        </button>
+                    <div class="flex items-center gap-1">
+                        @if(!$group->is_active)<span class="text-xs bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full mr-2">Pasif</span>@endif
+                        <button @click="openEdit({{ json_encode(['id'=>$group->id,'name'=>$group->name,'parent_id'=>$group->parent_id,'sort_order'=>$group->sort_order,'is_active'=>$group->is_active]) }})"
+                                class="p-1.5 text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg" title="Düzenle"><i class="fas fa-pen text-xs"></i></button>
+                        <button @click="deleteCategory({{ $group->id }})" class="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Sil"><i class="fas fa-trash text-xs"></i></button>
                     </div>
                 </div>
-                <h3 class="text-gray-900 font-semibold text-base">{{ $category->name }}</h3>
-                <div class="flex items-center justify-between mt-3">
-                    <span class="text-xs text-gray-500">{{ $category->products_count }} ürün</span>
-                    <div class="flex items-center gap-2">
-                        @if($category->parent_id)
-                            <span class="text-xs bg-purple-500/10 text-purple-600 px-2 py-0.5 rounded-full">Alt kategori</span>
-                        @endif
-                        @if(!$category->is_active)
-                            <span class="text-xs bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full">Pasif</span>
-                        @endif
-                        <span class="text-xs text-gray-500">Sıra: {{ $category->sort_order }}</span>
+                @if($group->children->count() > 0)
+                    <div class="divide-y divide-gray-50">
+                        @foreach($group->children->sortBy('sort_order') as $sub)
+                            {{-- Alt Kategori (Seviye 2 - ör: Marka) --}}
+                            <div class="pl-8">
+                                <div class="flex items-center justify-between px-4 py-3">
+                                    <div class="flex items-center gap-3">
+                                        <i class="fas fa-caret-right text-gray-400"></i>
+                                        <div class="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                                            <i class="fas fa-tag text-purple-500 text-xs"></i>
+                                        </div>
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-800">{{ $sub->name }}</span>
+                                            <span class="text-xs text-gray-400 ml-2">{{ $sub->products_count }} ürün</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        @if(!$sub->is_active)<span class="text-xs bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full mr-2">Pasif</span>@endif
+                                        <button @click="openEdit({{ json_encode(['id'=>$sub->id,'name'=>$sub->name,'parent_id'=>$sub->parent_id,'sort_order'=>$sub->sort_order,'is_active'=>$sub->is_active]) }})"
+                                                class="p-1.5 text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg"><i class="fas fa-pen text-xs"></i></button>
+                                        <button @click="deleteCategory({{ $sub->id }})" class="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg"><i class="fas fa-trash text-xs"></i></button>
+                                    </div>
+                                </div>
+                                @if($sub->children && $sub->children->count() > 0)
+                                    <div class="pl-8 pb-2">
+                                        @foreach($sub->children->sortBy('sort_order') as $sub2)
+                                            {{-- Seviye 3 --}}
+                                            <div class="flex items-center justify-between px-4 py-2">
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas fa-minus text-gray-300 text-[8px]"></i>
+                                                    <span class="text-sm text-gray-600">{{ $sub2->name }}</span>
+                                                    <span class="text-xs text-gray-400">{{ $sub2->products_count }} ürün</span>
+                                                </div>
+                                                <div class="flex items-center gap-1">
+                                                    <button @click="openEdit({{ json_encode(['id'=>$sub2->id,'name'=>$sub2->name,'parent_id'=>$sub2->parent_id,'sort_order'=>$sub2->sort_order,'is_active'=>$sub2->is_active]) }})"
+                                                            class="p-1 text-gray-400 hover:text-yellow-400 rounded"><i class="fas fa-pen text-[10px]"></i></button>
+                                                    <button @click="deleteCategory({{ $sub2->id }})" class="p-1 text-gray-400 hover:text-red-500 rounded"><i class="fas fa-trash text-[10px]"></i></button>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
                     </div>
-                </div>
+                @endif
             </div>
         @empty
-            <div class="col-span-full text-center py-12">
-                <svg class="w-12 h-12 text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                </svg>
+            <div class="text-center py-12">
+                <i class="fas fa-tags text-3xl text-gray-300 mb-3"></i>
                 <p class="text-gray-500 text-sm">Henüz kategori eklenmemiş</p>
                 <button @click="openCreate()" class="text-brand-500 hover:text-brand-600 text-sm font-medium mt-2">+ İlk kategoriyi ekle</button>
             </div>
@@ -87,9 +115,12 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Üst Kategori</label>
                     <select x-model="form.parent_id" class="w-full bg-white border border-gray-700 text-gray-700 text-sm rounded-lg px-4 py-2.5 focus:ring-brand-500/20 focus:border-brand-500">
-                        <option value="">Ana Kategori</option>
+                        <option value="">Ana Kategori (Grup)</option>
                         @foreach($categories->whereNull('parent_id') as $cat)
                             <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                            @foreach($categories->where('parent_id', $cat->id) as $sub)
+                                <option value="{{ $sub->id }}">&nbsp;&nbsp;└ {{ $sub->name }}</option>
+                            @endforeach
                         @endforeach
                     </select>
                 </div>

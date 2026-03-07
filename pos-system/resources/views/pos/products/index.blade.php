@@ -22,8 +22,14 @@
                     @change="applyFilters()"
                     class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
                 <option value="">Tüm Kategoriler</option>
-                @foreach($categories as $category)
-                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                @foreach($categories as $cat)
+                    <option value="{{ $cat->id }}">{{ $cat->parent_id ? '└ ' : '' }}{{ $cat->name }}</option>
+                    @foreach($cat->children->sortBy('name') as $sub)
+                        <option value="{{ $sub->id }}">&nbsp;&nbsp;└ {{ $sub->name }}</option>
+                        @foreach($sub->children->sortBy('name') as $sub2)
+                            <option value="{{ $sub2->id }}">&nbsp;&nbsp;&nbsp;&nbsp;└ {{ $sub2->name }}</option>
+                        @endforeach
+                    @endforeach
                 @endforeach
             </select>
             <button @click="openCreate()"
@@ -138,6 +144,11 @@
                                             title="İşlem Geçmişi">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     </button>
+                                    <button @click="openPrices({{ $product->id }}, '{{ addslashes($product->name) }}')"
+                                            class="p-2 text-gray-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"
+                                            title="Çoklu Fiyat">
+                                        <i class="fas fa-tags w-4 h-4 text-xs flex items-center justify-center"></i>
+                                    </button>
                                     <button @click="confirmDelete({{ $product->id }}, '{{ addslashes($product->name) }}')"
                                             class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                             title="Sil">
@@ -224,8 +235,14 @@
                     <select x-model="form.category_id"
                             class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
                         <option value="">Kategori seçin</option>
-                        @foreach($categories as $category)
-                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                            @foreach($cat->children->sortBy('name') as $sub)
+                                <option value="{{ $sub->id }}">&nbsp;&nbsp;└ {{ $sub->name }}</option>
+                                @foreach($sub->children->sortBy('name') as $sub2)
+                                    <option value="{{ $sub2->id }}">&nbsp;&nbsp;&nbsp;&nbsp;└ {{ $sub2->name }}</option>
+                                @endforeach
+                            @endforeach
                         @endforeach
                     </select>
                 </div>
@@ -313,6 +330,54 @@
                         <span :class="form.is_active ? 'translate-x-6' : 'translate-x-1'"
                               class="inline-block h-4 w-4 rounded-full bg-white transition-transform shadow-sm"></span>
                     </button>
+                </div>
+
+                {{-- Şube Bilgileri --}}
+                <div x-show="editingId" class="border-t border-gray-200 pt-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-gray-900"><i class="fas fa-store text-brand-500 mr-1.5"></i>Şube Bilgileri</h3>
+                        <button type="button" @click="showBranchSection = !showBranchSection" class="text-xs text-brand-500 hover:text-brand-700">
+                            <span x-text="showBranchSection ? 'Gizle' : 'Göster'"></span>
+                            <i class="fas ml-1" :class="showBranchSection ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                        </button>
+                    </div>
+                    <div x-show="showBranchSection" x-transition class="space-y-2">
+                        <div x-show="branchDataLoading" class="text-center py-4"><i class="fas fa-spinner fa-spin text-brand-500"></i></div>
+                        <template x-for="(b, bi) in branchData" :key="b.branch_id">
+                            <div class="bg-gray-50 rounded-xl border border-gray-100 p-3">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" :checked="b.enabled" @change="b.enabled = $event.target.checked" class="w-4 h-4 text-brand-500 rounded border-gray-300">
+                                        <span class="text-sm font-medium text-gray-900" x-text="b.branch_name"></span>
+                                    </div>
+                                    <span class="text-[10px] px-2 py-0.5 rounded-full" :class="b.enabled ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-200 text-gray-500'" x-text="b.enabled ? 'Aktif' : 'Kapalı'"></span>
+                                </div>
+                                <div x-show="b.enabled" class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[10px] text-gray-500 mb-0.5">Satış Fiyatı (₺)</label>
+                                        <input type="number" x-model="b.sale_price" step="0.01" min="0"
+                                               class="w-full text-sm px-2.5 py-1.5 border border-gray-200 rounded-lg bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] text-gray-500 mb-0.5">Stok Miktarı</label>
+                                        <input type="number" x-model="b.stock_quantity" step="0.01" min="0"
+                                               class="w-full text-sm px-2.5 py-1.5 border border-gray-200 rounded-lg bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20">
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <p x-show="branchData.length === 0 && !branchDataLoading" class="text-xs text-gray-400 text-center py-3">Şube bulunamadı</p>
+                        {{-- Fiyat Karşılaştırma --}}
+                        <div x-show="branchData.filter(b => b.enabled).length > 1" class="bg-blue-50 rounded-xl border border-blue-100 p-3 mt-2">
+                            <h4 class="text-xs font-semibold text-blue-700 mb-2"><i class="fas fa-chart-bar mr-1"></i>Fiyat Karşılaştırma</h4>
+                            <template x-for="b in branchData.filter(b => b.enabled)" :key="'cmp-'+b.branch_id">
+                                <div class="flex items-center justify-between text-xs py-1">
+                                    <span class="text-gray-700" x-text="b.branch_name"></span>
+                                    <span class="font-mono font-medium" :class="Number(b.sale_price) === Math.min(...branchData.filter(x=>x.enabled).map(x=>Number(x.sale_price||0))) ? 'text-emerald-600' : 'text-gray-900'" x-text="parseFloat(b.sale_price || 0).toFixed(2) + ' ₺'"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="flex gap-3 pt-4 border-t border-gray-200">
@@ -448,6 +513,94 @@
             </div>
         </div>
     </div>
+
+    {{-- Çoklu Fiyat Modalı --}}
+    <div x-show="showPricesModal"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style="display:none">
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showPricesModal=false"></div>
+        <div x-show="showPricesModal"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900"><i class="fas fa-tags text-amber-500 mr-2"></i>Çoklu Fiyat</h3>
+                    <p class="text-sm text-gray-500" x-text="pricesProductName"></p>
+                </div>
+                <button @click="showPricesModal=false" class="text-gray-400 hover:text-gray-600 p-1"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="overflow-y-auto flex-1 p-5">
+                {{-- Mevcut Fiyatlar --}}
+                <div class="space-y-2 mb-4">
+                    <template x-for="(p, idx) in pricesList" :key="p.id">
+                        <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
+                            <template x-if="editingPriceId !== p.id">
+                                <div class="flex items-center gap-3 w-full">
+                                    <div class="flex-1">
+                                        <span class="text-sm font-medium text-gray-900" x-text="p.label"></span>
+                                    </div>
+                                    <span class="text-sm font-bold text-blue-600" x-text="parseFloat(p.price).toFixed(2) + ' ₺'"></span>
+                                    <button @click="editingPriceId = p.id; editPriceLabel = p.label; editPriceValue = p.price"
+                                            class="p-1.5 text-gray-400 hover:text-brand-600 rounded-lg"><i class="fas fa-pen text-xs"></i></button>
+                                    <button @click="deletePrice(p.id, idx)"
+                                            class="p-1.5 text-gray-400 hover:text-red-500 rounded-lg"><i class="fas fa-trash text-xs"></i></button>
+                                </div>
+                            </template>
+                            <template x-if="editingPriceId === p.id">
+                                <div class="flex items-center gap-2 w-full">
+                                    <input type="text" x-model="editPriceLabel" class="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20">
+                                    <input type="number" x-model="editPriceValue" step="0.01" min="0" class="w-24 text-sm px-2 py-1.5 border border-gray-200 rounded-lg focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 text-right">
+                                    <button @click="updatePrice(p.id, idx)" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"><i class="fas fa-check text-xs"></i></button>
+                                    <button @click="editingPriceId = null" class="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg"><i class="fas fa-times text-xs"></i></button>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    <div x-show="pricesList.length === 0 && !pricesLoading" class="text-center py-6 text-gray-400 text-sm">
+                        <i class="fas fa-tags text-2xl mb-2 block"></i>
+                        <p>Henüz alternatif fiyat eklenmemiş</p>
+                    </div>
+                    <div x-show="pricesLoading" class="flex items-center justify-center py-6">
+                        <i class="fas fa-spinner fa-spin text-xl text-brand-500"></i>
+                    </div>
+                </div>
+                {{-- Yeni Fiyat Ekle --}}
+                <div class="border-t border-gray-200 pt-4">
+                    <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Yeni Fiyat Ekle</h4>
+                    <div class="flex items-end gap-3">
+                        <div class="flex-1">
+                            <label class="block text-xs text-gray-500 mb-1">Fiyat Adı</label>
+                            <input type="text" x-model="newPriceLabel" placeholder="Kredi Kartı, Nakit, Toptan..."
+                                   class="w-full text-sm px-3 py-2 border border-gray-200 rounded-xl focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 placeholder-gray-400">
+                        </div>
+                        <div class="w-28">
+                            <label class="block text-xs text-gray-500 mb-1">Fiyat (₺)</label>
+                            <input type="number" x-model="newPriceValue" step="0.01" min="0" placeholder="0.00"
+                                   class="w-full text-sm px-3 py-2 border border-gray-200 rounded-xl focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-right">
+                        </div>
+                        <button @click="addPrice()" :disabled="!newPriceLabel.trim() || !newPriceValue"
+                                class="px-4 py-2 bg-gradient-to-r from-brand-500 to-purple-600 text-white text-sm font-medium rounded-xl hover:shadow-lg transition-all disabled:opacity-50 whitespace-nowrap">
+                            <i class="fas fa-plus mr-1"></i>Ekle
+                        </button>
+                    </div>
+                    {{-- Hızlı Önayarlar --}}
+                    <div class="flex flex-wrap gap-1.5 mt-3">
+                        <template x-for="preset in ['Kredi Kartı', 'Nakit', 'Toptan', 'Perakende', 'Online', 'Personel']" :key="preset">
+                            <button @click="newPriceLabel = preset"
+                                    class="px-2.5 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors"
+                                    x-text="preset"></button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 @endsection
 
@@ -470,6 +623,21 @@ function productManager() {
         deleting: false,
         searchQuery: new URLSearchParams(window.location.search).get('search') || '',
         categoryFilter: new URLSearchParams(window.location.search).get('category_id') || '',
+        // Çoklu Fiyat
+        showPricesModal: false,
+        pricesProductId: null,
+        pricesProductName: '',
+        pricesList: [],
+        pricesLoading: false,
+        newPriceLabel: '',
+        newPriceValue: '',
+        editingPriceId: null,
+        editPriceLabel: '',
+        editPriceValue: '',
+        // Şube bilgileri
+        showBranchSection: true,
+        branchData: [],
+        branchDataLoading: false,
         form: {
             name: '',
             barcode: '',
@@ -523,6 +691,36 @@ function productManager() {
             };
             this.calcProfit();
             this.showPanel = true;
+            this.loadBranches(product.id);
+        },
+
+        async loadBranches(productId) {
+            this.branchDataLoading = true;
+            this.branchData = [];
+            try {
+                const res = await posAjax('/products/' + productId + '/branches', {}, 'GET');
+                this.branchData = res.branches || [];
+            } catch {
+                this.branchData = [];
+            } finally {
+                this.branchDataLoading = false;
+            }
+        },
+
+        async saveBranches() {
+            if (!this.editingId || this.branchData.length === 0) return;
+            try {
+                await posAjax('/products/' + this.editingId + '/branches', {
+                    branches: this.branchData.map(b => ({
+                        branch_id: b.branch_id,
+                        enabled: b.enabled ? true : false,
+                        sale_price: Number(b.sale_price) || 0,
+                        stock_quantity: Number(b.stock_quantity) || 0,
+                    }))
+                }, 'POST');
+            } catch(e) {
+                showToast('Şube bilgileri kaydedilemedi', 'error');
+            }
         },
 
         closePanel() {
@@ -551,6 +749,10 @@ function productManager() {
                         is_active: this.form.is_active ? 1 : 0,
                     }),
                 });
+                // Şube bilgilerini de kaydet
+                if (this.editingId && this.branchData.length > 0) {
+                    await this.saveBranches();
+                }
                 showToast(response.message || (this.editingId ? 'Ürün güncellendi.' : 'Ürün oluşturuldu.'), 'success');
                 this.closePanel();
                 window.location.reload();
@@ -617,6 +819,78 @@ function productManager() {
                 this.showHistoryModal = false;
             } finally {
                 this.historyLoading = false;
+            }
+        },
+
+        // ---- Çoklu Fiyat ----
+        async openPrices(productId, productName) {
+            this.pricesProductId = productId;
+            this.pricesProductName = productName;
+            this.pricesList = [];
+            this.pricesLoading = true;
+            this.showPricesModal = true;
+            this.newPriceLabel = '';
+            this.newPriceValue = '';
+            this.editingPriceId = null;
+            try {
+                const url = '/products/' + productId + '/prices';
+                const res = await posAjax(url, {}, 'GET');
+                this.pricesList = res.prices || [];
+            } catch {
+                showToast('Fiyatlar yüklenemedi', 'error');
+                this.showPricesModal = false;
+            } finally {
+                this.pricesLoading = false;
+            }
+        },
+
+        async addPrice() {
+            if (!this.newPriceLabel.trim() || !this.newPriceValue) return;
+            try {
+                const url = '/products/' + this.pricesProductId + '/prices';
+                const res = await posAjax(url, {
+                    method: 'POST',
+                    body: JSON.stringify({ label: this.newPriceLabel, price: this.newPriceValue }),
+                });
+                if (res.success) {
+                    this.pricesList.push(res.price);
+                    this.newPriceLabel = '';
+                    this.newPriceValue = '';
+                    showToast('Fiyat eklendi', 'success');
+                }
+            } catch(e) {
+                showToast(e.message || 'Fiyat eklenemedi', 'error');
+            }
+        },
+
+        async updatePrice(priceId, idx) {
+            try {
+                const url = '/products/' + this.pricesProductId + '/prices/' + priceId;
+                const res = await posAjax(url, {
+                    method: 'PUT',
+                    body: JSON.stringify({ label: this.editPriceLabel, price: this.editPriceValue }),
+                });
+                if (res.success) {
+                    this.pricesList[idx] = res.price;
+                    this.editingPriceId = null;
+                    showToast('Fiyat güncellendi', 'success');
+                }
+            } catch(e) {
+                showToast(e.message || 'Güncellenemedi', 'error');
+            }
+        },
+
+        async deletePrice(priceId, idx) {
+            if (!confirm('Bu fiyatı silmek istediğinize emin misiniz?')) return;
+            try {
+                const url = '/products/' + this.pricesProductId + '/prices/' + priceId;
+                const res = await posAjax(url, { method: 'DELETE' });
+                if (res.success) {
+                    this.pricesList.splice(idx, 1);
+                    showToast('Fiyat silindi', 'success');
+                }
+            } catch(e) {
+                showToast(e.message || 'Silinemedi', 'error');
             }
         },
     };

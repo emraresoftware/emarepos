@@ -49,7 +49,7 @@ class SaleController extends Controller
             ->when($categoryId, function ($q) use ($categoryId) {
                 $q->where('category_id', $categoryId);
             })
-            ->with(['category'])
+            ->with(['category', 'prices'])
             ->limit(50)
             ->get()
             ->map(function ($product) use ($branchId) {
@@ -66,6 +66,11 @@ class SaleController extends Controller
                     'unit' => $product->unit,
                     'is_service' => $product->is_service,
                     'image_url' => $product->image_url,
+                    'alternative_prices' => $product->prices->map(fn($p) => [
+                        'id' => $p->id,
+                        'label' => $p->label,
+                        'price' => (float) $p->price,
+                    ])->toArray(),
                 ];
             });
 
@@ -175,6 +180,41 @@ class SaleController extends Controller
                 'success' => true,
                 'message' => 'İade işlemi başarılı.',
                 'sale' => $result,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Fiş numarası ile iade arama ve işleme
+     */
+    public function refundByReceipt(Request $request)
+    {
+        $request->validate([
+            'receipt_no' => 'required|string',
+        ]);
+
+        $sale = Sale::where('receipt_no', $request->receipt_no)
+            ->where('branch_id', session('branch_id'))
+            ->first();
+
+        if (!$sale) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Fiş bulunamadı: ' . $request->receipt_no,
+            ], 404);
+        }
+
+        try {
+            $result = $this->saleService->refundSale($sale->id, $request->reason);
+            return response()->json([
+                'success' => true,
+                'message' => 'İade işlemi başarılı.',
+                'sale' => $result->load('items'),
             ]);
         } catch (\Exception $e) {
             return response()->json([

@@ -103,7 +103,37 @@
     </div>
 
     {{-- Payment Types Tab --}}
-    <div x-show="activeTab === 'payment'" x-transition>
+    <div x-show="activeTab === 'payment'" x-transition x-data="paymentTypeManager()">
+        {{-- Yeni Ödeme Türü Ekle --}}
+        <div class="bg-white rounded-xl border border-gray-100 p-4 mb-4">
+            <h4 class="text-sm font-semibold text-gray-800 mb-3"><i class="fas fa-plus-circle text-brand-500 mr-1"></i> Yeni Ödeme Türü Ekle</h4>
+            <div class="flex items-end gap-3">
+                <div class="flex-1">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Ödeme Türü Adı *</label>
+                    <input type="text" x-model="newType.name" @keydown.enter="addType()"
+                           placeholder="Örn: Yemek Kartı, EFT POS, Online Ödeme..."
+                           class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20">
+                </div>
+                <div class="w-40">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Kod (opsiyonel)</label>
+                    <input type="text" x-model="newType.code" @keydown.enter="addType()"
+                           placeholder="Örn: yemek_karti"
+                           class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20">
+                </div>
+                <button @click="addType()" :disabled="!newType.name.trim() || saving"
+                        class="px-5 py-2 bg-gradient-to-r from-brand-500 to-purple-600 text-white text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-all whitespace-nowrap">
+                    <i class="fas fa-plus mr-1"></i> Ekle
+                </button>
+            </div>
+            {{-- Hızlı Ekleme Önerileri --}}
+            <div class="flex gap-2 mt-3 flex-wrap">
+                <template x-for="preset in presets" :key="preset">
+                    <button @click="newType.name = preset" class="px-3 py-1 bg-gray-100 hover:bg-brand-50 text-gray-600 hover:text-brand-600 text-xs rounded-lg border border-gray-200 hover:border-brand-200 transition-colors" x-text="preset"></button>
+                </template>
+            </div>
+        </div>
+
+        {{-- Mevcut Ödeme Türleri --}}
         <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left text-gray-700">
@@ -111,32 +141,128 @@
                         <tr>
                             <th class="px-4 py-3.5">Ad</th>
                             <th class="px-4 py-3.5">Kod</th>
+                            <th class="px-4 py-3.5 text-center">Sıra</th>
                             <th class="px-4 py-3.5 text-center">Durum</th>
+                            <th class="px-4 py-3.5 text-center">İşlem</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        @forelse($paymentTypes as $pt)
+                        <template x-for="pt in types" :key="pt.id">
                             <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-4 py-3 text-gray-900">{{ $pt->name }}</td>
-                                <td class="px-4 py-3 font-mono text-gray-500">{{ $pt->code ?? '-' }}</td>
+                                <td class="px-4 py-3">
+                                    <template x-if="editingId !== pt.id">
+                                        <span class="text-gray-900 font-medium" x-text="pt.name"></span>
+                                    </template>
+                                    <template x-if="editingId === pt.id">
+                                        <input type="text" x-model="editForm.name" class="w-full px-2 py-1 border border-brand-300 rounded text-sm text-gray-800 focus:outline-none focus:ring-1 focus:ring-brand-400">
+                                    </template>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <template x-if="editingId !== pt.id">
+                                        <span class="font-mono text-gray-500" x-text="pt.code || '-'"></span>
+                                    </template>
+                                    <template x-if="editingId === pt.id">
+                                        <input type="text" x-model="editForm.code" class="w-full px-2 py-1 border border-brand-300 rounded text-sm text-gray-800 focus:outline-none focus:ring-1 focus:ring-brand-400">
+                                    </template>
+                                </td>
                                 <td class="px-4 py-3 text-center">
-                                    @if($pt->is_active ?? true)
-                                        <span class="text-xs bg-green-500/10 text-emerald-600 px-2.5 py-1 rounded-full border border-green-500/30">Aktif</span>
-                                    @else
-                                        <span class="text-xs bg-red-500/10 text-red-500 px-2.5 py-1 rounded-full border border-red-500/30">Pasif</span>
-                                    @endif
+                                    <span class="text-xs text-gray-500" x-text="pt.sort_order"></span>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <button @click="toggleActive(pt)"
+                                            class="text-xs px-2.5 py-1 rounded-full border transition-colors"
+                                            :class="pt.is_active ? 'bg-green-500/10 text-emerald-600 border-green-500/30 hover:bg-red-50 hover:text-red-500 hover:border-red-300' : 'bg-red-500/10 text-red-500 border-red-500/30 hover:bg-green-50 hover:text-emerald-600 hover:border-green-300'"
+                                            x-text="pt.is_active ? 'Aktif' : 'Pasif'"></button>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <template x-if="editingId !== pt.id">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <button @click="startEdit(pt)" class="text-brand-500 hover:text-brand-700 text-xs"><i class="fas fa-edit"></i></button>
+                                            <button @click="deleteType(pt)" class="text-red-400 hover:text-red-600 text-xs"><i class="fas fa-trash"></i></button>
+                                        </div>
+                                    </template>
+                                    <template x-if="editingId === pt.id">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <button @click="saveEdit(pt)" class="text-emerald-500 hover:text-emerald-700 text-xs font-medium"><i class="fas fa-check mr-0.5"></i>Kaydet</button>
+                                            <button @click="editingId = null" class="text-gray-400 hover:text-gray-600 text-xs"><i class="fas fa-times"></i></button>
+                                        </div>
+                                    </template>
                                 </td>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="3" class="px-4 py-8 text-center text-gray-500">Ödeme tipi bulunamadı</td>
-                            </tr>
-                        @endforelse
+                        </template>
+                        <tr x-show="types.length === 0">
+                            <td colspan="5" class="px-4 py-8 text-center text-gray-500">Ödeme türü bulunamadı. Yukarıdan ekleyin.</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+
+    <script>
+    function paymentTypeManager() {
+        return {
+            types: @json($paymentTypes),
+            newType: { name: '', code: '' },
+            saving: false,
+            editingId: null,
+            editForm: { name: '', code: '' },
+            presets: ['Havale', 'Yemek Kartı', 'EFT POS', 'Seyyar POS', 'Online Ödeme', 'Çek', 'Senet', 'Mobil Ödeme'],
+
+            async addType() {
+                if (!this.newType.name.trim()) return;
+                this.saving = true;
+                try {
+                    const data = await posAjax('{{ route("pos.payment-types.store") }}', this.newType);
+                    if (data.success) {
+                        this.types.push(data.paymentType);
+                        this.newType = { name: '', code: '' };
+                        showToast('Ödeme türü eklendi!', 'success');
+                    }
+                } catch(e) { showToast(e.message || 'Eklenemedi', 'error'); }
+                this.saving = false;
+            },
+
+            startEdit(pt) {
+                this.editingId = pt.id;
+                this.editForm = { name: pt.name, code: pt.code || '' };
+            },
+
+            async saveEdit(pt) {
+                try {
+                    const data = await posAjax('/payment-types/' + pt.id, this.editForm, 'PUT');
+                    if (data.success) {
+                        pt.name = data.paymentType.name;
+                        pt.code = data.paymentType.code;
+                        this.editingId = null;
+                        showToast('Güncellendi!', 'success');
+                    }
+                } catch(e) { showToast(e.message || 'Güncellenemedi', 'error'); }
+            },
+
+            async toggleActive(pt) {
+                try {
+                    const data = await posAjax('/payment-types/' + pt.id, { ...pt, is_active: !pt.is_active }, 'PUT');
+                    if (data.success) {
+                        pt.is_active = data.paymentType.is_active;
+                        showToast(pt.is_active ? 'Aktifleştirildi' : 'Pasifleştirildi', 'success');
+                    }
+                } catch(e) { showToast(e.message || 'Güncellenemedi', 'error'); }
+            },
+
+            async deleteType(pt) {
+                if (!confirm(pt.name + ' ödeme türünü silmek istediğinize emin misiniz?')) return;
+                try {
+                    const data = await posAjax('/payment-types/' + pt.id, {}, 'DELETE');
+                    if (data.success) {
+                        this.types = this.types.filter(t => t.id !== pt.id);
+                        showToast('Silindi!', 'success');
+                    }
+                } catch(e) { showToast(e.message || 'Silinemedi', 'error'); }
+            },
+        };
+    }
+    </script>
 
     {{-- Tax Rates Tab --}}
     <div x-show="activeTab === 'tax'" x-transition>

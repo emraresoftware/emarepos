@@ -32,6 +32,9 @@ class Product extends Model
         'country_of_origin',
         'is_active',
         'is_service',
+        'stock_code',
+        'sort_order',
+        'show_on_pos',
     ];
 
     protected function casts(): array
@@ -44,7 +47,9 @@ class Product extends Model
             'additional_taxes' => 'array',
             'is_active' => 'boolean',
             'is_service' => 'boolean',
+            'show_on_pos' => 'boolean',
             'vat_rate' => 'integer',
+            'sort_order' => 'integer',
         ];
     }
 
@@ -87,9 +92,29 @@ class Product extends Model
         return $this->hasMany(StockMovement::class);
     }
 
+    public function prices()
+    {
+        return $this->hasMany(ProductPrice::class)->where('is_active', true)->orderBy('sort_order');
+    }
+
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function variantAssignments()
+    {
+        return $this->belongsToMany(ProductVariantValue::class, 'product_variant_assignments', 'product_id', 'variant_value_id');
+    }
+
+    public function subDefinitions()
+    {
+        return $this->hasMany(ProductSubDefinition::class, 'parent_product_id');
+    }
+
+    public function parentDefinitions()
+    {
+        return $this->hasMany(ProductSubDefinition::class, 'sub_product_id');
     }
 
     // ─── Accessors ───────────────────────────────────────────
