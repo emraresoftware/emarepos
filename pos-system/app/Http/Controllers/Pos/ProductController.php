@@ -106,11 +106,13 @@ class ProductController extends Controller
             'purchase_price' => ($request->purchase_price !== '' && $request->purchase_price !== null) ? $request->purchase_price : 0,
             'stock_quantity'  => ($request->stock_quantity  !== '' && $request->stock_quantity  !== null) ? $request->stock_quantity  : 0,
             'category_id'    => ($request->category_id     !== '' && $request->category_id    !== null) ? $request->category_id    : null,
+            'firm_id'        => ($request->firm_id         !== '' && $request->firm_id        !== null) ? $request->firm_id        : null,
         ]);
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'barcode' => 'nullable|string|max:255',
             'category_id' => 'nullable|integer',
+            'firm_id' => 'nullable|integer|exists:firms,id',
             'sale_price' => 'required|numeric|min:0',
             'purchase_price' => 'nullable|numeric|min:0',
             'vat_rate' => 'required|integer',
@@ -137,11 +139,13 @@ class ProductController extends Controller
             'purchase_price' => ($request->purchase_price !== '' && $request->purchase_price !== null) ? $request->purchase_price : 0,
             'stock_quantity'  => ($request->stock_quantity  !== '' && $request->stock_quantity  !== null) ? $request->stock_quantity  : 0,
             'category_id'    => ($request->category_id     !== '' && $request->category_id    !== null) ? $request->category_id    : null,
+            'firm_id'        => ($request->firm_id         !== '' && $request->firm_id        !== null) ? $request->firm_id        : null,
         ]);
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'barcode' => 'nullable|string|max:255',
             'category_id' => 'nullable|integer',
+            'firm_id' => 'nullable|integer|exists:firms,id',
             'sale_price' => 'required|numeric|min:0',
             'purchase_price' => 'nullable|numeric|min:0',
             'vat_rate' => 'required|integer',
