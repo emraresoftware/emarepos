@@ -28,7 +28,7 @@ class AdminController extends Controller
             'tenant_count'   => Tenant::count(),
             'user_count'     => User::count(),
             'sale_today'     => Sale::whereDate('created_at', today())->count(),
-            'sale_total'     => Sale::sum('total_amount'),
+            'sale_total'     => Sale::sum('grand_total'),
             'feedback_open'  => Feedback::where('status', 'open')->count(),
             'feedback_total' => Feedback::count(),
         ];
