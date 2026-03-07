@@ -100,7 +100,7 @@
             </div>
 
             {{-- Nakit Satışlar --}}
-            <div class="bg-white rounded-xl border border-gray-700 p-4">
+            <div class="bg-white rounded-xl border border-gray-700 p-4 cursor-pointer hover:border-emerald-400 hover:shadow-md transition-all" @click="openSalesModal('cash')">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Nakit Satış</span>
                     <span class="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
@@ -108,11 +108,11 @@
                     </span>
                 </div>
                 <div class="text-2xl font-bold text-emerald-600">{{ number_format($stats['cash_total'] ?? 0, 2) }} ₺</div>
-                <div class="text-xs text-gray-500 mt-1">Nakit tahsilat toplamı</div>
+                <div class="text-xs text-gray-400 mt-1">Nakit tahsilat toplamı <i class="fas fa-chevron-right ml-1"></i></div>
             </div>
 
             {{-- Kart Satışlar --}}
-            <div class="bg-white rounded-xl border border-gray-700 p-4">
+            <div class="bg-white rounded-xl border border-gray-700 p-4 cursor-pointer hover:border-brand-400 hover:shadow-md transition-all" @click="openSalesModal('card')">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Kart Satış</span>
                     <span class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
@@ -120,11 +120,11 @@
                     </span>
                 </div>
                 <div class="text-2xl font-bold text-brand-500">{{ number_format($stats['card_total'] ?? 0, 2) }} ₺</div>
-                <div class="text-xs text-gray-500 mt-1">Kredi/banka kartı toplamı</div>
+                <div class="text-xs text-gray-400 mt-1">Kredi/banka kartı toplamı <i class="fas fa-chevron-right ml-1"></i></div>
             </div>
 
             {{-- Veresiye Satışlar --}}
-            <div class="bg-white rounded-xl border border-amber-200 p-4">
+            <div class="bg-white rounded-xl border border-amber-200 p-4 cursor-pointer hover:border-amber-400 hover:shadow-md transition-all" @click="openSalesModal('credit')">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-medium text-amber-600 uppercase tracking-wider">Veresiye</span>
                     <span class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
@@ -132,11 +132,11 @@
                     </span>
                 </div>
                 <div class="text-2xl font-bold text-amber-500">{{ number_format($stats['credit_total'] ?? 0, 2) }} ₺</div>
-                <div class="text-xs text-gray-500 mt-1">Cari hesaba yazılan satışlar</div>
+                <div class="text-xs text-amber-400 mt-1">Cari hesaba yazılan satışlar <i class="fas fa-chevron-right ml-1"></i></div>
             </div>
 
             {{-- Toplam Satış --}}
-            <div class="bg-white rounded-xl border border-gray-700 p-4">
+            <div class="bg-white rounded-xl border border-gray-700 p-4 cursor-pointer hover:border-purple-400 hover:shadow-md transition-all" @click="openSalesModal('all')">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Toplam Satış</span>
                     <span class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
@@ -144,7 +144,7 @@
                     </span>
                 </div>
                 <div class="text-2xl font-bold text-gray-900">{{ number_format(($stats['cash_total'] ?? 0) + ($stats['card_total'] ?? 0) + ($stats['credit_total'] ?? 0), 2) }} ₺</div>
-                <div class="text-xs text-gray-500 mt-1">{{ $stats['sale_count'] ?? 0 }} adet satış</div>
+                <div class="text-xs text-gray-400 mt-1">{{ $stats['sale_count'] ?? 0 }} adet satış <i class="fas fa-chevron-right ml-1"></i></div>
             </div>
         </div>
 
@@ -370,6 +370,160 @@
         </div>
     </div>
     @endif
+
+    {{-- ╔════════════════════════════════════════╗ --}}
+    {{-- ║    SATIŞ LİSTESİ MODAL                ║ --}}
+    {{-- ╚════════════════════════════════════════╝ --}}
+    <div x-show="showSalesModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm" x-cloak>
+        <div class="bg-white rounded-2xl shadow-2xl w-[720px] max-w-[96vw] max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between p-5 border-b border-gray-100">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900" x-text="salesModalTitle"></h3>
+                    <p class="text-xs text-gray-400 mt-0.5" x-text="salesList.length + ' satış kaydı'"></p>
+                </div>
+                <button @click="showSalesModal = false" class="text-gray-400 hover:text-gray-700"><i class="fas fa-times"></i></button>
+            </div>
+            <div x-show="salesLoading" class="flex-1 flex items-center justify-center py-12">
+                <i class="fas fa-spinner fa-spin text-gray-400 text-2xl"></i>
+            </div>
+            <div x-show="!salesLoading" class="flex-1 overflow-y-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 border-b border-gray-100 sticky top-0">
+                        <tr class="text-xs text-gray-500 uppercase tracking-wider">
+                            <th class="text-left px-4 py-3 font-medium">Tarih/Saat</th>
+                            <th class="text-left px-4 py-3 font-medium">Fiş No</th>
+                            <th class="text-left px-4 py-3 font-medium">Müşteri</th>
+                            <th class="text-left px-4 py-3 font-medium">Personel</th>
+                            <th class="text-left px-4 py-3 font-medium">Ödeme</th>
+                            <th class="text-right px-4 py-3 font-medium">Tutar</th>
+                            <th class="px-4 py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        <template x-for="sale in salesList" :key="sale.id">
+                            <tr class="hover:bg-gray-50 cursor-pointer" @click="openSaleDetail(sale.id)">
+                                <td class="px-4 py-2.5 text-gray-500" x-text="sale.sold_at"></td>
+                                <td class="px-4 py-2.5">
+                                    <span class="text-xs font-mono text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded" x-text="sale.receipt_no || '—'"></span>
+                                </td>
+                                <td class="px-4 py-2.5">
+                                    <span class="font-medium text-gray-800" x-text="sale.customer_name"></span>
+                                </td>
+                                <td class="px-4 py-2.5 text-gray-500" x-text="sale.staff_name"></td>
+                                <td class="px-4 py-2.5">
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                                          :class="{
+                                            'bg-emerald-50 text-emerald-700': sale.payment_method === 'cash',
+                                            'bg-brand-50 text-brand-700': sale.payment_method === 'card',
+                                            'bg-amber-50 text-amber-700': sale.payment_method === 'credit',
+                                            'bg-purple-50 text-purple-700': sale.payment_method === 'mixed',
+                                          }"
+                                          x-text="sale.payment_method === 'cash' ? 'Nakit' : sale.payment_method === 'card' ? 'Kart' : sale.payment_method === 'credit' ? 'Veresiye' : 'Karışık'"></span>
+                                </td>
+                                <td class="px-4 py-2.5 text-right font-bold text-gray-900" x-text="parseFloat(sale.grand_total).toFixed(2) + ' ₺'"></td>
+                                <td class="px-4 py-2.5 text-gray-400"><i class="fas fa-chevron-right text-xs"></i></td>
+                            </tr>
+                        </template>
+                        <tr x-show="salesList.length === 0">
+                            <td colspan="7" class="text-center py-10 text-gray-400">Bu dönemde kayıt bulunamadı</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div x-show="!salesLoading && salesList.length > 0" class="border-t border-gray-100 px-5 py-3 flex items-center justify-between bg-gray-50 rounded-b-2xl">
+                <span class="text-sm text-gray-500">Toplam</span>
+                <span class="text-lg font-bold text-gray-900" x-text="salesList.reduce((s, x) => s + parseFloat(x.grand_total), 0).toFixed(2) + ' ₺'"></span>
+            </div>
+        </div>
+    </div>
+
+    {{-- ╔════════════════════════════════════════╗ --}}
+    {{-- ║    SATIŞ DETAY MODAL                  ║ --}}
+    {{-- ╚════════════════════════════════════════╝ --}}
+    <div x-show="showSaleDetail" x-transition class="fixed inset-0 z-60 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm" x-cloak>
+        <div class="bg-white rounded-2xl shadow-2xl w-[500px] max-w-[96vw] max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between p-5 border-b border-gray-100">
+                <div>
+                    <h3 class="text-md font-bold text-gray-900">Satış Detayı</h3>
+                    <p class="text-xs text-gray-400" x-text="saleDetail ? 'Fiş: ' + saleDetail.receipt_no + ' — ' + saleDetail.sold_at : ''"></p>
+                </div>
+                <button @click="showSaleDetail = false" class="text-gray-400 hover:text-gray-700"><i class="fas fa-times"></i></button>
+            </div>
+            <div x-show="saleDetailLoading" class="flex-1 flex items-center justify-center py-12">
+                <i class="fas fa-spinner fa-spin text-gray-400 text-2xl"></i>
+            </div>
+            <div x-show="saleDetail && !saleDetailLoading" class="flex-1 overflow-y-auto p-5 space-y-4">
+                {{-- Özet --}}
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-gray-50 rounded-xl p-3">
+                        <div class="text-xs text-gray-400">Müşteri</div>
+                        <div class="font-semibold text-gray-800 mt-0.5" x-text="saleDetail?.customer_name"></div>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl p-3">
+                        <div class="text-xs text-gray-400">Personel</div>
+                        <div class="font-semibold text-gray-800 mt-0.5" x-text="saleDetail?.staff_name"></div>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl p-3">
+                        <div class="text-xs text-gray-400">Ödeme Yöntemi</div>
+                        <div class="font-semibold mt-0.5"
+                             :class="{'text-emerald-600': saleDetail?.payment_method==='cash', 'text-brand-600': saleDetail?.payment_method==='card', 'text-amber-600': saleDetail?.payment_method==='credit', 'text-purple-600': saleDetail?.payment_method==='mixed'}"
+                             x-text="saleDetail?.payment_method === 'cash' ? 'Nakit' : saleDetail?.payment_method === 'card' ? 'Kart' : saleDetail?.payment_method === 'credit' ? 'Veresiye' : 'Karışık'"></div>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl p-3">
+                        <div class="text-xs text-gray-400">Toplam Tutar</div>
+                        <div class="text-lg font-bold text-gray-900 mt-0.5" x-text="parseFloat(saleDetail?.grand_total || 0).toFixed(2) + ' ₺'"></div>
+                    </div>
+                </div>
+                {{-- Karışık ödeme dağılımı --}}
+                <div x-show="saleDetail?.payment_method === 'mixed'" class="bg-purple-50 rounded-xl p-3 space-y-1.5">
+                    <div class="text-xs font-semibold text-purple-600 mb-2">Ödeme Dağılımı</div>
+                    <div class="flex justify-between text-sm" x-show="parseFloat(saleDetail?.cash_amount) > 0">
+                        <span class="text-gray-600"><i class="fas fa-money-bill-wave text-emerald-500 mr-1"></i>Nakit</span>
+                        <span class="font-medium" x-text="parseFloat(saleDetail?.cash_amount || 0).toFixed(2) + ' ₺'"></span>
+                    </div>
+                    <div class="flex justify-between text-sm" x-show="parseFloat(saleDetail?.card_amount) > 0">
+                        <span class="text-gray-600"><i class="fas fa-credit-card text-brand-500 mr-1"></i>Kart</span>
+                        <span class="font-medium" x-text="parseFloat(saleDetail?.card_amount || 0).toFixed(2) + ' ₺'"></span>
+                    </div>
+                    <div class="flex justify-between text-sm" x-show="parseFloat(saleDetail?.credit_amount) > 0">
+                        <span class="text-gray-600"><i class="fas fa-user-clock text-amber-500 mr-1"></i>Veresiye</span>
+                        <span class="font-medium" x-text="parseFloat(saleDetail?.credit_amount || 0).toFixed(2) + ' ₺'"></span>
+                    </div>
+                </div>
+                {{-- Kalemler --}}
+                <div>
+                    <div class="text-xs font-semibold text-gray-500 uppercase mb-2">Ürünler</div>
+                    <div class="border border-gray-100 rounded-xl overflow-hidden">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50">
+                                <tr class="text-xs text-gray-400">
+                                    <th class="text-left px-3 py-2 font-medium">Ürün</th>
+                                    <th class="text-center px-3 py-2 font-medium">Adet</th>
+                                    <th class="text-right px-3 py-2 font-medium">Birim</th>
+                                    <th class="text-right px-3 py-2 font-medium">Toplam</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50">
+                                <template x-for="item in saleDetail?.items" :key="item.product_name">
+                                    <tr>
+                                        <td class="px-3 py-2 text-gray-800" x-text="item.product_name"></td>
+                                        <td class="px-3 py-2 text-center text-gray-500" x-text="item.quantity"></td>
+                                        <td class="px-3 py-2 text-right text-gray-600" x-text="parseFloat(item.unit_price).toFixed(2) + ' ₺'"></td>
+                                        <td class="px-3 py-2 text-right font-semibold text-gray-900" x-text="parseFloat(item.total).toFixed(2) + ' ₺'"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div x-show="saleDetail?.notes" class="bg-amber-50 rounded-xl p-3">
+                    <div class="text-xs text-amber-600 mb-1">Not</div>
+                    <div class="text-sm text-gray-700" x-text="saleDetail?.notes"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 @endsection
 
@@ -385,6 +539,47 @@ function cashRegisterScreen() {
         get cashDifference() {
             if (this.actualCash === null || this.actualCash === '') return 0;
             return parseFloat(this.actualCash) - this.expectedCash;
+        },
+
+        // Satış listesi modal
+        showSalesModal: false,
+        salesLoading: false,
+        salesModalTitle: '',
+        salesList: [],
+
+        // Satış detay modal
+        showSaleDetail: false,
+        saleDetailLoading: false,
+        saleDetail: null,
+
+        async openSalesModal(type) {
+            const titles = { cash: 'Nakit Satışlar', card: 'Kart Satışları', credit: 'Veresiye Satışlar', all: 'Tüm Satışlar' };
+            this.salesModalTitle = titles[type] || 'Satışlar';
+            this.showSalesModal = true;
+            this.salesLoading = true;
+            this.salesList = [];
+            try {
+                const data = await posAjax('{{ route("pos.cash-register.sales-detail") }}?type=' + type, {}, 'GET');
+                this.salesList = data.sales || [];
+            } catch(e) {
+                showToast('Satışlar yüklenemedi', 'error');
+            } finally {
+                this.salesLoading = false;
+            }
+        },
+
+        async openSaleDetail(saleId) {
+            this.showSaleDetail = true;
+            this.saleDetailLoading = true;
+            this.saleDetail = null;
+            try {
+                const data = await posAjax('{{ url("/cash-register/sale-items") }}/' + saleId, {}, 'GET');
+                this.saleDetail = data.sale;
+            } catch(e) {
+                showToast('Detay yüklenemedi', 'error');
+            } finally {
+                this.saleDetailLoading = false;
+            }
         },
     };
 }

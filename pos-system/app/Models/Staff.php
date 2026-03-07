@@ -23,6 +23,8 @@ class Staff extends Model
         'total_sales',
         'total_transactions',
         'is_active',
+        'permissions',
+        'pin',
     ];
 
     protected function casts(): array
@@ -31,6 +33,7 @@ class Staff extends Model
             'total_sales' => 'decimal:2',
             'total_transactions' => 'integer',
             'is_active' => 'boolean',
+            'permissions' => 'array',
         ];
     }
 

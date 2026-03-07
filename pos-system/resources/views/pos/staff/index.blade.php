@@ -92,6 +92,7 @@
                         <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">İletişim</th>
                         <th class="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Satış</th>
                         <th class="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">İşlem</th>
+                        <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Yetki</th>
                         <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Durum</th>
                         <th class="px-5 py-3"></th>
                     </tr>
@@ -131,6 +132,14 @@
                         </td>
                         <td class="px-5 py-3.5 text-right text-gray-500">
                             {{ number_format($member->total_transactions) }}
+                        </td>
+                        <td class="px-5 py-3.5 text-center">
+                            @php $permCount = is_array($member->permissions) ? count($member->permissions) : (($member->permissions && $member->permissions !== 'null') ? count(json_decode($member->permissions, true) ?? []) : 0); @endphp
+                            @if($permCount > 0)
+                                <span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">{{ $permCount }} yetki</span>
+                            @else
+                                <span class="text-gray-300 text-xs">—</span>
+                            @endif
                         </td>
                         <td class="px-5 py-3.5 text-center">
                             @if($member->is_active)
@@ -173,32 +182,40 @@
     {{-- ── MODAL ── --}}
     <div x-show="showModal" x-transition.opacity class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
         <div @click.outside="showModal = false"
-             class="bg-white rounded-3xl shadow-2xl w-full max-w-md"
+             class="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 scale-95"
              x-transition:enter-end="opacity-100 scale-100">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-5">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500/10 to-purple-500/10
-                                    flex items-center justify-center">
-                            <i class="fas fa-id-badge text-brand-500"></i>
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-900" x-text="editId ? 'Personel Düzenle' : 'Yeni Personel'"></h3>
+            <div class="p-6 border-b border-gray-100 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500/10 to-purple-500/10
+                                flex items-center justify-center">
+                        <i class="fas fa-id-badge text-brand-500"></i>
                     </div>
-                    <button @click="showModal = false" class="text-gray-400 hover:text-gray-600 p-1"><i class="fas fa-times"></i></button>
+                    <h3 class="text-lg font-bold text-gray-900" x-text="editId ? 'Personel Düzenle' : 'Yeni Personel'"></h3>
                 </div>
+                <button @click="showModal = false" class="text-gray-400 hover:text-gray-600 p-1"><i class="fas fa-times"></i></button>
+            </div>
 
+            <div class="overflow-y-auto flex-1 p-6 space-y-5">
+                {{-- Temel Bilgiler --}}
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Ad Soyad <span class="text-red-500">*</span></label>
                         <input type="text" x-model="form.name" placeholder="örn. Ahmet Yılmaz"
                                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none text-sm transition-all">
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Görev / Pozisyon</label>
-                        <input type="text" x-model="form.role" placeholder="örn. Garson, Kasiyer, Şef..."
-                               class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none text-sm transition-all">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Görev / Pozisyon</label>
+                            <input type="text" x-model="form.role" placeholder="Garson, Kasiyer, Şef..."
+                                   class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none text-sm transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">PIN Kodu</label>
+                            <input type="text" x-model="form.pin" placeholder="örn. 1234" maxlength="10"
+                                   class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none text-sm transition-all">
+                        </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
@@ -229,19 +246,77 @@
                     </div>
                 </div>
 
-                <div class="flex gap-3 mt-5">
-                    <button @click="showModal = false"
-                            class="flex-1 px-4 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all">
-                        İptal
-                    </button>
-                    <button @click="submitForm()" :disabled="saving"
-                            class="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white
-                                   bg-gradient-to-r from-brand-500 to-purple-600
-                                   shadow-lg shadow-brand-500/20 hover:scale-[1.02] transition-all">
-                        <span x-show="!saving">Kaydet</span>
-                        <span x-show="saving"><i class="fas fa-spinner fa-spin mr-1"></i> Kaydediliyor...</span>
-                    </button>
+                {{-- İzinler --}}
+                <div>
+                    <div class="flex items-center gap-2 mb-3">
+                        <h4 class="text-sm font-semibold text-gray-700"><i class="fas fa-shield-halved text-brand-500 mr-1"></i>Yetki & Kısıtlamalar</h4>
+                        <button @click="selectAllPerms(true)" class="text-xs text-brand-500 hover:underline">Tümünü Seç</button>
+                        <button @click="selectAllPerms(false)" class="text-xs text-red-400 hover:underline">Temizle</button>
+                    </div>
+                    @php
+                    $permGroups = [
+                        ['group' => 'Ürün Yönetimi', 'icon' => 'fa-box', 'color' => 'purple', 'perms' => [
+                            ['key' => 'products.create',  'label' => 'Ürün ekleyebilsin'],
+                            ['key' => 'products.edit',    'label' => 'Ürün düzenleyebilsin'],
+                            ['key' => 'products.delete',  'label' => 'Ürün silebilsin'],
+                        ]],
+                        ['group' => 'Stok', 'icon' => 'fa-warehouse', 'color' => 'amber', 'perms' => [
+                            ['key' => 'stock.edit',        'label' => 'Stok hareketi girebilsin'],
+                        ]],
+                        ['group' => 'Satışlar', 'icon' => 'fa-receipt', 'color' => 'emerald', 'perms' => [
+                            ['key' => 'sales.view_all',    'label' => 'Tüm satışları görebilsin'],
+                            ['key' => 'sales.view_own',    'label' => 'Sadece kendi satışlarını görebilsin'],
+                            ['key' => 'sales.refund',      'label' => 'İade/iptal yapabilsin'],
+                        ]],
+                        ['group' => 'Müşteri & Cari', 'icon' => 'fa-users', 'color' => 'blue', 'perms' => [
+                            ['key' => 'customers.create',  'label' => 'Müşteri ekleyebilsin'],
+                            ['key' => 'customers.edit',    'label' => 'Müşteri düzenleyebilsin'],
+                            ['key' => 'accounts.tahsilat', 'label' => 'Cari tahsilat ekleyebilsin'],
+                            ['key' => 'accounts.delete',   'label' => 'Cari hareketi silebilsin'],
+                        ]],
+                        ['group' => 'Kasa & Raporlar', 'icon' => 'fa-cash-register', 'color' => 'gray', 'perms' => [
+                            ['key' => 'register.open',     'label' => 'Kasa açabilsin/kapatabilsin'],
+                            ['key' => 'reports.view',      'label' => 'Raporları görebilsin'],
+                        ]],
+                    ];
+                    @endphp
+
+                    <div class="space-y-3">
+                        @foreach($permGroups as $group)
+                        <div class="border border-gray-100 rounded-xl overflow-hidden">
+                            <div class="bg-gray-50 px-3 py-2 flex items-center gap-2">
+                                <i class="fas {{ $group['icon'] }} text-{{ $group['color'] }}-500 text-xs"></i>
+                                <span class="text-xs font-semibold text-gray-600">{{ $group['group'] }}</span>
+                            </div>
+                            <div class="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                @foreach($group['perms'] as $perm)
+                                <label class="flex items-center gap-2 cursor-pointer group/perm">
+                                    <input type="checkbox"
+                                           :checked="form.permissions.includes('{{ $perm['key'] }}')"
+                                           @change="togglePerm('{{ $perm['key'] }}')"
+                                           class="w-4 h-4 rounded accent-brand-500">
+                                    <span class="text-sm text-gray-700 group-hover/perm:text-brand-600">{{ $perm['label'] }}</span>
+                                </label>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
                 </div>
+            </div>
+
+            <div class="flex gap-3 p-6 border-t border-gray-100 shrink-0">
+                <button @click="showModal = false"
+                        class="flex-1 px-4 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all">
+                    İptal
+                </button>
+                <button @click="submitForm()" :disabled="saving"
+                        class="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white
+                               bg-gradient-to-r from-brand-500 to-purple-600
+                               shadow-lg shadow-brand-500/20 hover:scale-[1.02] transition-all">
+                    <span x-show="!saving">Kaydet</span>
+                    <span x-show="saving"><i class="fas fa-spinner fa-spin mr-1"></i> Kaydediliyor...</span>
+                </button>
             </div>
         </div>
     </div>
@@ -251,44 +326,74 @@
 @push('scripts')
 <script>
 function staffManager() {
+    const emptyForm = () => ({
+        name: '', role: '', phone: '', email: '', is_active: true,
+        pin: '', permissions: [],
+    });
+
     return {
         showModal: false,
         saving: false,
         editId: null,
-        form: { name: '', role: '', phone: '', email: '', is_active: true },
+        form: emptyForm(),
 
         init() {},
 
         openModal() {
             this.editId = null;
-            this.form = { name: '', role: '', phone: '', email: '', is_active: true };
+            this.form = emptyForm();
             this.showModal = true;
         },
 
         editMember(member) {
             this.editId = member.id;
+            let perms = member.permissions;
+            if (typeof perms === 'string') {
+                try { perms = JSON.parse(perms); } catch { perms = []; }
+            }
             this.form = {
                 name: member.name,
                 role: member.role || '',
                 phone: member.phone || '',
                 email: member.email || '',
-                is_active: member.is_active,
+                is_active: !!member.is_active,
+                pin: member.pin || '',
+                permissions: Array.isArray(perms) ? perms : [],
             };
             this.showModal = true;
         },
 
+        togglePerm(key) {
+            const idx = this.form.permissions.indexOf(key);
+            if (idx === -1) this.form.permissions.push(key);
+            else this.form.permissions.splice(idx, 1);
+        },
+
+        selectAllPerms(select) {
+            const all = [
+                'products.create','products.edit','products.delete',
+                'stock.edit',
+                'sales.view_all','sales.view_own','sales.refund',
+                'customers.create','customers.edit',
+                'accounts.tahsilat','accounts.delete',
+                'register.open','reports.view',
+            ];
+            this.form.permissions = select ? [...all] : [];
+        },
+
         async submitForm() {
-            if (!this.form.name) {
+            if (!this.form.name.trim()) {
                 showToast('Ad Soyad zorunlu', 'error');
                 return;
             }
             this.saving = true;
+            const payload = { ...this.form };
             try {
                 if (this.editId) {
-                    await posAjax(`/staff/${this.editId}`, { method: 'PUT', body: JSON.stringify(this.form) });
+                    await posAjax(`/staff/${this.editId}`, payload, 'PUT');
                     showToast('Personel güncellendi', 'success');
                 } else {
-                    await posAjax('{{ route("pos.staff.store") }}', { method: 'POST', body: JSON.stringify(this.form) });
+                    await posAjax('{{ route("pos.staff.store") }}', payload, 'POST');
                     showToast('Personel eklendi', 'success');
                 }
                 this.showModal = false;
@@ -303,7 +408,7 @@ function staffManager() {
         async deleteMember(id) {
             if (!confirm('Bu personeli silmek istediğinize emin misiniz?')) return;
             try {
-                await posAjax(`/staff/${id}`, { method: 'DELETE' });
+                await posAjax(`/staff/${id}`, {}, 'DELETE');
                 showToast('Personel silindi', 'success');
                 setTimeout(() => window.location.reload(), 500);
             } catch {

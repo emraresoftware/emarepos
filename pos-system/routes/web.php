@@ -75,6 +75,8 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class])->group(fu
     Route::post('/cash-register/open', [CashRegisterController::class, 'open'])->name('pos.cash-register.open');
     Route::post('/cash-register/close', [CashRegisterController::class, 'close'])->name('pos.cash-register.close');
     Route::get('/cash-register/{register}/report', [CashRegisterController::class, 'report'])->name('pos.cash-register.report');
+    Route::get('/cash-register/sales-detail', [CashRegisterController::class, 'salesDetail'])->name('pos.cash-register.sales-detail');
+    Route::get('/cash-register/sale-items/{sale}', [CashRegisterController::class, 'saleItems'])->name('pos.cash-register.sale-items');
     
     // Ürünler (Products)
     Route::get('/products', [ProductController::class, 'index'])->name('pos.products');

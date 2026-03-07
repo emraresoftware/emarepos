@@ -44,10 +44,12 @@ class StaffController extends Controller
             'role'  => 'nullable|string|max:100',
             'phone' => 'nullable|string|max:30',
             'email' => 'nullable|email|max:255',
+            'pin'   => 'nullable|string|max:10',
         ]);
         $data['tenant_id'] = session('tenant_id');
         $data['branch_id'] = session('branch_id');
         $data['is_active'] = true;
+        $data['permissions'] = $request->input('permissions', []);
 
         $member = Staff::create($data);
         return response()->json(['success' => true, 'staff' => $member]);
@@ -61,7 +63,9 @@ class StaffController extends Controller
             'phone'     => 'nullable|string|max:30',
             'email'     => 'nullable|email|max:255',
             'is_active' => 'nullable|boolean',
+            'pin'       => 'nullable|string|max:10',
         ]);
+        $data['permissions'] = $request->input('permissions', []);
         $staff->update($data);
         return response()->json(['success' => true]);
     }

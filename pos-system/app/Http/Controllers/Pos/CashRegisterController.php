@@ -103,4 +103,78 @@ class CashRegisterController extends Controller
             ]),
         ]);
     }
+
+    /**
+     * Kasa dönemi satış listesi (AJAX)
+     * ?type=credit|cash|card|all
+     */
+    public function salesDetail(Request $request)
+    {
+        $branchId = session('branch_id');
+        $register = $this->service->getActiveRegister($branchId);
+
+        $query = Sale::where('branch_id', $branchId)
+            ->where('status', 'completed')
+            ->with(['customer', 'user'])
+            ->orderBy('sold_at', 'desc');
+
+        if ($register) {
+            $query->where('sold_at', '>=', $register->opened_at);
+        }
+
+        $type = $request->get('type', 'all');
+        if ($type === 'credit') {
+            $query->where('payment_method', 'credit');
+        } elseif ($type === 'cash') {
+            $query->whereIn('payment_method', ['cash', 'mixed']);
+        } elseif ($type === 'card') {
+            $query->whereIn('payment_method', ['card', 'mixed']);
+        }
+
+        $sales = $query->limit(100)->get()->map(fn($s) => [
+            'id'             => $s->id,
+            'receipt_no'     => $s->receipt_no,
+            'sold_at'        => $s->sold_at?->format('d.m.Y H:i'),
+            'grand_total'    => $s->grand_total,
+            'cash_amount'    => $s->cash_amount,
+            'card_amount'    => $s->card_amount,
+            'credit_amount'  => $s->credit_amount,
+            'payment_method' => $s->payment_method,
+            'customer_name'  => $s->customer?->name ?? '—',
+            'staff_name'     => $s->staff_name ?? ($s->user?->name ?? '—'),
+            'notes'          => $s->notes,
+        ]);
+
+        return response()->json(['success' => true, 'sales' => $sales]);
+    }
+
+    /**
+     * Tek satışın kalem detayı (AJAX)
+     */
+    public function saleItems(\App\Models\Sale $sale)
+    {
+        $sale->load('items', 'customer', 'user');
+        return response()->json([
+            'success' => true,
+            'sale' => [
+                'id'             => $sale->id,
+                'receipt_no'     => $sale->receipt_no,
+                'sold_at'        => $sale->sold_at?->format('d.m.Y H:i'),
+                'grand_total'    => $sale->grand_total,
+                'cash_amount'    => $sale->cash_amount,
+                'card_amount'    => $sale->card_amount,
+                'credit_amount'  => $sale->credit_amount,
+                'payment_method' => $sale->payment_method,
+                'customer_name'  => $sale->customer?->name ?? '—',
+                'staff_name'     => $sale->staff_name ?? ($sale->user?->name ?? '—'),
+                'notes'          => $sale->notes,
+                'items'          => $sale->items->map(fn($i) => [
+                    'product_name' => $i->product_name,
+                    'quantity'     => $i->quantity,
+                    'unit_price'   => $i->unit_price,
+                    'total'        => $i->total,
+                ]),
+            ],
+        ]);
+    }
 }
