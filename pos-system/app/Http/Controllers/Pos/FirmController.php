@@ -33,6 +33,19 @@ class FirmController extends Controller
         return view('pos.firms.index', compact('firms', 'stats'));
     }
 
+    public function show(Firm $firm)
+    {
+        $transactions = AccountTransaction::where('firm_id', $firm->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(50)
+            ->get();
+
+        return response()->json([
+            'firm' => $firm,
+            'transactions' => $transactions,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -78,7 +91,18 @@ class FirmController extends Controller
         ]);
 
         $firm->increment('balance', $request->amount);
+        $firm->refresh();
 
-        return response()->json(['success' => true, 'firm' => $firm->fresh()]);
+        AccountTransaction::create([
+            'tenant_id' => session('tenant_id'),
+            'firm_id' => $firm->id,
+            'type' => 'payment',
+            'amount' => $request->amount,
+            'balance_after' => $firm->balance,
+            'description' => $request->description ?: ('Ödeme: ' . $firm->name),
+            'transaction_date' => Carbon::now(),
+        ]);
+
+        return response()->json(['success' => true, 'firm' => $firm]);
     }
 }

@@ -107,247 +107,359 @@
         </div>
     </div>
     
-    {{-- SOL PANEL: Ürünler --}}
-    <div class="flex-1 flex flex-col overflow-hidden border-r border-gray-200">
-        {{-- Üst Bar: Arama + Kategori --}}
-        <div class="p-3 bg-white border-b border-gray-200 space-y-2">
-            <div class="flex items-center gap-2">
-                <div class="flex-1 relative">
-                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                    <input type="text" x-model="searchQuery" @input.debounce.300ms="searchProducts()"
-                           @keydown.enter="addByBarcode()"
-                           placeholder="Barkod okutun veya ürün arayın..."
-                           class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-sm transition-all"
-                           x-ref="searchInput">
+    {{-- ─── Hızlı Müşteri Ekle Modalı ─── --}}
+    <div x-show="showQuickCustomerModal" x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+         @keydown.escape.window="showQuickCustomerModal = false">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6" @click.stop>
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-base font-semibold text-gray-900"><i class="fas fa-user-plus mr-2 text-brand-500"></i>Yeni Müşteri Ekle</h3>
+                <button @click="showQuickCustomerModal = false" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Ad Soyad *</label>
+                    <input type="text" x-model="quickCustomerForm.name" @keydown.enter="saveQuickCustomer()"
+                           placeholder="Müşteri adı..."
+                           class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20">
                 </div>
-                <button @click="showAllProducts()" class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm transition-colors">
-                    <i class="fas fa-th"></i>
-                </button>
-            </div>
-            
-            {{-- Kategoriler --}}
-            <div class="flex gap-1.5 overflow-x-auto pb-1 items-center">
-                <button @click="filterCategory(null)" 
-                        class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all"
-                        :class="selectedCategory === null ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200'">
-                    Tümü
-                </button>
-                @foreach($categories as $cat)
-                <button @click="filterCategory({{ $cat->id }})" 
-                        class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all"
-                        :class="selectedCategory === {{ $cat->id }} ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200'">
-                    {{ $cat->name }}
-                </button>
-                @endforeach
-                {{-- Kategorileri yeniden render etmek için dinamik kategoriler --}}
-                <template x-for="cat in dynamicCategories" :key="cat.id">
-                    <button @click="filterCategory(cat.id)"
-                            class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all"
-                            :class="selectedCategory === cat.id ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200'"
-                            x-text="cat.name"></button>
-                </template>
-                {{-- Yeni Kategori Ekle --}}
-                <button @click="showCatModal = true"
-                        class="px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 shrink-0"
-                        title="Yeni kategori ekle">
-                    <i class="fas fa-tag"></i>
-                </button>
-                {{-- Hızı Ürün Ekle --}}
-                <button @click="openProductModal()"
-                        class="px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all bg-brand-50 text-brand-600 hover:bg-brand-100 border border-brand-200 shrink-0"
-                        title="Hızı ürün ekle">
-                    <i class="fas fa-box mr-1"></i>+
-                </button>
-            </div>
-        </div>
-
-        {{-- Ürün Grid --}}
-        <div class="flex-1 overflow-y-auto p-3 bg-gray-50">
-            <div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                <template x-for="product in filteredProducts" :key="product.id">
-                    <button @click="addToCart(product)"
-                            class="bg-white border border-gray-100 rounded-xl p-3 text-left hover:border-brand-300 hover:shadow-md hover:shadow-brand-100/50 transition-all group">
-                        <div class="text-sm font-medium text-gray-800 group-hover:text-brand-600 truncate" x-text="product.name"></div>
-                        <div class="text-xs text-gray-400 mt-1" x-text="product.category || ''"></div>
-                        <div class="flex items-center justify-between mt-2">
-                            <span class="text-sm font-bold text-brand-600" x-text="formatCurrency(product.sale_price)"></span>
-                            <span class="text-xs text-gray-400" x-show="!product.is_service" x-text="product.stock_quantity + ' ' + (product.unit || 'Adet')"></span>
-                        </div>
-                        <div x-show="product.barcode" class="text-[10px] text-gray-400 mt-1 truncate" x-text="product.barcode"></div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Telefon <span class="text-gray-400">(opsiyonel)</span></label>
+                    <input type="tel" x-model="quickCustomerForm.phone" @keydown.enter="saveQuickCustomer()"
+                           placeholder="0532..."
+                           class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button @click="showQuickCustomerModal = false"
+                            class="flex-1 px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">İptal</button>
+                    <button @click="saveQuickCustomer()" :disabled="!quickCustomerForm.name.trim() || quickCustomerSaving"
+                            class="flex-1 px-4 py-2 text-sm text-white bg-gradient-to-r from-brand-500 to-purple-600 rounded-xl hover:opacity-90 disabled:opacity-50 font-medium flex items-center justify-center gap-2">
+                        <i class="fas fa-spinner fa-spin" x-show="quickCustomerSaving"></i>
+                        <i class="fas fa-check" x-show="!quickCustomerSaving"></i>
+                        <span x-text="quickCustomerSaving ? 'Kaydediliyor...' : 'Kaydet & Seç'"></span>
                     </button>
-                </template>
-            </div>
-            <div x-show="filteredProducts.length === 0 && !loading" class="flex flex-col items-center justify-center py-20 text-gray-400">
-                <i class="fas fa-search text-4xl mb-3"></i>
-                <p>Ürün bulunamadı</p>
-            </div>
-            <div x-show="loading" class="flex items-center justify-center py-20">
-                <i class="fas fa-spinner fa-spin text-2xl text-brand-500"></i>
+                </div>
             </div>
         </div>
     </div>
 
-    {{-- SAĞ PANEL: Sepet --}}
-    <div class="w-96 flex flex-col bg-white">
-        {{-- Müşteri Seçimi --}}
-        <div class="p-3 border-b border-gray-200">
-            <div class="relative">
-                <div x-show="!selectedCustomer">
-                    <input type="text" x-model="customerSearch"
-                           @input.debounce.300ms="searchCustomers(customerSearch)"
-                           @focus="showCustomerDropdown = true; searchCustomers(customerSearch)"
-                           @keydown.escape="showCustomerDropdown = false"
-                           placeholder="Müşteri seçin (opsiyonel)..."
-                           class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-xs transition-all">
+    {{-- SOL PANEL: Sepet --}}
+    <div class="w-[440px] flex flex-col bg-white border-r border-gray-200 shrink-0">
+
+        {{-- Koyu Header: Barkod + Toplam + KDV --}}
+        <div class="bg-slate-800 shrink-0">
+            {{-- Barkod Input --}}
+            <div class="px-3 pt-2 pb-1">
+                <div class="relative">
+                    <input type="text" x-model="searchQuery"
+                           @keydown.enter="addByBarcode()"
+                           @input.debounce.400ms="searchProducts()"
+                           placeholder="Barkod Okutunuz"
+                           class="w-full pl-3 pr-10 py-2.5 bg-white border-2 border-blue-400 rounded text-gray-900 text-sm font-medium placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                           x-ref="searchInput">
+                    <i class="fas fa-barcode absolute right-3 top-3 text-gray-400 text-lg"></i>
                 </div>
-                <div x-show="selectedCustomer" class="flex items-center gap-2 px-3 py-2 bg-brand-50 border border-brand-200 rounded-lg">
-                    <i class="fas fa-user text-brand-500 text-xs"></i>
-                    <span class="text-sm text-gray-800 flex-1" x-text="selectedCustomer?.name"></span>
-                    <span class="text-xs" :class="(selectedCustomer?.balance ?? 0) < 0 ? 'text-red-500' : 'text-emerald-500'" x-text="formatCurrency(selectedCustomer?.balance ?? 0) + ' bakiye'"></span>
-                    <button @click="selectedCustomer = null; customerSearch = ''; customerResults = []" class="text-gray-400 hover:text-red-500">
-                        <i class="fas fa-times text-xs"></i>
-                    </button>
+            </div>
+            {{-- Toplam --}}
+            <div class="bg-slate-900 px-4 py-2 text-center">
+                <span class="text-3xl font-bold text-white" x-text="formatCurrency(totals.grand_total)"></span>
+            </div>
+            {{-- KDV Satırı --}}
+            <div class="grid grid-cols-4 divide-x divide-slate-600 text-center py-1 bg-slate-700">
+                <div class="px-1">
+                    <div class="text-[10px] text-slate-400">%0 KDV</div>
+                    <div class="text-xs text-white font-medium" x-text="formatCurrency(vatByRate(0))"></div>
                 </div>
-                {{-- Müşteri Dropdown --}}
-                <div x-show="showCustomerDropdown && customerResults.length > 0"
-                     class="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
-                    <template x-for="c in customerResults" :key="c.id">
-                        <button @click="selectedCustomer = c; showCustomerDropdown = false; customerSearch = ''; customerResults = []"
-                                class="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm flex items-center justify-between transition-colors border-b border-gray-50 last:border-0">
-                            <div>
-                                <div class="text-gray-800 font-medium" x-text="c.name"></div>
-                                <div class="text-xs text-gray-400" x-text="c.phone || c.email || ''"></div>
-                            </div>
-                            <span class="text-xs font-medium" :class="c.balance < 0 ? 'text-red-500' : 'text-emerald-500'" x-text="formatCurrency(c.balance)"></span>
-                        </button>
-                    </template>
+                <div class="px-1">
+                    <div class="text-[10px] text-slate-400">%1 KDV</div>
+                    <div class="text-xs text-white font-medium" x-text="formatCurrency(vatByRate(1))"></div>
                 </div>
+                <div class="px-1">
+                    <div class="text-[10px] text-slate-400">%10 KDV</div>
+                    <div class="text-xs text-white font-medium" x-text="formatCurrency(vatByRate(10))"></div>
+                </div>
+                <div class="px-1">
+                    <div class="text-[10px] text-slate-400">%20 KDV</div>
+                    <div class="text-xs text-white font-medium" x-text="formatCurrency(vatByRate(20))"></div>
+                </div>
+            </div>
+            {{-- Kolon Başlıkları --}}
+            <div class="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-3 py-1.5 bg-slate-600 text-[11px] text-slate-200 font-medium">
+                <span>Ürün Adı</span>
+                <span class="w-16 text-right">Fiyat</span>
+                <span class="w-10 text-center">Birim</span>
+                <span class="w-16 text-right">Tutar</span>
             </div>
         </div>
 
         {{-- Sepet Listesi --}}
-        <div class="flex-1 overflow-y-auto">
+        <div class="flex-1 overflow-y-auto bg-white">
             <template x-if="cart.length === 0">
-                <div class="flex flex-col items-center justify-center h-full text-gray-400 p-8">
-                    <i class="fas fa-shopping-cart text-4xl mb-3"></i>
-                    <p class="text-sm">Sepet boş</p>
-                    <p class="text-xs mt-1">Ürünlere tıklayarak ekleyin</p>
+                <div class="flex flex-col items-center justify-center h-full text-gray-300 py-12">
+                    <i class="fas fa-shopping-cart text-5xl mb-3"></i>
+                    <p class="text-sm text-gray-400">Sepet boş</p>
                 </div>
             </template>
-            
             <div class="divide-y divide-gray-100">
                 <template x-for="(item, index) in cart" :key="index">
-                    <div class="p-3 hover:bg-gray-50 transition-colors">
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="flex-1 min-w-0">
-                                <div class="text-sm font-medium text-gray-800 truncate" x-text="item.product_name"></div>
-                                <div class="text-xs text-gray-400" x-text="formatCurrency(item.unit_price) + ' x ' + item.quantity"></div>
+                    <div class="hover:bg-blue-50/50 transition-colors">
+                        {{-- Ana Satır --}}
+                        <div class="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-3 py-2 items-center cursor-pointer"
+                             @click="item.showDiscount = !item.showDiscount">
+                            <div class="min-w-0">
+                                <div class="text-sm font-medium text-gray-900 truncate" x-text="item.product_name"></div>
+                                <div class="text-[11px] text-gray-500 flex items-center gap-1.5 mt-0.5">
+                                    <div class="flex items-center bg-gray-100 rounded">
+                                        <button @click.stop="updateQty(index, -1)" class="px-1.5 py-0.5 text-gray-500 hover:text-red-500 text-xs">−</button>
+                                        <span class="px-1 text-gray-700 font-medium text-xs" x-text="item.quantity"></span>
+                                        <button @click.stop="updateQty(index, 1)" class="px-1.5 py-0.5 text-gray-500 hover:text-emerald-600 text-xs">+</button>
+                                    </div>
+                                    <span x-text="'× ' + formatCurrency(item.unit_price)" class="text-gray-400"></span>
+                                    <button @click.stop="removeFromCart(index)" class="ml-auto text-gray-300 hover:text-red-500 transition-colors">
+                                        <i class="fas fa-times text-xs"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="text-sm font-bold text-gray-900" x-text="formatCurrency(item.total)"></div>
+                            <div class="w-16 text-right text-xs text-gray-500" x-text="formatCurrency(item.unit_price)"></div>
+                            <div class="w-10 text-center text-xs text-gray-500" x-text="item.quantity"></div>
+                            <div class="w-16 text-right text-sm font-bold text-gray-900" x-text="formatCurrency(item.total)"></div>
                         </div>
-                        
-                        <div class="flex items-center gap-2 mt-2">
-                            {{-- Quantity Controls --}}
-                            <div class="flex items-center bg-gray-100 rounded-lg">
-                                <button @click="updateQty(index, -1)" class="px-2 py-1 text-gray-400 hover:text-gray-700">
-                                    <i class="fas fa-minus text-xs"></i>
-                                </button>
-                                <input type="number" x-model.number="item.quantity" @change="recalcItem(index)"
-                                       class="w-12 text-center bg-transparent text-gray-800 text-sm border-0 focus:outline-none"
-                                       min="0.01" step="1">
-                                <button @click="updateQty(index, 1)" class="px-2 py-1 text-gray-400 hover:text-gray-700">
-                                    <i class="fas fa-plus text-xs"></i>
-                                </button>
-                            </div>
-                            
-                            {{-- Item Discount --}}
-                            <button @click="item.showDiscount = !item.showDiscount" 
-                                    class="px-2 py-1 text-xs rounded"
-                                    :class="item.discount > 0 ? 'bg-amber-100 text-amber-600' : 'text-gray-400 hover:text-gray-600'">
-                                <i class="fas fa-percent"></i>
-                            </button>
-                            
-                            {{-- Remove --}}
-                            <button @click="removeFromCart(index)" class="px-2 py-1 text-gray-400 hover:text-red-500">
-                                <i class="fas fa-trash text-xs"></i>
-                            </button>
-                        </div>
-                        
-                        {{-- Discount Input --}}
-                        <div x-show="item.showDiscount" x-transition class="mt-2 flex items-center gap-2">
-                            <span class="text-xs text-gray-500">İndirim:</span>
+                        {{-- İskonto Satırı --}}
+                        <div x-show="item.showDiscount" x-transition class="px-3 pb-2 flex items-center gap-2 bg-amber-50">
+                            <span class="text-xs text-amber-700 font-medium">İsk:</span>
                             <input type="number" x-model.number="item.discount" @input="recalcItem(index)"
-                                   class="w-20 px-2 py-1 bg-gray-50 border border-gray-200 rounded text-gray-800 text-xs focus:outline-none focus:border-brand-500" 
-                                   min="0" step="0.01" placeholder="₺0">
-                            <span class="text-xs text-gray-500">₺</span>
+                                   class="w-20 px-2 py-1 bg-white border border-amber-300 rounded text-gray-800 text-xs focus:outline-none focus:border-amber-500"
+                                   min="0" step="0.01" :placeholder="item.discountType === '%' ? '%0' : '₺0'"
+                                   @click.stop>
+                            <button @click.stop="item.discountType = item.discountType === '%' ? 'TL' : '%'; recalcItem(index)"
+                                    class="px-2 py-1 text-xs rounded font-bold transition-colors"
+                                    :class="item.discountType === '%' ? 'bg-amber-200 text-amber-700' : 'bg-gray-200 text-gray-600'"
+                                    x-text="item.discountType === '%' ? '%' : '₺'"></button>
+                            <span class="text-xs text-amber-600 ml-auto" x-show="item.discountAmount > 0" x-text="'-' + formatCurrency(item.discountAmount)"></span>
                         </div>
                     </div>
                 </template>
             </div>
         </div>
 
-        {{-- Alt Toplam --}}
-        <div class="border-t border-gray-200 p-3 space-y-2 bg-gray-50/80">
-            {{-- Genel İndirim --}}
+        {{-- Genel İndirim + Ara Toplam --}}
+        <div class="border-t border-gray-200 px-3 py-2 bg-gray-50 space-y-1 shrink-0">
             <div class="flex items-center justify-between">
-                <button @click="showGeneralDiscount = !showGeneralDiscount" class="text-xs text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-percent mr-1"></i> Genel İndirim
+                <button @click="showGeneralDiscount = !showGeneralDiscount" class="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                    <i class="fas fa-percent text-[10px]"></i> Genel İndirim
                 </button>
                 <div x-show="showGeneralDiscount" class="flex items-center gap-1">
                     <input type="number" x-model.number="generalDiscount" @input="recalcTotals()"
-                           class="w-20 px-2 py-1 bg-white border border-gray-200 rounded text-gray-800 text-xs focus:outline-none focus:border-brand-500" 
+                           class="w-20 px-2 py-0.5 bg-white border border-gray-200 rounded text-gray-800 text-xs focus:outline-none focus:border-brand-500"
                            min="0" step="0.01">
-                    <span class="text-xs text-gray-500">₺</span>
+                    <button @click="generalDiscountType = generalDiscountType === '%' ? 'TL' : '%'; recalcTotals()"
+                            class="px-2 py-0.5 text-xs rounded font-bold transition-colors"
+                            :class="generalDiscountType === '%' ? 'bg-amber-100 text-amber-700' : 'bg-gray-200 text-gray-600'"
+                            x-text="generalDiscountType === '%' ? '%' : '₺'"></button>
+                </div>
+                <div x-show="!showGeneralDiscount && totals.discount_total > 0" class="text-xs text-amber-600 font-medium" x-text="'-' + formatCurrency(totals.discount_total)"></div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-500">
+                <span>Ara Toplam</span><span x-text="formatCurrency(totals.subtotal)"></span>
+            </div>
+            <div class="flex justify-between text-xs text-gray-500">
+                <span>KDV</span><span x-text="formatCurrency(totals.vat_total)"></span>
+            </div>
+            {{-- Ödenen / Para Üstü --}}
+            <div class="flex items-center gap-2 pt-1" x-show="cart.length > 0">
+                <span class="text-xs text-gray-500 whitespace-nowrap">Ödenen:</span>
+                <input type="number" x-model.number="paidAmount"
+                       class="flex-1 min-w-0 px-2 py-0.5 bg-white border border-gray-200 rounded text-gray-800 text-xs focus:outline-none focus:border-emerald-500"
+                       min="0" step="0.01" placeholder="Nakit tutar...">
+                <span class="text-xs font-semibold text-emerald-600 whitespace-nowrap"
+                      x-show="(paidAmount || 0) >= totals.grand_total && paidAmount > 0"
+                      x-text="'Üstü: ' + formatCurrency((paidAmount||0) - totals.grand_total)"></span>
+            </div>
+        </div>
+
+        {{-- Müşteri Seçimi --}}
+        <div class="border-t border-gray-200 shrink-0" @click.away="showCustomerDropdown = false">
+            {{-- Seçilmemiş → Buton --}}
+            <button x-show="!selectedCustomer && !showCustomerDropdown"
+                    @click="showCustomerDropdown = true; $nextTick(() => $refs.customerInput?.focus()); searchCustomers('')"
+                    class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors">
+                <i class="fas fa-user-circle text-base"></i> Müşteri Seçiniz
+            </button>
+            {{-- Arama Alanı --}}
+            <div x-show="!selectedCustomer && showCustomerDropdown" class="p-2">
+                <div class="flex items-center gap-1.5">
+                    <input x-ref="customerInput" type="text" x-model="customerSearch"
+                           @input.debounce.300ms="searchCustomers(customerSearch)"
+                           @keydown.escape="showCustomerDropdown = false; customerSearch = ''"
+                           placeholder="Müşteri ara (ad / telefon)..."
+                           class="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30">
+                    <button @click="showCustomerDropdown = false; customerSearch = ''" class="p-1.5 text-gray-400 hover:text-red-500 transition-colors shrink-0">
+                        <i class="fas fa-times text-sm"></i>
+                    </button>
+                </div>
+                {{-- Sonuçlar --}}
+                <div x-show="customerResults.length > 0" class="mt-1 max-h-36 overflow-y-auto border border-gray-100 rounded-lg divide-y divide-gray-50 bg-white shadow-sm">
+                    <template x-for="c in customerResults" :key="c.id">
+                        <button @click="selectedCustomer = c; showCustomerDropdown = false; customerSearch = ''; customerResults = []"
+                                class="w-full text-left px-3 py-2 hover:bg-blue-50 text-sm flex items-center justify-between transition-colors">
+                            <div>
+                                <div class="text-gray-900 font-medium text-sm" x-text="c.name"></div>
+                                <div class="text-xs text-gray-400" x-text="c.phone || c.email || ''"></div>
+                            </div>
+                            <span class="text-xs font-medium shrink-0 ml-2" :class="c.balance < 0 ? 'text-red-500' : 'text-emerald-500'" x-text="formatCurrency(c.balance)"></span>
+                        </button>
+                    </template>
+                </div>
+                {{-- Sonuç yok + Oluştur --}}
+                <div x-show="customerSearch.length > 1 && customerResults.length === 0" class="mt-1">
+                    <p class="text-xs text-gray-400 text-center py-1">Kayıt bulunamadı</p>
+                    <button @click="quickCustomerForm.name = customerSearch; showQuickCustomerModal = true; showCustomerDropdown = false"
+                            class="w-full py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 text-xs font-medium rounded-lg border border-brand-200 flex items-center justify-center gap-1.5 transition-colors">
+                        <i class="fas fa-user-plus"></i>
+                        "<span x-text="customerSearch"></span>" adlı müşteri oluştur
+                    </button>
                 </div>
             </div>
-
-            <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-500">Ara Toplam</span>
-                <span class="text-gray-800" x-text="formatCurrency(totals.subtotal)"></span>
-            </div>
-            <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-500">KDV</span>
-                <span class="text-gray-800" x-text="formatCurrency(totals.vat_total)"></span>
-            </div>
-            <div x-show="totals.discount_total > 0" class="flex items-center justify-between text-sm">
-                <span class="text-amber-600">İndirim</span>
-                <span class="text-amber-600" x-text="'-' + formatCurrency(totals.discount_total)"></span>
-            </div>
-            
-            <div class="flex items-center justify-between text-lg font-bold pt-2 border-t border-gray-200">
-                <span class="text-gray-900">TOPLAM</span>
-                <span class="text-brand-600" x-text="formatCurrency(totals.grand_total)"></span>
+            {{-- Seçildi --}}
+            <div x-show="selectedCustomer" class="flex items-center gap-2 px-3 py-2.5 bg-blue-600">
+                <i class="fas fa-user-check text-white text-sm shrink-0"></i>
+                <span class="flex-1 text-sm text-white font-medium truncate" x-text="selectedCustomer?.name"></span>
+                <span class="text-xs text-blue-200 whitespace-nowrap" :class="(selectedCustomer?.balance ?? 0) < 0 ? 'text-red-300' : 'text-blue-200'" x-text="formatCurrency(selectedCustomer?.balance ?? 0)"></span>
+                <button @click="selectedCustomer = null; customerSearch = ''" class="text-blue-200 hover:text-white transition-colors shrink-0">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
             </div>
         </div>
 
         {{-- Ödeme Butonları --}}
-        <div class="p-3 border-t border-gray-200 space-y-2">
-            <div class="grid grid-cols-3 gap-2">
-                <button @click="processPayment('cash')" :disabled="cart.length === 0"
-                        class="py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:shadow-lg hover:shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-semibold text-white transition-all">
-                    <i class="fas fa-money-bill-wave block text-lg mb-1"></i>
-                    Nakit
+        <div class="grid grid-cols-2 shrink-0">
+            <button @click="$dispatch('open-recent-sales')"
+                    class="py-4 bg-yellow-500 hover:bg-yellow-600 text-white font-bold text-sm flex flex-col items-center justify-center gap-1 transition-colors border-r border-yellow-600">
+                <i class="fas fa-print text-xl"></i>SON FİŞLER
+            </button>
+            <button @click="showPaymentMenu = !showPaymentMenu" :disabled="cart.length === 0"
+                    class="py-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm flex flex-col items-center justify-center gap-1 transition-colors relative">
+                <i class="fas fa-cash-register text-xl"></i>ÖDEME AL
+                {{-- Ödeme Menüsü --}}
+                <div x-show="showPaymentMenu" @click.away="showPaymentMenu = false"
+                     x-transition class="absolute bottom-full left-0 right-0 bg-white border border-gray-200 rounded-t-xl shadow-2xl z-30 p-2 space-y-1.5 mb-1">
+                    <div class="text-xs text-gray-500 font-semibold uppercase tracking-wide px-1 mb-2">Ödeme Yöntemi Seçin</div>
+                    <button @click.stop="processPayment('cash'); showPaymentMenu = false" :disabled="cart.length === 0"
+                            class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-lg flex items-center gap-2 px-3">
+                        <i class="fas fa-money-bill-wave"></i> Nakit <span class="ml-auto text-emerald-200 text-xs">F5</span>
+                    </button>
+                    <button @click.stop="processPayment('card'); showPaymentMenu = false" :disabled="cart.length === 0"
+                            class="w-full py-2.5 bg-purple-500 hover:bg-purple-600 text-white text-sm font-semibold rounded-lg flex items-center gap-2 px-3">
+                        <i class="fas fa-credit-card"></i> Kart <span class="ml-auto text-purple-200 text-xs">F6</span>
+                    </button>
+                    <button @click.stop="processPayment('transfer'); showPaymentMenu = false" :disabled="cart.length === 0"
+                            class="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-lg flex items-center gap-2 px-3">
+                        <i class="fas fa-building-columns"></i> Havale
+                    </button>
+                    <button @click.stop="processPayment('credit'); showPaymentMenu = false" :disabled="cart.length === 0 || !selectedCustomer"
+                            class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-semibold rounded-lg flex items-center gap-2 px-3">
+                        <i class="fas fa-file-invoice-dollar"></i> Veresiye
+                        <span x-show="!selectedCustomer" class="ml-auto text-[10px] text-amber-200">Müşteri seç</span>
+                    </button>
+                    <button @click.stop="showPaymentMenu = false; showMixedPayment = true; mixedRemaining = totals.grand_total" :disabled="cart.length === 0"
+                            class="w-full py-2.5 bg-slate-600 hover:bg-slate-700 text-white text-sm font-semibold rounded-lg flex items-center gap-2 px-3">
+                        <i class="fas fa-layer-group"></i> Parçalı Ödeme
+                    </button>
+                </div>
+            </button>
+        </div>
+        <div class="grid grid-cols-4 border-t border-gray-200 shrink-0">
+            <button @click="showGeneralDiscount = !showGeneralDiscount"
+                    class="py-2.5 bg-gray-700 hover:bg-gray-600 text-white text-xs font-medium flex items-center justify-center gap-1 border-r border-gray-600 transition-colors">
+                <i class="fas fa-percent text-[11px]"></i>İskonto
+            </button>
+            <button class="py-2.5 bg-gray-800 hover:bg-gray-700 text-white text-xs font-medium flex items-center justify-center gap-1 border-r border-gray-700 transition-colors opacity-60 cursor-not-allowed">
+                <i class="fas fa-undo text-[11px]"></i>İade
+            </button>
+            <button class="py-2.5 bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-medium flex items-center justify-center gap-1 border-r border-yellow-700 transition-colors opacity-60 cursor-not-allowed">
+                <i class="fas fa-star text-[11px]"></i>Kupon
+            </button>
+            <button @click="clearCart()" :disabled="cart.length === 0"
+                    class="py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white text-xs font-medium flex items-center justify-center gap-1 transition-colors">
+                <i class="fas fa-trash text-[11px]"></i>Temizle
+            </button>
+        </div>
+    </div>
+
+    {{-- SAĞ PANEL: Kategoriler + Ürünler --}}
+    <div class="flex-1 flex overflow-hidden">
+        {{-- Dikey Kategori Sidebar --}}
+        <div class="w-44 flex flex-col bg-white border-r border-gray-200 overflow-y-auto shrink-0">
+            <button @click="filterCategory(null); searchQuery = ''"
+                    class="px-3 py-3 text-sm font-semibold text-center transition-colors border-b border-gray-100 uppercase tracking-wide"
+                    :class="selectedCategory === null ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-blue-50'">
+                <i class="fas fa-star text-xs mr-1"></i>FAVORİLER
+            </button>
+            @foreach($categories as $cat)
+            <button @click="filterCategory({{ $cat->id }})"
+                    class="px-3 py-3 text-xs font-medium text-center transition-colors border-b border-gray-100 uppercase tracking-wide"
+                    :class="selectedCategory === {{ $cat->id }} ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-blue-50'">
+                {{ $cat->name }}
+            </button>
+            @endforeach
+            <template x-for="cat in dynamicCategories" :key="cat.id">
+                <button @click="filterCategory(cat.id)"
+                        class="px-3 py-3 text-xs font-medium text-center transition-colors border-b border-gray-100 uppercase tracking-wide"
+                        :class="selectedCategory === cat.id ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-blue-50'"
+                        x-text="cat.name"></button>
+            </template>
+            {{-- Kategori Ekle --}}
+            <button @click="showCatModal = true"
+                    class="px-3 py-2.5 text-xs text-green-600 hover:bg-green-50 border-b border-gray-100 flex items-center justify-center gap-1 transition-colors">
+                <i class="fas fa-plus"></i> Kategori Ekle
+            </button>
+        </div>
+
+        {{-- Arama + Ürün Grid --}}
+        <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
+            {{-- Arama Bar --}}
+            <div class="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-2 shrink-0">
+                <div class="flex-1 relative">
+                    <input type="text" x-model="searchQuery" @input.debounce.300ms="searchProducts()"
+                           placeholder="Arama yapınız.."
+                           class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-800 text-sm placeholder-gray-400 focus:outline-none focus:border-blue-400 pr-8">
+                    <button @click="searchProducts()" class="absolute right-2 top-2 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-search text-sm"></i>
+                    </button>
+                </div>
+                <button @click="checkPrice()" class="px-2.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200 rounded text-xs font-medium transition-colors whitespace-nowrap" title="Fiyat Gör [F3]">
+                    <i class="fas fa-tag mr-1"></i>Fiyat
                 </button>
-                <button @click="processPayment('card')" :disabled="cart.length === 0"
-                        class="py-3 bg-gradient-to-r from-purple-500 to-violet-500 hover:shadow-lg hover:shadow-purple-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-semibold text-white transition-all">
-                    <i class="fas fa-credit-card block text-lg mb-1"></i>
-                    Kart
-                </button>
-                <button @click="showMixedPayment = true; mixedRemaining = totals.grand_total" :disabled="cart.length === 0"
-                        class="py-3 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-semibold text-white transition-all">
-                    <i class="fas fa-layer-group block text-lg mb-1"></i>
-                    Parçalı Ödeme
+                <button @click="openProductModal()"
+                        class="px-2.5 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 border border-brand-200 rounded text-xs font-medium transition-colors whitespace-nowrap"
+                        title="Hızlı ürün ekle">
+                    <i class="fas fa-box mr-1"></i>+
                 </button>
             </div>
-            <div class="grid grid-cols-2 gap-2">
-                <button @click="processPayment('credit')" :disabled="cart.length === 0 || !selectedCustomer"
-                        class="py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-lg hover:shadow-amber-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-semibold text-white transition-all">
-                    <i class="fas fa-file-invoice-dollar mr-1"></i> Veresiye
-                </button>
-                <button @click="clearCart()" :disabled="cart.length === 0"
-                        class="py-2.5 bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-semibold transition-all">
-                    <i class="fas fa-trash mr-1"></i> Temizle
-                </button>
+
+            {{-- Ürün Grid --}}
+            <div class="flex-1 overflow-y-auto p-3">
+                <div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                    <template x-for="product in filteredProducts" :key="product.id">
+                        <button @click="addToCart(product)"
+                                class="bg-white border border-gray-100 rounded-xl p-3 text-left hover:border-blue-300 hover:shadow-md hover:shadow-blue-100/50 transition-all group active:scale-95">
+                            <div class="text-sm font-medium text-gray-800 group-hover:text-blue-600 truncate" x-text="product.name"></div>
+                            <div class="text-xs text-gray-400 mt-1 truncate" x-text="product.category || ''"></div>
+                            <div class="flex items-center justify-between mt-2">
+                                <span class="text-sm font-bold text-blue-600" x-text="formatCurrency(product.sale_price)"></span>
+                                <span class="text-xs text-gray-400" x-show="!product.is_service" x-text="product.stock_quantity + ' ' + (product.unit || 'Adet')"></span>
+                            </div>
+                            <div x-show="product.barcode" class="text-[10px] text-gray-400 mt-1 truncate" x-text="product.barcode"></div>
+                        </button>
+                    </template>
+                </div>
+                <div x-show="filteredProducts.length === 0 && !loading" class="flex flex-col items-center justify-center py-20 text-gray-400">
+                    <i class="fas fa-search text-4xl mb-3"></i>
+                    <p>Ürün bulunamadı</p>
+                </div>
+                <div x-show="loading" class="flex items-center justify-center py-20">
+                    <i class="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
+                </div>
             </div>
         </div>
     </div>
@@ -492,6 +604,14 @@
                     <span class="text-gray-500">Ödeme</span>
                     <span class="text-gray-800 capitalize" x-text="lastSale?.payment_method"></span>
                 </div>
+                <div x-show="(paidAmount || 0) > 0 && lastSale?.payment_method === 'cash'" class="flex justify-between text-sm">
+                    <span class="text-gray-500">Ödendi</span>
+                    <span class="text-gray-800" x-text="formatCurrency(paidAmount || 0)"></span>
+                </div>
+                <div x-show="(paidAmount || 0) > (lastSale?.grand_total || 0) && lastSale?.payment_method === 'cash'" class="flex justify-between text-sm font-semibold">
+                    <span class="text-emerald-600">Para Üstü</span>
+                    <span class="text-emerald-600" x-text="formatCurrency((paidAmount || 0) - (lastSale?.grand_total || 0))"></span>
+                </div>
             </div>
             <div class="flex gap-2">
                 <button @click="printReceipt()" class="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors">
@@ -542,6 +662,12 @@ function posScreen() {
         showProductModal: false,
         productSaving: false,
         productForm: { name: '', sale_price: '', category_id: '', barcode: '', unit: 'Adet' },
+        generalDiscountType: 'TL',
+        paidAmount: '',
+        showPaymentMenu: false,
+        showQuickCustomerModal: false,
+        quickCustomerForm: { name: '', phone: '' },
+        quickCustomerSaving: false,
 
         init() {
             this.showAllProducts();
@@ -549,6 +675,7 @@ function posScreen() {
             // Barkod okuyucu için keyboard shortcut
             window.addEventListener('keydown', (e) => {
                 if (e.key === 'F2') { e.preventDefault(); this.$refs.searchInput?.focus(); }
+                if (e.key === 'F3') { e.preventDefault(); this.checkPrice(); }
                 if (e.key === 'F5') { e.preventDefault(); this.processPayment('cash'); }
                 if (e.key === 'F6') { e.preventDefault(); this.processPayment('card'); }
                 if (e.key === 'Escape') { this.showMixedPayment = false; this.showReceipt = false; }
@@ -618,6 +745,7 @@ function posScreen() {
                     unit_price: product.sale_price,
                     quantity: 1,
                     discount: 0,
+                    discountType: 'TL',
                     vat_rate: product.vat_rate || 20,
                     vat_amount: 0,
                     additional_tax_amount: 0,
@@ -635,24 +763,33 @@ function posScreen() {
 
         recalcItem(index) {
             const item = this.cart[index];
-            const lineTotal = (item.quantity * item.unit_price) - item.discount;
+            const grossTotal = item.quantity * item.unit_price;
+            const discountAmt = item.discountType === '%'
+                ? Math.round(grossTotal * (item.discount || 0) / 100 * 100) / 100
+                : (item.discount || 0);
+            item.discountAmount = discountAmt;
+            const lineTotal = grossTotal - discountAmt;
             item.vat_amount = Math.round(lineTotal * item.vat_rate / (100 + item.vat_rate) * 100) / 100;
             item.total = Math.round(lineTotal * 100) / 100;
             this.recalcTotals();
         },
 
         recalcTotals() {
-            let subtotal = 0, vatTotal = 0, discountTotal = this.generalDiscount;
+            let subtotal = 0, vatTotal = 0, discountTotal = 0;
             this.cart.forEach(item => {
                 subtotal += (item.total - item.vat_amount);
                 vatTotal += item.vat_amount;
-                discountTotal += item.discount;
+                discountTotal += (item.discountAmount ?? item.discount ?? 0);
             });
+            const genDiscAmt = this.generalDiscountType === '%'
+                ? Math.round((subtotal + vatTotal) * (this.generalDiscount || 0) / 100 * 100) / 100
+                : (this.generalDiscount || 0);
+            discountTotal += genDiscAmt;
             this.totals = {
                 subtotal: Math.round(subtotal * 100) / 100,
                 vat_total: Math.round(vatTotal * 100) / 100,
                 discount_total: Math.round(discountTotal * 100) / 100,
-                grand_total: Math.round((subtotal + vatTotal - this.generalDiscount) * 100) / 100,
+                grand_total: Math.round((subtotal + vatTotal - genDiscAmt) * 100) / 100,
             };
         },
 
@@ -666,6 +803,7 @@ function posScreen() {
             this.cart = [];
             this.selectedCustomer = null;
             this.generalDiscount = 0;
+            this.paidAmount = '';
             this.recalcTotals();
         },
 
@@ -699,7 +837,7 @@ function posScreen() {
                     name: this.productForm.name,
                     sale_price: this.productForm.sale_price,
                     category_id: this.productForm.category_id || null,
-                    barcode: this.productForm.barcode || null,
+                    barcode: this.productForm.barcode || ('POS' + Date.now().toString().slice(-8)),
                     unit: this.productForm.unit || 'Adet',
                     vat_rate: 10,
                     purchase_price: 0,
@@ -775,6 +913,7 @@ function posScreen() {
                 discount: this.generalDiscount,
                 cash_amount: method === 'cash' ? this.totals.grand_total : 0,
                 card_amount: method === 'card' ? this.totals.grand_total : 0,
+                transfer_amount: method === 'transfer' ? this.totals.grand_total : 0,
             };
 
             try {
@@ -847,8 +986,43 @@ function posScreen() {
             this.cart = [];
             this.selectedCustomer = null;
             this.generalDiscount = 0;
+            this.paidAmount = '';
             this.recalcTotals();
             this.$refs.searchInput?.focus();
+        },
+
+        checkPrice() {
+            const barcode = this.searchQuery.trim();
+            if (!barcode) { showToast('Barkod alanına ürün barkodunu girin', 'warning'); return; }
+            const product = this.products.find(p => p.barcode === barcode);
+            if (product) {
+                showToast(`${product.name} → ${this.formatCurrency(product.sale_price)} (Stok: ${product.stock_quantity})`, 'success');
+            } else {
+                showToast('Bu barkod ile ürün bulunamadı', 'error');
+            }
+        },
+
+        vatByRate(rate) {
+            return Math.round(this.cart.reduce((sum, item) =>
+                item.vat_rate === rate ? sum + (item.vat_amount || 0) : sum, 0) * 100) / 100;
+        },
+
+        async saveQuickCustomer() {
+            if (!this.quickCustomerForm.name.trim()) return;
+            this.quickCustomerSaving = true;
+            try {
+                const data = await posAjax('{{ route("pos.customers.store") }}', this.quickCustomerForm);
+                if (data.success) {
+                    this.selectedCustomer = data.customer;
+                    this.showQuickCustomerModal = false;
+                    this.quickCustomerForm = { name: '', phone: '' };
+                    this.customerSearch = '';
+                    this.customerResults = [];
+                    this.showCustomerDropdown = false;
+                    showToast('Müşteri eklendi!', 'success');
+                }
+            } catch(e) { showToast(e.message || 'Müşteri eklenemedi.', 'error'); }
+            finally { this.quickCustomerSaving = false; }
         },
 
         printReceipt() {

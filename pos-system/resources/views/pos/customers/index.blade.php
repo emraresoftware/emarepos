@@ -659,7 +659,7 @@ function customerManager() {
             this.detailTab = 'sales';
             this.showDetailModal = true;
             try {
-                const data = await posAjax('/pos/customers/' + id, {}, 'GET');
+                const data = await posAjax('/customers/' + id, {}, 'GET');
                 this.detailData = data;
             } catch(e) {
                 showToast('Detay yüklenemedi.', 'error');
@@ -716,10 +716,7 @@ function customerManager() {
             const method = this.editingId ? 'PUT' : 'POST';
 
             try {
-                const response = await posAjax(url, {
-                    method: method,
-                    body: JSON.stringify(this.form),
-                });
+                const response = await posAjax(url, this.form, method);
                 showToast(response.message || (this.editingId ? 'Müşteri güncellendi.' : 'Müşteri oluşturuldu.'), 'success');
                 this.closeFormModal();
                 window.location.reload();
@@ -740,10 +737,7 @@ function customerManager() {
             const url = '{{ route("pos.customers.payment", ":id") }}'.replace(':id', this.collectCustomerId);
 
             try {
-                const response = await posAjax(url, {
-                    method: 'POST',
-                    body: JSON.stringify(this.collectForm),
-                });
+                const response = await posAjax(url, this.collectForm, 'POST');
                 showToast(response.message || 'Tahsilat başarıyla alındı.', 'success');
                 this.showCollectModal = false;
                 window.location.reload();

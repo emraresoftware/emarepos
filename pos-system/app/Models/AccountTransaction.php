@@ -16,6 +16,7 @@ class AccountTransaction extends Model
         'tenant_id',
         'external_id',
         'customer_id',
+        'firm_id',
         'type',
         'amount',
         'balance_after',
@@ -38,5 +39,10 @@ class AccountTransaction extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function firm()
+    {
+        return $this->belongsTo(Firm::class);
     }
 }

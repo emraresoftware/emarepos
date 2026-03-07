@@ -126,7 +126,9 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class])->group(fu
     // Cariler (Firms)
     Route::get('/firms', [FirmController::class, 'index'])->name('pos.firms');
     Route::post('/firms', [FirmController::class, 'store'])->name('pos.firms.store');
+    Route::get('/firms/{firm}', [FirmController::class, 'show'])->name('pos.firms.show');
     Route::put('/firms/{firm}', [FirmController::class, 'update'])->name('pos.firms.update');
+    Route::post('/firms/{firm}/payment', [FirmController::class, 'addPayment'])->name('pos.firms.payment');
     Route::post('/firms/{firm}/payment', [FirmController::class, 'addPayment'])->name('pos.firms.payment');
     
     // Gün İşlemleri (Day Operations)

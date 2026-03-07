@@ -97,6 +97,10 @@
                             </td>
                             <td class="px-4 py-3 text-center">
                                 <div class="flex items-center justify-center gap-1">
+                                    <button @click="openDetail({{ $firm->id }})"
+                                            class="p-2 text-gray-500 hover:text-brand-600 hover:bg-brand-500/10 rounded-lg transition-colors" title="Detay / Hareketler">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                    </button>
                                     <button @click="openEdit({{ json_encode(['id'=>$firm->id,'name'=>$firm->name,'tax_number'=>$firm->tax_number,'tax_office'=>$firm->tax_office,'phone'=>$firm->phone,'email'=>$firm->email,'address'=>$firm->address,'city'=>$firm->city,'notes'=>$firm->notes]) }})"
                                             class="p-2 text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors" title="Düzenle">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -173,6 +177,82 @@
             </form>
         </div>
     </div>
+    {{-- Detail / Transactions Modal --}}
+    <div x-show="showDetailModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showDetailModal = false"></div>
+        <div class="relative bg-white rounded-xl border border-gray-100 shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col" x-transition>
+            <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between shrink-0">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <i class="fas fa-handshake text-brand-500"></i>
+                    <span x-text="detailData?.firm?.name || 'Cari Detayı'"></span>
+                </h2>
+                <button @click="showDetailModal = false" class="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6">
+                {{-- Loading --}}
+                <div x-show="detailLoading" class="flex items-center justify-center py-16">
+                    <i class="fas fa-spinner fa-spin text-2xl text-brand-500"></i>
+                </div>
+                {{-- Content --}}
+                <template x-if="detailData && !detailLoading">
+                    <div>
+                        {{-- Özet --}}
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="bg-gray-50 rounded-xl p-4 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Bakiye</p>
+                                <p class="text-xl font-bold" :class="(detailData.firm.balance||0) < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCur(detailData.firm.balance)"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-4 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Telefon</p>
+                                <p class="text-sm font-medium text-gray-800" x-text="detailData.firm.phone || '-'"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-4 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Vergi No</p>
+                                <p class="text-sm font-mono text-gray-800" x-text="detailData.firm.tax_number || '-'"></p>
+                            </div>
+                        </div>
+
+                        {{-- Hareketler Başlığı --}}
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-semibold text-gray-900 text-sm"><i class="fas fa-list-ul mr-2 text-brand-500"></i>Hesap Hareketleri</h3>
+                            <button @click="openPayment(detailData.firm.id, detailData.firm.name, detailData.firm.balance); showDetailModal = false"
+                                    class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium rounded-lg transition-colors">
+                                <i class="fas fa-plus mr-1"></i>Ödeme Ekle
+                            </button>
+                        </div>
+
+                        {{-- Hareketler Listesi --}}
+                        <div x-show="detailData.transactions.length === 0" class="text-center py-8 text-gray-400 text-sm">
+                            Henüz hareket kaydı yok
+                        </div>
+                        <div class="space-y-2" x-show="detailData.transactions.length > 0">
+                            <template x-for="t in detailData.transactions" :key="t.id">
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                                             :class="t.amount > 0 ? 'bg-emerald-500' : 'bg-red-500'">
+                                            <i :class="t.amount > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-800" x-text="t.description || t.type"></p>
+                                            <p class="text-xs text-gray-400" x-text="t.reference ? ('Ref: ' + t.reference) : ''"></p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-bold" :class="t.amount > 0 ? 'text-emerald-600' : 'text-red-500'" x-text="(t.amount > 0 ? '+' : '') + formatCur(t.amount)"></p>
+                                        <p class="text-xs text-gray-400" x-text="t.transaction_date ? new Date(t.transaction_date).toLocaleDateString('tr-TR') : ''"></p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
 </div>
 @endsection
 
@@ -180,13 +260,25 @@
 <script>
 function firmManager() {
     return {
-        showFormModal: false, showPaymentModal: false, editingId: null, saving: false, paying: false,
+        showFormModal: false, showPaymentModal: false, showDetailModal: false,
+        editingId: null, saving: false, paying: false, detailLoading: false,
+        detailData: null,
         searchQuery: new URLSearchParams(window.location.search).get('search') || '',
         form: { name: '', tax_number: '', tax_office: '', phone: '', email: '', address: '', city: '', notes: '' },
         payForm: { amount: '', description: '' }, payFirmId: null, payFirmName: '', payFirmBalance: 0,
         openCreate() { this.editingId = null; this.form = { name: '', tax_number: '', tax_office: '', phone: '', email: '', address: '', city: '', notes: '' }; this.showFormModal = true; },
         openEdit(f) { this.editingId = f.id; this.form = { name: f.name||'', tax_number: f.tax_number||'', tax_office: f.tax_office||'', phone: f.phone||'', email: f.email||'', address: f.address||'', city: f.city||'', notes: f.notes||'' }; this.showFormModal = true; },
         openPayment(id, name, balance) { this.payFirmId = id; this.payFirmName = name; this.payFirmBalance = balance; this.payForm = { amount: '', description: '' }; this.showPaymentModal = true; },
+        async openDetail(id) {
+            this.detailData = null;
+            this.detailLoading = true;
+            this.showDetailModal = true;
+            try {
+                const data = await posAjax(`/firms/${id}`, {}, 'GET');
+                this.detailData = data;
+            } catch(e) { showToast('Detay yüklenemedi', 'error'); this.showDetailModal = false; }
+            finally { this.detailLoading = false; }
+        },
         applySearch() {
             const params = new URLSearchParams();
             if (this.searchQuery) params.set('search', this.searchQuery);
@@ -195,14 +287,16 @@ function firmManager() {
         async submitForm() {
             this.saving = true;
             const url = this.editingId ? `/firms/${this.editingId}` : '/firms';
-            try { await posAjax(url, { method: this.editingId ? 'PUT' : 'POST', body: JSON.stringify(this.form) }); showToast(this.editingId ? 'Cari güncellendi' : 'Cari oluşturuldu', 'success'); this.showFormModal = false; window.location.reload(); }
+            const method = this.editingId ? 'PUT' : 'POST';
+            try { await posAjax(url, this.form, method); showToast(this.editingId ? 'Cari güncellendi' : 'Cari oluşturuldu', 'success'); this.showFormModal = false; window.location.reload(); }
             catch (e) { showToast(e.message || 'Hata', 'error'); } finally { this.saving = false; }
         },
         async submitPayment() {
             this.paying = true;
-            try { await posAjax(`/firms/${this.payFirmId}/payment`, { method: 'POST', body: JSON.stringify(this.payForm) }); showToast('Ödeme kaydedildi', 'success'); this.showPaymentModal = false; window.location.reload(); }
+            try { await posAjax(`/firms/${this.payFirmId}/payment`, this.payForm, 'POST'); showToast('Ödeme kaydedildi', 'success'); this.showPaymentModal = false; window.location.reload(); }
             catch (e) { showToast(e.message || 'Hata', 'error'); } finally { this.paying = false; }
-        }
+        },
+        formatCur(v) { return new Intl.NumberFormat('tr-TR', {style:'currency', currency:'TRY'}).format(v||0); },
     };
 }
 </script>
