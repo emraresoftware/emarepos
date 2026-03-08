@@ -78,6 +78,7 @@ class IncomeExpenseController extends Controller
         $data['payment_type'] = $data['payment_type'] ?? 'cash';
 
         $income = Income::create($data);
+        $income->load('type');
         return response()->json(['success' => true, 'income' => $income]);
     }
 
@@ -103,6 +104,7 @@ class IncomeExpenseController extends Controller
         $data['payment_type'] = $data['payment_type'] ?? 'cash';
 
         $expense = Expense::create($data);
+        $expense->load('type');
         return response()->json(['success' => true, 'expense' => $expense]);
     }
 
