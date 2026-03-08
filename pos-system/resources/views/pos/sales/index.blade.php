@@ -1168,6 +1168,7 @@ function posScreen() {
                 discount: this.generalDiscount,
                 cash_amount: method === 'cash' ? this.totals.grand_total : 0,
                 card_amount: method === 'card' ? this.totals.grand_total : 0,
+                credit_amount: method === 'credit' ? this.totals.grand_total : 0,
                 transfer_amount: (method === 'transfer' || isOther) ? this.totals.grand_total : 0,
             };
 

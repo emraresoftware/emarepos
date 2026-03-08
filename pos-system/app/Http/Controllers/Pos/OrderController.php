@@ -11,7 +11,9 @@ class OrderController extends Controller
 {
     public function index(Request $request)
     {
+        $branchId = session('branch_id');
         $query = Order::with(['user', 'customer', 'tableSession.table', 'items.product'])
+            ->where('branch_id', $branchId)
             ->orderBy('ordered_at', 'desc');
 
         if ($request->filled('status')) {
@@ -38,13 +40,14 @@ class OrderController extends Controller
 
         $orders = $query->paginate(50);
 
+        $statsBase = Order::where('branch_id', $branchId)->whereDate('ordered_at', Carbon::today());
         $stats = [
-            'total_today' => Order::whereDate('ordered_at', Carbon::today())->count(),
-            'pending' => Order::whereDate('ordered_at', Carbon::today())->where('status', 'pending')->count(),
-            'preparing' => Order::whereDate('ordered_at', Carbon::today())->where('status', 'preparing')->count(),
-            'completed' => Order::whereDate('ordered_at', Carbon::today())->where('status', 'completed')->count(),
-            'cancelled' => Order::whereDate('ordered_at', Carbon::today())->where('status', 'cancelled')->count(),
-            'total_revenue' => Order::whereDate('ordered_at', Carbon::today())->whereNotIn('status', ['cancelled'])->sum('grand_total'),
+            'total_today' => (clone $statsBase)->count(),
+            'pending' => (clone $statsBase)->where('status', 'pending')->count(),
+            'preparing' => (clone $statsBase)->where('status', 'preparing')->count(),
+            'completed' => (clone $statsBase)->where('status', 'completed')->count(),
+            'cancelled' => (clone $statsBase)->where('status', 'cancelled')->count(),
+            'total_revenue' => (clone $statsBase)->whereNotIn('status', ['cancelled'])->sum('grand_total'),
         ];
 
         return view('pos.orders.index', compact('orders', 'stats'));

@@ -89,7 +89,6 @@
                         <span class="px-2 py-0.5 bg-slate-700 rounded text-xs text-white">
                             <i class="fas fa-utensils mr-1 text-gray-300"></i>{{ ($order->tableSession->table->region->name ?? '') ? ($order->tableSession->table->region->name . ' ') : '' }}{{ $order->tableSession->table->name ?? ('Masa ' . $order->tableSession->table->table_no) }}
                         </span>
-                        </span>
                         @endif
                     </div>
                     <div class="flex items-center gap-2">

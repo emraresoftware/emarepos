@@ -54,10 +54,10 @@ class CashRegisterService
             $refundsData = Sale::where('branch_id', $register->branch_id)
                 ->whereIn('status', ['refunded', 'cancelled'])
                 ->where('updated_at', '>=', $register->opened_at)
-                ->selectRaw('COALESCE(SUM(grand_total), 0) as total_refunds')
+                ->selectRaw('COALESCE(SUM(grand_total), 0) as total_refunds, COALESCE(SUM(cash_amount), 0) as cash_refunds')
                 ->first();
             
-            $expectedAmount = $register->opening_amount + ($salesData->total_cash ?? 0) - ($refundsData->total_refunds ?? 0);
+            $expectedAmount = $register->opening_amount + ($salesData->total_cash ?? 0) - ($refundsData->cash_refunds ?? 0);
             
             $register->update([
                 'closing_amount' => $closingAmount,

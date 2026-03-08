@@ -81,6 +81,13 @@ class StockController extends Controller
         // Stok güncelle
         if (in_array($data['type'], ['purchase', 'return'])) {
             $product->increment('stock_quantity', abs($data['quantity']));
+        } elseif ($data['type'] === 'adjustment') {
+            // Adjustment: pozitif → stok artır, negatif → stok düşür
+            if ($data['quantity'] >= 0) {
+                $product->increment('stock_quantity', $data['quantity']);
+            } else {
+                $product->decrement('stock_quantity', abs($data['quantity']));
+            }
         } else {
             $product->decrement('stock_quantity', abs($data['quantity']));
         }

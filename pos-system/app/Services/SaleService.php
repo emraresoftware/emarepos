@@ -278,6 +278,7 @@ class SaleService
         $lastSale = Sale::where('branch_id', $branchId)
             ->where('receipt_no', 'like', "POS-{$year}-%")
             ->orderBy('id', 'desc')
+            ->lockForUpdate()
             ->first();
         
         $nextNum = 1;
