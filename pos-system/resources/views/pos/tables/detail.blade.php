@@ -441,7 +441,7 @@ function tableDetail() {
         splitSelectedIds: [],
         splitTotal: 0,
         splitMethod: 'cash',
-        splitItemTotals: @json($session ? $session->orders->flatMap->items->where('status', '!=', 'cancelled')->where('status', '!=', 'paid')->pluck('total', 'id') : []),
+        splitItemTotals: @json($splitItemTotals),
 
         async init() {
             await this.loadProducts();

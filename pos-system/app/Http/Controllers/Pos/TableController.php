@@ -83,7 +83,16 @@ class TableController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        return view('pos.tables.detail', compact('table', 'session', 'categories', 'emptyTables'));
+        $splitItemTotals = [];
+        if ($session) {
+            $splitItemTotals = $session->orders->flatMap->items
+                ->where('status', '!=', 'cancelled')
+                ->where('status', '!=', 'paid')
+                ->pluck('total', 'id')
+                ->toArray();
+        }
+
+        return view('pos.tables.detail', compact('table', 'session', 'categories', 'emptyTables', 'splitItemTotals'));
     }
 
     /**
