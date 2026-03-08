@@ -35,7 +35,7 @@ Route::post('/login', [PosLoginController::class, 'login']);
 Route::post('/logout', [PosLoginController::class, 'logout'])->name('pos.logout');
 
 // POS Routes (authenticated)
-Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class, 'throttle:120,1'])->group(function () {
     
     // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('pos.dashboard');
@@ -165,6 +165,7 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class])->group(fu
     Route::get('/branches', [BranchController::class, 'index'])->name('pos.branches');
     Route::post('/branches', [BranchController::class, 'store'])->name('pos.branches.store');
     Route::put('/branches/{branch}', [BranchController::class, 'update'])->name('pos.branches.update');
+    Route::delete('/branches/{branch}', [BranchController::class, 'destroy'])->name('pos.branches.destroy');
     
     // Kullanıcılar (Users)
     Route::get('/users', [UserController::class, 'index'])->name('pos.users');

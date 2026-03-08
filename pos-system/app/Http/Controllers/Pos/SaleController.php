@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\Sale;
 use App\Models\PaymentType;
 use App\Models\Tenant;
+use App\Models\ActivityLog;
 use App\Services\SaleService;
 use Illuminate\Http\Request;
 
@@ -59,11 +60,11 @@ class SaleController extends Controller
             ->when($categoryId, function ($q) use ($categoryId) {
                 $q->where('category_id', $categoryId);
             })
-            ->with(['category', 'prices'])
+            ->with(['category', 'prices', 'branches' => fn($q) => $q->where('branch_id', $branchId)])
             ->limit(50)
             ->get()
             ->map(function ($product) use ($branchId) {
-                $branchProduct = $product->branches()->where('branch_id', $branchId)->first();
+                $branchProduct = $product->branches->first();
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
@@ -150,6 +151,7 @@ class SaleController extends Controller
                 'sale' => $sale->load('items'),
             ]);
         } catch (\Exception $e) {
+            ActivityLog::log('sale_error', 'Satış kaydedilemedi: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Satış kaydedilemedi: ' . $e->getMessage(),
@@ -193,6 +195,7 @@ class SaleController extends Controller
         }
         try {
             $result = $this->saleService->refundSale($sale->id, $request->reason);
+            ActivityLog::log('refund', 'Satış iade edildi: ' . $sale->receipt_no . ' (₺' . number_format($sale->grand_total, 2) . ')', $sale);
             return response()->json([
                 'success' => true,
                 'message' => 'İade işlemi başarılı.',
@@ -268,7 +271,7 @@ class SaleController extends Controller
             $query->where('payment_method', $request->payment_method);
         }
         
-        $sales = $query->paginate(25);
+        $sales = $query->paginate(25)->withQueryString();
         
         // summaryStats: aynı filtreleri uygula
         $statsQuery = Sale::where('branch_id', $branchId)->where('status', 'completed');

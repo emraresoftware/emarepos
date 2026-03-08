@@ -7,6 +7,7 @@ use App\Models\FirmGroup;
 use App\Models\AccountTransaction;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use App\Models\ActivityLog;
 
 class FirmController extends Controller
 {
@@ -27,7 +28,7 @@ class FirmController extends Controller
             $query->where('firm_group_id', $request->group_id);
         }
 
-        $firms = $query->paginate(50);
+        $firms = $query->paginate(50)->withQueryString();
 
         $stats = [
             'total_firms' => Firm::where('is_active', true)->count(),
@@ -102,6 +103,7 @@ class FirmController extends Controller
         }
 
         $firm->update(['is_active' => false]);
+        ActivityLog::log('delete', 'Firma pasife alındı: ' . $firm->name, $firm);
         return response()->json(['success' => true, 'message' => 'Cari pasife alındı.']);
     }
 

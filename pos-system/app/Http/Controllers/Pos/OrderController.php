@@ -38,7 +38,7 @@ class OrderController extends Controller
             });
         }
 
-        $orders = $query->paginate(50);
+        $orders = $query->paginate(50)->withQueryString();
 
         $statsBase = Order::where('branch_id', $branchId)->whereDate('ordered_at', Carbon::today());
         $stats = [

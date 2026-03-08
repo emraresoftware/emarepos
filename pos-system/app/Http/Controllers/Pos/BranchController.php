@@ -3,6 +3,8 @@ namespace App\Http\Controllers\Pos;
 
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Models\Sale;
+use App\Models\Staff;
 use Illuminate\Http\Request;
 
 class BranchController extends Controller
@@ -48,5 +50,31 @@ class BranchController extends Controller
 
         $branch->update($data);
         return response()->json(['success' => true, 'branch' => $branch->fresh()]);
+    }
+
+    public function destroy(Branch $branch)
+    {
+        // Aktif şubeyi silmeye çalışıyorsa
+        if ((int) session('branch_id') === $branch->id) {
+            return response()->json(['success' => false, 'message' => 'Aktif şubenizi silemezsiniz.'], 422);
+        }
+
+        // Bağlı satış var mı?
+        $saleCount = Sale::where('branch_id', $branch->id)->count();
+        if ($saleCount > 0) {
+            // Soft-delete: pasife çek
+            $branch->update(['is_active' => false]);
+            return response()->json(['success' => true, 'message' => "Şube pasife alındı ({$saleCount} satış kaydı var, kalıcı silme yapılmadı)."]);
+        }
+
+        // Bağlı personel var mı?
+        $staffCount = Staff::where('branch_id', $branch->id)->count();
+        if ($staffCount > 0) {
+            $branch->update(['is_active' => false]);
+            return response()->json(['success' => true, 'message' => "Şube pasife alındı ({$staffCount} personel kaydı var)."]);
+        }
+
+        $branch->delete();
+        return response()->json(['success' => true, 'message' => 'Şube silindi.']);
     }
 }

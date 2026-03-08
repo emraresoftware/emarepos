@@ -15,6 +15,7 @@ use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Models\ActivityLog;
 
 class ProductController extends Controller
 {
@@ -78,7 +79,7 @@ class ProductController extends Controller
             $query->where('show_on_pos', true);
         }
         
-        $products = $query->paginate(50);
+        $products = $query->paginate(50)->withQueryString();
         $allCategories = Category::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
         $categories = $this->buildCategoryTree($allCategories);
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
@@ -166,6 +167,7 @@ class ProductController extends Controller
     public function destroy(Product $product)
     {
         $product->update(['is_active' => false]);
+        ActivityLog::log('delete', 'Ürün silindi: ' . $product->name, $product);
         return response()->json(['success' => true]);
     }
 
@@ -427,6 +429,7 @@ class ProductController extends Controller
     {
         $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
         Product::whereIn('id', $request->ids)->update(['is_active' => false]);
+        ActivityLog::log('bulk_delete', count($request->ids) . ' ürün toplu silindi');
         return response()->json(['success' => true, 'message' => count($request->ids) . ' ürün silindi.']);
     }
 

@@ -20,7 +20,8 @@ class PurchaseInvoiceController extends Controller
         $invoices = PurchaseInvoice::with(['firm', 'items'])
             ->where('branch_id', $branchId)
             ->orderByDesc('invoice_date')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
 
         $firms = Firm::where('is_active', true)->orderBy('name')->get(['id', 'name', 'type']);
         $products = Product::where('is_active', true)->orderBy('name')->get(['id', 'name', 'barcode', 'purchase_price', 'sale_price']);

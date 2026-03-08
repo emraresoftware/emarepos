@@ -232,7 +232,14 @@
                 },
             }).then(async r => {
                 const data = await r.json();
-                if (!r.ok) throw { status: r.status, ...data };
+                if (!r.ok) {
+                    // Validation error detaylarını parse et
+                    if (r.status === 422 && data.errors) {
+                        const messages = Object.values(data.errors).flat().join('\n');
+                        throw { status: r.status, message: data.message || 'Doğrulama hatası', validationErrors: messages, ...data };
+                    }
+                    throw { status: r.status, message: data.message || 'Bir hata oluştu', ...data };
+                }
                 return data;
             });
         }

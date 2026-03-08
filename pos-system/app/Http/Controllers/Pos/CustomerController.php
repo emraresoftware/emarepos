@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\AccountTransaction;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use App\Models\ActivityLog;
 
 class CustomerController extends Controller
 {
@@ -25,7 +26,7 @@ class CustomerController extends Controller
             });
         }
         
-        $customers = $query->paginate(50);
+        $customers = $query->paginate(50)->withQueryString();
         return view('pos.customers.index', compact('customers'));
     }
 
@@ -114,6 +115,7 @@ class CustomerController extends Controller
         }
 
         $customer->update(['is_active' => false]);
+        ActivityLog::log('delete', 'Müşteri pasife alındı: ' . $customer->name, $customer);
         return response()->json(['success' => true, 'message' => 'Müşteri pasife alındı.']);
     }
 }

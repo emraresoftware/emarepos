@@ -19,7 +19,8 @@ class StockCountController extends Controller
         $counts = StockCount::where('branch_id', $branchId)
             ->with('items')
             ->orderByDesc('created_at')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
 
         $products = Product::where('is_active', true)->orderBy('name')->get(['id', 'name', 'barcode', 'stock_quantity']);
 
@@ -69,6 +70,10 @@ class StockCountController extends Controller
 
     public function show(StockCount $stockCount)
     {
+        if ($stockCount->branch_id !== (int) session('branch_id')) {
+            return response()->json(['success' => false, 'message' => 'Bu sayıma erişim yetkiniz yok.'], 403);
+        }
+
         return response()->json([
             'success' => true,
             'count' => $stockCount->load('items'),
@@ -80,6 +85,10 @@ class StockCountController extends Controller
      */
     public function apply(StockCount $stockCount)
     {
+        if ($stockCount->branch_id !== (int) session('branch_id')) {
+            return response()->json(['success' => false, 'message' => 'Bu sayıma erişim yetkiniz yok.'], 403);
+        }
+
         if ($stockCount->status !== 'draft') {
             return response()->json(['success' => false, 'message' => 'Bu sayım zaten uygulanmış.'], 422);
         }
@@ -123,6 +132,10 @@ class StockCountController extends Controller
 
     public function destroy(StockCount $stockCount)
     {
+        if ($stockCount->branch_id !== (int) session('branch_id')) {
+            return response()->json(['success' => false, 'message' => 'Bu sayıma erişim yetkiniz yok.'], 403);
+        }
+
         if ($stockCount->status === 'applied') {
             return response()->json(['success' => false, 'message' => 'Uygulanmış sayım silinemez.'], 422);
         }

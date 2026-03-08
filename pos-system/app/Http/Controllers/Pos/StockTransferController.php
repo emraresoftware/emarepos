@@ -23,7 +23,8 @@ class StockTransferController extends Controller
                   ->orWhere('to_branch_id', $branchId);
             })
             ->orderByDesc('created_at')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
 
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
         $products = Product::where('is_active', true)->orderBy('name')->get(['id', 'name', 'barcode', 'stock_quantity']);

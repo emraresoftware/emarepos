@@ -135,7 +135,17 @@
             method,
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
             body: method !== 'GET' ? JSON.stringify(body) : undefined,
-        }).then(async r => { const d = await r.json(); if (!r.ok) throw d; return d; });
+        }).then(async r => {
+            const d = await r.json();
+            if (!r.ok) {
+                if (r.status === 422 && d.errors) {
+                    const messages = Object.values(d.errors).flat().join('\n');
+                    throw { status: r.status, message: d.message || 'Doğrulama hatası', validationErrors: messages, ...d };
+                }
+                throw { status: r.status, message: d.message || 'Bir hata oluştu', ...d };
+            }
+            return d;
+        });
     }
 </script>
 @stack('scripts')

@@ -26,7 +26,7 @@ class UserController extends Controller
             $query->where('role_id', $request->role_id);
         }
 
-        $users = $query->paginate(50);
+        $users = $query->paginate(50)->withQueryString();
         $roles = Role::orderBy('name')->get();
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
 

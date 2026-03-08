@@ -5,7 +5,9 @@ use App\Http\Controllers\Controller;
 use App\Models\StockMovement;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Models\ActivityLog;
 
 class StockController extends Controller
 {
@@ -41,7 +43,7 @@ class StockController extends Controller
             $query->whereDate('movement_date', '<=', $request->end_date);
         }
 
-        $movements = $query->paginate(50);
+        $movements = $query->paginate(50)->withQueryString();
 
         // Kritik stok ürünleri
         $criticalStock = Product::where('is_active', true)
@@ -82,22 +84,25 @@ class StockController extends Controller
         $data['movement_date'] = Carbon::now();
         $data['transaction_code'] = 'SM-' . date('YmdHis') . '-' . rand(100, 999);
 
-        // Stok güncelle
-        if (in_array($data['type'], ['purchase', 'return'])) {
-            $product->increment('stock_quantity', abs($data['quantity']));
-        } elseif ($data['type'] === 'adjustment') {
-            // Adjustment: pozitif → stok artır, negatif → stok düşür
-            if ($data['quantity'] >= 0) {
-                $product->increment('stock_quantity', $data['quantity']);
+        $movement = DB::transaction(function () use ($data, $product) {
+            // Stok güncelle
+            if (in_array($data['type'], ['purchase', 'return'])) {
+                $product->increment('stock_quantity', abs($data['quantity']));
+            } elseif ($data['type'] === 'adjustment') {
+                if ($data['quantity'] >= 0) {
+                    $product->increment('stock_quantity', $data['quantity']);
+                } else {
+                    $product->decrement('stock_quantity', abs($data['quantity']));
+                }
             } else {
                 $product->decrement('stock_quantity', abs($data['quantity']));
             }
-        } else {
-            $product->decrement('stock_quantity', abs($data['quantity']));
-        }
 
-        $data['remaining'] = $product->fresh()->stock_quantity;
-        $movement = StockMovement::create($data);
+            $data['remaining'] = $product->fresh()->stock_quantity;
+            return StockMovement::create($data);
+        });
+
+        ActivityLog::log('stock_movement', 'Stok hareketi: ' . $data['type'] . ' - ' . $product->name . ' (' . $data['quantity'] . ')', $movement);
 
         return response()->json(['success' => true, 'movement' => $movement]);
     }

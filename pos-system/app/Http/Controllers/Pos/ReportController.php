@@ -364,15 +364,17 @@ class ReportController extends Controller
         $period2End = $request->get('p2_end', Carbon::now()->subMonth()->endOfMonth()->format('Y-m-d'));
 
         $getStats = function ($start, $end) use ($branchId) {
-            $q = Sale::where('branch_id', $branchId)
+            $result = Sale::where('branch_id', $branchId)
                 ->where('status', 'completed')
-                ->whereBetween('sold_at', [$start . ' 00:00:00', $end . ' 23:59:59']);
+                ->whereBetween('sold_at', [$start . ' 00:00:00', $end . ' 23:59:59'])
+                ->selectRaw('COUNT(*) as cnt, COALESCE(SUM(grand_total),0) as revenue, COALESCE(SUM(discount_total),0) as discount, COALESCE(SUM(total_items),0) as items')
+                ->first();
             return [
-                'revenue' => (clone $q)->sum('grand_total'),
-                'count' => (clone $q)->count(),
-                'avg_basket' => (clone $q)->count() > 0 ? round((clone $q)->sum('grand_total') / (clone $q)->count(), 2) : 0,
-                'discount' => (clone $q)->sum('discount_total'),
-                'items' => (clone $q)->sum('total_items'),
+                'revenue' => (float) $result->revenue,
+                'count' => (int) $result->cnt,
+                'avg_basket' => $result->cnt > 0 ? round($result->revenue / $result->cnt, 2) : 0,
+                'discount' => (float) $result->discount,
+                'items' => (int) $result->items,
             ];
         };
 
@@ -401,7 +403,7 @@ class ReportController extends Controller
         $startDate = $request->input('start', Carbon::now()->subDays(30)->toDateString());
         $endDate = $request->input('end', Carbon::now()->toDateString());
 
-        $suspicious = [];
+        $suspicious = collect();
 
         // 1) İade edilen satışlar
         $refunds = Sale::where('branch_id', $branchId)
@@ -421,7 +423,7 @@ class ReportController extends Controller
                     'detail' => ($sale->items->count() ?? 0) . ' kalem iade',
                 ];
             });
-        $suspicious = array_merge($suspicious, $refunds->toArray());
+        $suspicious = $suspicious->concat($refunds);
 
         // 2) İptal edilen satışlar
         $cancelled = Sale::where('branch_id', $branchId)
@@ -440,7 +442,7 @@ class ReportController extends Controller
                     'detail' => 'Satış iptal edildi',
                 ];
             });
-        $suspicious = array_merge($suspicious, $cancelled->toArray());
+        $suspicious = $suspicious->concat($cancelled);
 
         // 3) Yüksek iskonto oranı (%30 üzeri)
         $highDiscount = Sale::where('branch_id', $branchId)
@@ -462,7 +464,7 @@ class ReportController extends Controller
                     'detail' => '%' . $rate . ' iskonto (₺' . number_format($sale->discount_total, 2) . ')',
                 ];
             });
-        $suspicious = array_merge($suspicious, $highDiscount->toArray());
+        $suspicious = $suspicious->concat($highDiscount);
 
         // 4) Maliyetin altına satış
         $belowCost = \DB::table('sale_items')
@@ -486,7 +488,7 @@ class ReportController extends Controller
                     'detail' => $row->product_name . ': Satış ₺' . number_format($row->unit_price, 2) . ' < Alış ₺' . number_format($row->purchase_price, 2),
                 ];
             });
-        $suspicious = array_merge($suspicious, $belowCost->toArray());
+        $suspicious = $suspicious->concat($belowCost);
 
         // 5) Gece geç saatte satış (22:00 - 06:00)
         $driver = \DB::getDriverName();
@@ -513,26 +515,24 @@ class ReportController extends Controller
                     'detail' => 'Geç saatte yapılan satış',
                 ];
             });
-        $suspicious = array_merge($suspicious, $lateNight->toArray());
+        $suspicious = $suspicious->concat($lateNight);
 
         // Severity'ye göre sırala (high > medium > low)
         $severityOrder = ['high' => 0, 'medium' => 1, 'low' => 2];
-        usort($suspicious, function ($a, $b) use ($severityOrder) {
-            return ($severityOrder[$a['severity']] ?? 3) <=> ($severityOrder[$b['severity']] ?? 3);
-        });
+        $suspicious = $suspicious->sortBy(fn($s) => $severityOrder[$s['severity']] ?? 3)->values();
 
         // Özet istatistikler
         $summary = [
-            'total' => count($suspicious),
-            'high' => count(array_filter($suspicious, fn($s) => $s['severity'] === 'high')),
-            'medium' => count(array_filter($suspicious, fn($s) => $s['severity'] === 'medium')),
-            'low' => count(array_filter($suspicious, fn($s) => $s['severity'] === 'low')),
-            'refund_count' => count(array_filter($suspicious, fn($s) => $s['type'] === 'refund')),
-            'cancelled_count' => count(array_filter($suspicious, fn($s) => $s['type'] === 'cancelled')),
-            'below_cost_count' => count(array_filter($suspicious, fn($s) => $s['type'] === 'below_cost')),
-            'total_loss' => array_sum(array_column($suspicious, 'amount')),
+            'total' => $suspicious->count(),
+            'high' => $suspicious->where('severity', 'high')->count(),
+            'medium' => $suspicious->where('severity', 'medium')->count(),
+            'low' => $suspicious->where('severity', 'low')->count(),
+            'refund_count' => $suspicious->where('type', 'refund')->count(),
+            'cancelled_count' => $suspicious->where('type', 'cancelled')->count(),
+            'below_cost_count' => $suspicious->where('type', 'below_cost')->count(),
+            'total_loss' => $suspicious->sum('amount'),
         ];
 
-        return response()->json(['suspicious' => $suspicious, 'summary' => $summary]);
+        return response()->json(['suspicious' => $suspicious->toArray(), 'summary' => $summary]);
     }
 }

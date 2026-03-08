@@ -28,7 +28,7 @@ class CashReportController extends Controller
             $query->whereDate('opened_at', '<=', $request->end_date);
         }
 
-        $registers = $query->paginate(30);
+        $registers = $query->paginate(30)->withQueryString();
 
         $stats = [
             'total_registers' => CashRegister::where('branch_id', $branchId)->count(),
