@@ -20,11 +20,11 @@
                        class="bg-transparent text-sm text-gray-900 focus:outline-none w-full sm:w-32">
             </div>
             <button type="submit"
-                    class="px-4 py-2 bg-brand-500 hover:bg-gradient-to-r from-brand-500 to-purple-600 text-gray-900 rounded-lg text-sm font-medium transition-colors">
+                    class="px-4 py-2 bg-brand-500 hover:bg-gradient-to-r from-brand-500 to-purple-600 text-white rounded-lg text-sm font-medium transition-colors">
                 <i class="fas fa-filter mr-1"></i> Filtrele
             </button>
             <button type="button" onclick="window.print()"
-                    class="px-4 py-2 bg-slate-600 hover:bg-gray-200 text-gray-900 rounded-lg text-sm font-medium transition-colors">
+                    class="px-4 py-2 bg-gray-200 hover:bg-gray-200 text-gray-900 rounded-lg text-sm font-medium transition-colors">
                 <i class="fas fa-print mr-1"></i> Yazdır
             </button>
         </form>

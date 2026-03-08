@@ -163,7 +163,7 @@
          :class="{ 'hidden lg:flex': mobileTab !== 'cart' }">
 
         {{-- Koyu Header: Barkod + Toplam + KDV --}}
-        <div class="bg-slate-800 shrink-0">
+        <div class="bg-gray-100 shrink-0">
             {{-- Barkod Input --}}
             <div class="px-3 pt-2 pb-1">
                 <div class="relative">
@@ -181,26 +181,26 @@
                 <span class="text-2xl sm:text-3xl font-bold text-white" x-text="formatCurrency(totals.grand_total)"></span>
             </div>
             {{-- KDV Satırı --}}
-            <div class="grid grid-cols-4 divide-x divide-slate-600 text-center py-1 bg-slate-700">
+            <div class="grid grid-cols-4 divide-x divide-gray-200 text-center py-1 bg-gray-100">
                 <div class="px-1">
-                    <div class="text-[10px] text-slate-400">%0 KDV</div>
-                    <div class="text-xs text-white font-medium" x-text="formatCurrency(vatByRate(0))"></div>
+                    <div class="text-[10px] text-gray-400">%0 KDV</div>
+                    <div class="text-xs text-gray-700 font-medium" x-text="formatCurrency(vatByRate(0))"></div>
                 </div>
                 <div class="px-1">
-                    <div class="text-[10px] text-slate-400">%1 KDV</div>
-                    <div class="text-xs text-white font-medium" x-text="formatCurrency(vatByRate(1))"></div>
+                    <div class="text-[10px] text-gray-400">%1 KDV</div>
+                    <div class="text-xs text-gray-700 font-medium" x-text="formatCurrency(vatByRate(1))"></div>
                 </div>
                 <div class="px-1">
-                    <div class="text-[10px] text-slate-400">%10 KDV</div>
-                    <div class="text-xs text-white font-medium" x-text="formatCurrency(vatByRate(10))"></div>
+                    <div class="text-[10px] text-gray-400">%10 KDV</div>
+                    <div class="text-xs text-gray-700 font-medium" x-text="formatCurrency(vatByRate(10))"></div>
                 </div>
                 <div class="px-1">
-                    <div class="text-[10px] text-slate-400">%20 KDV</div>
-                    <div class="text-xs text-white font-medium" x-text="formatCurrency(vatByRate(20))"></div>
+                    <div class="text-[10px] text-gray-400">%20 KDV</div>
+                    <div class="text-xs text-gray-700 font-medium" x-text="formatCurrency(vatByRate(20))"></div>
                 </div>
             </div>
             {{-- Kolon Başlıkları --}}
-            <div class="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-3 py-1.5 bg-slate-600 text-[11px] text-slate-200 font-medium">
+            <div class="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-3 py-1.5 bg-gray-200 text-[11px] text-gray-600 font-medium">
                 <span>Ürün Adı</span>
                 <span class="w-16 text-right">Fiyat</span>
                 <span class="w-10 text-center">Birim</span>
@@ -427,15 +427,15 @@
         {{-- Alt Bar: Son Fişler + İskonto + Yazdır + İade --}}
         <div class="grid grid-cols-4 shrink-0">
             <button @click="loadRecentSales()"
-                    class="py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium flex items-center justify-center gap-1.5 border-r border-slate-600 transition-colors">
+                    class="py-2.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium flex items-center justify-center gap-1.5 border-r border-gray-500 transition-colors">
                 <i class="fas fa-receipt text-[11px]"></i>Son Fişler
             </button>
             <button @click="showDiscountModal = true"
-                    class="py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center justify-center gap-1.5 border-r border-slate-700 transition-colors">
+                    class="py-2.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium flex items-center justify-center gap-1.5 border-r border-gray-500 transition-colors">
                 <i class="fas fa-percent text-[11px]"></i>İskonto
             </button>
             <button @click="printReceipt()"
-                    class="py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium flex items-center justify-center gap-1.5 border-r border-slate-600 transition-colors">
+                    class="py-2.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium flex items-center justify-center gap-1.5 border-r border-gray-500 transition-colors">
                 <i class="fas fa-print text-[11px]"></i>Yazdır
             </button>
             <button @click="startRefund()"
@@ -489,7 +489,7 @@
     <div x-show="showRecentSales" x-transition x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col" @click.away="showRecentSales = false">
-            <div class="flex items-center justify-between px-5 py-3 bg-slate-800 rounded-t-2xl shrink-0">
+            <div class="flex items-center justify-between px-5 py-3 bg-gray-700 rounded-t-2xl shrink-0">
                 <h3 class="text-base font-bold text-white"><i class="fas fa-receipt mr-2"></i>Son Fişler</h3>
                 <button @click="showRecentSales = false" class="text-white/70 hover:text-white"><i class="fas fa-times-circle text-lg"></i></button>
             </div>

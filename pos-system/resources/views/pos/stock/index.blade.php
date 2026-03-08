@@ -48,7 +48,7 @@
         <h1 class="text-2xl font-bold text-gray-900">Stok Hareketleri</h1>
         <div class="flex flex-wrap items-center gap-3">
             <select x-model="filterType" @change="applyFilters()"
-                    class="bg-white border border-gray-700 text-gray-700 text-sm rounded-lg px-3 py-2">
+                    class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-2">
                 <option value="">Tüm Tipler</option>
                 <option value="purchase">Alış</option>
                 <option value="sale">Satış</option>
@@ -59,7 +59,7 @@
             </select>
             <input type="text" x-model="searchQuery" @input.debounce.400ms="applyFilters()"
                    placeholder="Ürün / Barkod ara..."
-                   class="bg-white border border-gray-700 text-gray-700 text-sm rounded-lg pl-3 pr-4 py-2 w-full sm:w-52 placeholder-gray-400">
+                   class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg pl-3 pr-4 py-2 w-full sm:w-52 placeholder-gray-400">
             <button @click="openNewMovement()"
                     class="bg-emerald-600 hover:bg-emerald-700 text-gray-900 font-medium rounded-lg text-sm px-5 py-2 transition-colors flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -133,7 +133,7 @@
             <form @submit.prevent="submitMovement()" class="p-6 space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Hareket Tipi <span class="text-red-500">*</span></label>
-                    <select x-model="movForm.type" required class="w-full bg-white border border-gray-700 text-gray-700 text-sm rounded-lg px-4 py-2.5">
+                    <select x-model="movForm.type" required class="w-full bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-4 py-2.5">
                         <option value="purchase">Alış (Stok Girişi)</option>
                         <option value="sale">Satış (Stok Çıkışı)</option>
                         <option value="return">İade</option>
@@ -143,28 +143,28 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Ürün ID <span class="text-red-500">*</span></label>
-                    <input type="number" x-model="movForm.product_id" required class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5" placeholder="Ürün ID girin">
+                    <input type="number" x-model="movForm.product_id" required class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5" placeholder="Ürün ID girin">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Miktar <span class="text-red-500">*</span></label>
-                        <input type="number" x-model="movForm.quantity" step="0.01" required class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5">
+                        <input type="number" x-model="movForm.quantity" step="0.01" required class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Birim Fiyat</label>
-                        <input type="number" x-model="movForm.unit_price" step="0.01" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5">
+                        <input type="number" x-model="movForm.unit_price" step="0.01" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5">
                     </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Cari / Firma</label>
-                    <input type="text" x-model="movForm.firm_customer" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5" placeholder="Tedarikçi adı">
+                    <input type="text" x-model="movForm.firm_customer" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5" placeholder="Tedarikçi adı">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Not</label>
-                    <input type="text" x-model="movForm.note" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5" placeholder="Açıklama">
+                    <input type="text" x-model="movForm.note" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5" placeholder="Açıklama">
                 </div>
                 <div class="flex gap-3 pt-4 border-t border-gray-100">
-                    <button type="button" @click="showModal = false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-700 rounded-lg">İptal</button>
+                    <button type="button" @click="showModal = false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg">İptal</button>
                     <button type="submit" :disabled="saving" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-900 bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50">Kaydet</button>
                 </div>
             </form>

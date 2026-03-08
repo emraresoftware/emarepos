@@ -37,9 +37,9 @@
         <h1 class="text-2xl font-bold text-gray-900">Siparişler</h1>
         <div class="flex flex-wrap items-center gap-3">
             <input type="date" x-model="filterDate" @change="applyFilters()"
-                   class="bg-white border border-gray-700 text-gray-700 text-sm rounded-lg px-3 py-2 focus:ring-brand-500/20 focus:border-brand-500">
+                   class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-2 focus:ring-brand-500/20 focus:border-brand-500">
             <select x-model="filterStatus" @change="applyFilters()"
-                    class="bg-white border border-gray-700 text-gray-700 text-sm rounded-lg px-3 py-2 focus:ring-brand-500/20 focus:border-brand-500">
+                    class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-2 focus:ring-brand-500/20 focus:border-brand-500">
                 <option value="">Tüm Durumlar</option>
                 <option value="pending">Bekleyen</option>
                 <option value="preparing">Hazırlanıyor</option>
@@ -49,7 +49,7 @@
                 <option value="cancelled">İptal</option>
             </select>
             <select x-model="filterType" @change="applyFilters()"
-                    class="bg-white border border-gray-700 text-gray-700 text-sm rounded-lg px-3 py-2 focus:ring-brand-500/20 focus:border-brand-500">
+                    class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-2 focus:ring-brand-500/20 focus:border-brand-500">
                 <option value="">Tüm Tipler</option>
                 <option value="dine_in">Restoran</option>
                 <option value="takeaway">Paket</option>
@@ -58,7 +58,7 @@
             <div class="relative">
                 <input type="text" x-model="searchQuery" @input.debounce.400ms="applyFilters()"
                        placeholder="Sipariş no ara..."
-                       class="bg-white border border-gray-700 text-gray-700 text-sm rounded-lg pl-9 pr-4 py-2 w-full sm:w-52 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400">
+                       class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg pl-9 pr-4 py-2 w-full sm:w-52 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400">
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>

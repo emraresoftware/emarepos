@@ -48,24 +48,24 @@
             <div class="relative w-full sm:w-auto">
                 <input type="text" x-model="searchQuery" @input.debounce.400ms="applySearch()"
                        placeholder="Cari ara..."
-                       class="bg-white border border-gray-700 text-gray-700 text-sm rounded-lg pl-9 pr-4 py-2.5 w-full sm:w-64 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400">
+                       class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg pl-9 pr-4 py-2.5 w-full sm:w-64 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400">
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
             </div>
             <select x-model="groupFilter" @change="applySearch()"
-                    class="bg-white border border-gray-700 text-gray-700 text-sm rounded-lg px-3 py-2.5 focus:ring-brand-500/20 focus:border-brand-500">
+                    class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-2.5 focus:ring-brand-500/20 focus:border-brand-500">
                 <option value="">Tüm Gruplar</option>
                 @foreach($groups as $g)
                     <option value="{{ $g->id }}">{{ $g->name }} ({{ $g->firms_count }})</option>
                 @endforeach
             </select>
             <button @click="showGroupPanel = !showGroupPanel"
-                    class="bg-white border border-gray-700 text-gray-700 hover:bg-gray-50 font-medium rounded-lg text-sm px-4 py-2.5 transition-colors flex items-center gap-2">
+                    class="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium rounded-lg text-sm px-4 py-2.5 transition-colors flex items-center gap-2">
                 <i class="fas fa-layer-group"></i> Gruplar
             </button>
             <button @click="openCreate()"
-                    class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-gray-900 font-medium rounded-lg text-sm px-5 py-2.5 transition-colors flex items-center gap-2">
+                    class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-white font-medium rounded-lg text-sm px-5 py-2.5 transition-colors flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Yeni Cari
             </button>
@@ -184,9 +184,9 @@
                 <button @click="showFormModal = false" class="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-lg"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
             </div>
             <form @submit.prevent="submitForm()" class="p-6 space-y-4">
-                <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Firma Adı <span class="text-red-500">*</span></label><input type="text" x-model="form.name" required class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Firma Adı <span class="text-red-500">*</span></label><input type="text" x-model="form.name" required class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
                 <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Cari Grubu</label>
-                    <select x-model="form.firm_group_id" class="w-full bg-white border border-gray-700 text-gray-700 text-sm rounded-lg px-4 py-2.5">
+                    <select x-model="form.firm_group_id" class="w-full bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-4 py-2.5">
                         <option value="">Grup Seç (Opsiyonel)</option>
                         @foreach($groups as $g)
                             <option value="{{ $g->id }}">{{ $g->name }}</option>
@@ -194,16 +194,16 @@
                     </select>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Vergi No</label><input type="text" x-model="form.tax_number" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Vergi Dairesi</label><input type="text" x-model="form.tax_office" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Vergi No</label><input type="text" x-model="form.tax_number" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Vergi Dairesi</label><input type="text" x-model="form.tax_office" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Telefon</label><input type="tel" x-model="form.phone" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-1.5">E-posta</label><input type="email" x-model="form.email" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Telefon</label><input type="tel" x-model="form.phone" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1.5">E-posta</label><input type="email" x-model="form.email" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
                 </div>
-                <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Adres</label><textarea x-model="form.address" rows="2" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5 resize-none"></textarea></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Adres</label><textarea x-model="form.address" rows="2" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 resize-none"></textarea></div>
                 <div class="flex gap-3 pt-4 border-t border-gray-100">
-                    <button type="button" @click="showFormModal = false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-700 rounded-lg">İptal</button>
+                    <button type="button" @click="showFormModal = false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg">İptal</button>
                     <button type="submit" :disabled="saving" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-900 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 rounded-lg disabled:opacity-50"><span x-text="editingId ? 'Güncelle' : 'Kaydet'"></span></button>
                 </div>
             </form>
@@ -223,10 +223,10 @@
                     <p class="text-sm text-gray-500">Cari: <span class="text-gray-900 font-medium" x-text="payFirmName"></span></p>
                     <p class="text-sm text-gray-500 mt-1">Bakiye: <span class="font-mono font-medium" :class="payFirmBalance < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCurrency(payFirmBalance)"></span></p>
                 </div>
-                <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Tutar <span class="text-red-500">*</span></label><input type="number" x-model="payForm.amount" step="0.01" min="0.01" required class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5 font-mono text-lg"></div>
-                <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Açıklama</label><input type="text" x-model="payForm.description" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5" placeholder="Opsiyonel"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Tutar <span class="text-red-500">*</span></label><input type="number" x-model="payForm.amount" step="0.01" min="0.01" required class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 font-mono text-lg"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Açıklama</label><input type="text" x-model="payForm.description" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5" placeholder="Opsiyonel"></div>
                 <div class="flex gap-3 pt-4 border-t border-gray-100">
-                    <button type="button" @click="showPaymentModal = false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-700 rounded-lg">İptal</button>
+                    <button type="button" @click="showPaymentModal = false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg">İptal</button>
                     <button type="submit" :disabled="paying" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-900 bg-gradient-to-r from-emerald-500 to-teal-500 hover:shadow-lg hover:shadow-emerald-200 rounded-lg disabled:opacity-50">Öde</button>
                 </div>
             </form>

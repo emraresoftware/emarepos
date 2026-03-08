@@ -11,13 +11,13 @@
             <div class="relative w-full sm:w-auto">
                 <input type="text" x-model="searchQuery" @input.debounce.400ms="applySearch()"
                        placeholder="Kullanıcı ara..."
-                       class="bg-white border border-gray-700 text-gray-700 text-sm rounded-lg pl-9 pr-4 py-2.5 w-full sm:w-64 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400">
+                       class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg pl-9 pr-4 py-2.5 w-full sm:w-64 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400">
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
             </div>
             <button @click="openCreate()"
-                    class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-gray-900 font-medium rounded-lg text-sm px-5 py-2.5 transition-colors flex items-center gap-2">
+                    class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-white font-medium rounded-lg text-sm px-5 py-2.5 transition-colors flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
@@ -107,20 +107,20 @@
             <form @submit.prevent="submitForm()" class="p-6 space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Ad Soyad <span class="text-red-500">*</span></label>
-                    <input type="text" x-model="form.name" required class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5">
+                    <input type="text" x-model="form.name" required class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">E-posta <span class="text-red-500">*</span></label>
-                    <input type="email" x-model="form.email" required class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5">
+                    <input type="email" x-model="form.email" required class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Şifre <span x-show="!editingId" class="text-red-500">*</span></label>
-                    <input type="password" x-model="form.password" :required="!editingId" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5" placeholder="Boş bırakılırsa değişmez">
+                    <input type="password" x-model="form.password" :required="!editingId" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5" placeholder="Boş bırakılırsa değişmez">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Rol</label>
-                        <select x-model="form.role_id" class="w-full bg-white border border-gray-700 text-gray-700 text-sm rounded-lg px-4 py-2.5">
+                        <select x-model="form.role_id" class="w-full bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-4 py-2.5">
                             <option value="">Seçiniz</option>
                             @foreach($roles as $role)
                                 <option value="{{ $role->id }}">{{ $role->name }}</option>
@@ -129,7 +129,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Şube</label>
-                        <select x-model="form.branch_id" class="w-full bg-white border border-gray-700 text-gray-700 text-sm rounded-lg px-4 py-2.5">
+                        <select x-model="form.branch_id" class="w-full bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-4 py-2.5">
                             <option value="">Tüm Şubeler</option>
                             @foreach($branches as $branch)
                                 <option value="{{ $branch->id }}">{{ $branch->name }}</option>
@@ -138,7 +138,7 @@
                     </div>
                 </div>
                 <div class="flex gap-3 pt-4 border-t border-gray-100">
-                    <button type="button" @click="showModal = false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-700 rounded-lg">İptal</button>
+                    <button type="button" @click="showModal = false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg">İptal</button>
                     <button type="submit" :disabled="saving" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-900 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 rounded-lg disabled:opacity-50">
                         <span x-text="editingId ? 'Güncelle' : 'Kaydet'"></span>
                     </button>

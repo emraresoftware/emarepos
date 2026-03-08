@@ -9,7 +9,7 @@
             <h1 class="text-2xl font-bold text-gray-900">Stok Sayımı</h1>
             <p class="text-sm text-gray-500">Fiziksel envanter sayımı ile sistem stoklarını eşitleyin</p>
         </div>
-        <button @click="showForm = true" class="px-4 py-2.5 bg-brand-500 hover:bg-gradient-to-r from-brand-500 to-purple-600 text-gray-900 rounded-lg text-sm font-semibold transition-all">
+        <button @click="showForm = true" class="px-4 py-2.5 bg-brand-500 hover:bg-gradient-to-r from-brand-500 to-purple-600 text-white rounded-lg text-sm font-semibold transition-all">
             <i class="fas fa-plus mr-2"></i>Yeni Sayım
         </button>
     </div>
@@ -175,7 +175,7 @@
             <div class="p-6 border-t border-gray-100 flex justify-end gap-3">
                 <button @click="showForm = false" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition">İptal</button>
                 <button @click="saveCount()" :disabled="saving || form.items.length === 0"
-                    class="px-5 py-2.5 bg-brand-500 hover:bg-gradient-to-r from-brand-500 to-purple-600 text-gray-900 rounded-lg text-sm font-semibold transition disabled:opacity-50">
+                    class="px-5 py-2.5 bg-brand-500 hover:bg-gradient-to-r from-brand-500 to-purple-600 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">
                     <i class="fas fa-save mr-1"></i>Sayımı Kaydet
                 </button>
             </div>

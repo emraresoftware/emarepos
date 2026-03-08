@@ -5,7 +5,7 @@
 <div x-data="kitchenScreen()" x-init="init()" class="flex-1 flex flex-col overflow-hidden">
 
     {{-- Üst Bar --}}
-    <div class="p-3 sm:p-4 bg-gray-50 border-b border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div class="p-3 sm:p-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="flex flex-col sm:flex-row sm:items-center gap-3">
             <h1 class="text-lg sm:text-xl font-bold text-gray-900 shrink-0">
                 <i class="fas fa-fire-burner text-orange-400 mr-2"></i>Mutfak
@@ -86,7 +86,7 @@
                         <span class="text-gray-900 font-bold text-sm">#{{ $order->order_number }}</span>
                         {{-- Masa --}}
                         @if($order->tableSession && $order->tableSession->table)
-                        <span class="px-2 py-0.5 bg-slate-700 rounded text-xs text-white">
+                        <span class="px-2 py-0.5 bg-gray-100 rounded text-xs text-white">
                             <i class="fas fa-utensils mr-1 text-gray-300"></i>{{ ($order->tableSession->table->region->name ?? '') ? ($order->tableSession->table->region->name . ' ') : '' }}{{ $order->tableSession->table->name ?? ('Masa ' . $order->tableSession->table->table_no) }}
                         </span>
                         @endif
@@ -113,7 +113,7 @@
                         {{-- Checkbox --}}
                         <button @click="toggleItemReady({{ $item->id }}, '{{ $item->status }}')"
                                 class="mt-0.5 w-5 h-5 rounded border flex-shrink-0 flex items-center justify-center transition-colors
-                                    {{ $item->status === 'ready' ? 'bg-emerald-500 border-green-500 text-gray-900' : 'border-gray-600 hover:border-green-400 text-transparent hover:text-emerald-600' }}">
+                                    {{ $item->status === 'ready' ? 'bg-emerald-500 border-green-500 text-gray-900' : 'border-gray-200 hover:border-green-400 text-transparent hover:text-emerald-600' }}">
                             <i class="fas fa-check text-[10px]"></i>
                         </button>
 
@@ -245,7 +245,7 @@ function kitchenScreen() {
                         itemEl.classList.add('opacity-50');
                         const checkbox = itemEl.querySelector('button');
                         checkbox.classList.add('bg-emerald-500', 'border-green-500', 'text-gray-900');
-                        checkbox.classList.remove('border-gray-600', 'text-transparent');
+                        checkbox.classList.remove('border-gray-200', 'text-transparent');
                         const nameEl = itemEl.querySelector('span');
                         nameEl.classList.add('line-through', 'text-gray-500');
                         nameEl.classList.remove('text-gray-900');
@@ -253,7 +253,7 @@ function kitchenScreen() {
                         itemEl.classList.remove('opacity-50');
                         const checkbox = itemEl.querySelector('button');
                         checkbox.classList.remove('bg-emerald-500', 'border-green-500', 'text-gray-900');
-                        checkbox.classList.add('border-gray-600', 'text-transparent');
+                        checkbox.classList.add('border-gray-200', 'text-transparent');
                         const nameEl = itemEl.querySelector('span');
                         nameEl.classList.remove('line-through', 'text-gray-500');
                         nameEl.classList.add('text-gray-900');

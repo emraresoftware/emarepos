@@ -8,16 +8,16 @@
 
     {{-- Tabs --}}
     <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-100 pb-3 overflow-x-auto hide-scrollbar">
-        <button @click="activeTab = 'branch'" :class="activeTab === 'branch' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-gray-900' : 'bg-white text-gray-500 hover:text-gray-800'" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+        <button @click="activeTab = 'branch'" :class="activeTab === 'branch' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white' : 'bg-white text-gray-500 hover:text-gray-800'" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             <i class="fas fa-store mr-1"></i> Şube Bilgileri
         </button>
-        <button @click="activeTab = 'general'" :class="activeTab === 'general' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-gray-900' : 'bg-white text-gray-500 hover:text-gray-800'" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+        <button @click="activeTab = 'general'" :class="activeTab === 'general' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white' : 'bg-white text-gray-500 hover:text-gray-800'" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             <i class="fas fa-cog mr-1"></i> Genel Ayarlar
         </button>
-        <button @click="activeTab = 'payment'" :class="activeTab === 'payment' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-gray-900' : 'bg-white text-gray-500 hover:text-gray-800'" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+        <button @click="activeTab = 'payment'" :class="activeTab === 'payment' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white' : 'bg-white text-gray-500 hover:text-gray-800'" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             <i class="fas fa-credit-card mr-1"></i> Ödeme Tipleri
         </button>
-        <button @click="activeTab = 'tax'" :class="activeTab === 'tax' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-gray-900' : 'bg-white text-gray-500 hover:text-gray-800'" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+        <button @click="activeTab = 'tax'" :class="activeTab === 'tax' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white' : 'bg-white text-gray-500 hover:text-gray-800'" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             <i class="fas fa-percent mr-1"></i> Vergi Oranları
         </button>
     </div>
@@ -29,27 +29,27 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                     <label class="block text-sm text-gray-500 mb-1">Şube Adı</label>
-                    <input type="text" name="name" value="{{ $branch->name ?? '' }}" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
+                    <input type="text" name="name" value="{{ $branch->name ?? '' }}" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
                 </div>
                 <div>
                     <label class="block text-sm text-gray-500 mb-1">Telefon</label>
-                    <input type="text" name="phone" value="{{ $branch->phone ?? '' }}" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
+                    <input type="text" name="phone" value="{{ $branch->phone ?? '' }}" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm text-gray-500 mb-1">Adres</label>
-                    <textarea name="address" rows="2" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">{{ $branch->address ?? '' }}</textarea>
+                    <textarea name="address" rows="2" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">{{ $branch->address ?? '' }}</textarea>
                 </div>
                 <div>
                     <label class="block text-sm text-gray-500 mb-1">Şehir</label>
-                    <input type="text" name="city" value="{{ $branch->city ?? '' }}" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
+                    <input type="text" name="city" value="{{ $branch->city ?? '' }}" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
                 </div>
                 <div>
                     <label class="block text-sm text-gray-500 mb-1">İlçe</label>
-                    <input type="text" name="district" value="{{ $branch->district ?? '' }}" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
+                    <input type="text" name="district" value="{{ $branch->district ?? '' }}" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
                 </div>
             </div>
             <div class="flex justify-end pt-2">
-                <button type="submit" class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-gray-900 text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
+                <button type="submit" class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
                     <i class="fas fa-save mr-1"></i> Kaydet
                 </button>
             </div>
@@ -63,15 +63,15 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                     <label class="block text-sm text-gray-500 mb-1">Fiş Üst Yazı</label>
-                    <textarea name="receipt_header" rows="3" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">{{ $tenant->meta['receipt_header'] ?? '' }}</textarea>
+                    <textarea name="receipt_header" rows="3" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">{{ $tenant->meta['receipt_header'] ?? '' }}</textarea>
                 </div>
                 <div>
                     <label class="block text-sm text-gray-500 mb-1">Fiş Alt Yazı</label>
-                    <textarea name="receipt_footer" rows="3" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">{{ $tenant->meta['receipt_footer'] ?? '' }}</textarea>
+                    <textarea name="receipt_footer" rows="3" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">{{ $tenant->meta['receipt_footer'] ?? '' }}</textarea>
                 </div>
                 <div>
                     <label class="block text-sm text-gray-500 mb-1">Para Birimi Sembolü</label>
-                    <input type="text" name="currency_symbol" value="{{ $tenant->meta['currency_symbol'] ?? '₺' }}" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
+                    <input type="text" name="currency_symbol" value="{{ $tenant->meta['currency_symbol'] ?? '₺' }}" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
                 </div>
             </div>
 
@@ -79,23 +79,23 @@
                 <h3 class="text-sm font-medium text-gray-700">Seçenekler</h3>
                 <label class="flex items-center gap-3 text-sm text-gray-700 cursor-pointer">
                     <input type="checkbox" name="tax_included" value="1" {{ ($tenant->meta['tax_included'] ?? false) ? 'checked' : '' }}
-                        class="w-4 h-4 rounded bg-white border-gray-600 text-blue-600 focus:ring-brand-500/20">
+                        class="w-4 h-4 rounded bg-white border-gray-200 text-blue-600 focus:ring-brand-500/20">
                     Fiyatlara KDV dahil
                 </label>
                 <label class="flex items-center gap-3 text-sm text-gray-700 cursor-pointer">
                     <input type="checkbox" name="auto_print_receipt" value="1" {{ ($tenant->meta['auto_print_receipt'] ?? false) ? 'checked' : '' }}
-                        class="w-4 h-4 rounded bg-white border-gray-600 text-blue-600 focus:ring-brand-500/20">
+                        class="w-4 h-4 rounded bg-white border-gray-200 text-blue-600 focus:ring-brand-500/20">
                     Satış sonrası otomatik fiş yazdır
                 </label>
                 <label class="flex items-center gap-3 text-sm text-gray-700 cursor-pointer">
                     <input type="checkbox" name="kitchen_print" value="1" {{ ($tenant->meta['kitchen_print'] ?? false) ? 'checked' : '' }}
-                        class="w-4 h-4 rounded bg-white border-gray-600 text-blue-600 focus:ring-brand-500/20">
+                        class="w-4 h-4 rounded bg-white border-gray-200 text-blue-600 focus:ring-brand-500/20">
                     Mutfak yazıcısı aktif
                 </label>
             </div>
 
             <div class="flex justify-end pt-2">
-                <button type="submit" class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-gray-900 text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
+                <button type="submit" class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
                     <i class="fas fa-save mr-1"></i> Kaydet
                 </button>
             </div>

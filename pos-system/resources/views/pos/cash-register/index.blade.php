@@ -5,7 +5,7 @@
 <div x-data="cashRegisterScreen()" class="flex-1 flex flex-col overflow-hidden">
 
     {{-- Üst Bar --}}
-    <div class="p-3 sm:p-4 bg-gray-50 border-b border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+    <div class="p-3 sm:p-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div class="flex items-center gap-3">
             <h1 class="text-lg sm:text-xl font-bold text-gray-900">
                 <i class="fas fa-cash-register text-brand-500 mr-2"></i>Kasa İşlemleri
@@ -32,8 +32,8 @@
         {{-- KASA KAPALI — Kasa Aç Formu --}}
         {{-- ═══════════════════════════════════════════ --}}
         <div class="max-w-lg mx-auto mt-12">
-            <div class="bg-white rounded-2xl border border-gray-700 p-8 text-center">
-                <div class="w-20 h-20 bg-slate-700 rounded-full mx-auto flex items-center justify-center mb-6">
+            <div class="bg-white rounded-2xl border border-gray-200 p-8 text-center">
+                <div class="w-20 h-20 bg-gray-100 rounded-full mx-auto flex items-center justify-center mb-6">
                     <i class="fas fa-lock text-3xl text-gray-500"></i>
                 </div>
                 <h2 class="text-2xl font-bold text-gray-900 mb-2">Kasa Kapalı</h2>
@@ -46,7 +46,7 @@
                         <div class="relative">
                             <span class="absolute left-4 top-3.5 text-gray-500 font-medium">₺</span>
                             <input type="number" name="opening_amount" step="0.01" min="0" value="0" required
-                                   class="w-full pl-10 pr-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-gray-900 text-lg font-semibold placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-transparent"
+                                   class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-lg font-semibold placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-transparent"
                                    placeholder="0.00">
                         </div>
                         <p class="text-xs text-gray-500 mt-1.5">Kasadaki mevcut nakit tutarını girin</p>
@@ -72,7 +72,7 @@
         {{-- Kasa Bilgileri --}}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {{-- Kasa Durumu --}}
-            <div class="bg-white rounded-xl border border-gray-700 p-4">
+            <div class="bg-white rounded-xl border border-gray-200 p-4">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Kasa Durumu</span>
                     <span class="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
@@ -100,7 +100,7 @@
             </div>
 
             {{-- Nakit Satışlar --}}
-            <div class="bg-white rounded-xl border border-gray-700 p-4 cursor-pointer hover:border-emerald-400 hover:shadow-md transition-all" @click="openSalesModal('cash')">
+            <div class="bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:border-emerald-400 hover:shadow-md transition-all" @click="openSalesModal('cash')">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Nakit Satış</span>
                     <span class="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
@@ -112,7 +112,7 @@
             </div>
 
             {{-- Kart Satışlar --}}
-            <div class="bg-white rounded-xl border border-gray-700 p-4 cursor-pointer hover:border-brand-400 hover:shadow-md transition-all" @click="openSalesModal('card')">
+            <div class="bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:border-brand-400 hover:shadow-md transition-all" @click="openSalesModal('card')">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Kart Satış</span>
                     <span class="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
@@ -136,7 +136,7 @@
             </div>
 
             {{-- Toplam Satış --}}
-            <div class="bg-white rounded-xl border border-gray-700 p-4 cursor-pointer hover:border-purple-400 hover:shadow-md transition-all" @click="openSalesModal('all')">
+            <div class="bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:border-purple-400 hover:shadow-md transition-all" @click="openSalesModal('all')">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Toplam Satış</span>
                     <span class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
@@ -149,20 +149,20 @@
         </div>
 
         {{-- Beklenen Nakit Hesaplaması --}}
-        <div class="bg-white rounded-xl border border-gray-700 p-5">
+        <div class="bg-white rounded-xl border border-gray-200 p-5">
             <h3 class="text-sm font-semibold text-gray-900 mb-4">
                 <i class="fas fa-calculator text-brand-500 mr-2"></i>Nakit Özeti
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-slate-800/50 rounded-lg p-4 text-center">
+                <div class="bg-gray-50 rounded-lg p-4 text-center">
                     <div class="text-xs text-gray-500 mb-1">Açılış Bakiye</div>
                     <div class="text-lg font-bold text-gray-900">{{ number_format($register->opening_amount, 2) }} ₺</div>
                 </div>
-                <div class="bg-slate-800/50 rounded-lg p-4 text-center">
+                <div class="bg-gray-50 rounded-lg p-4 text-center">
                     <div class="text-xs text-gray-500 mb-1">+ Nakit Satışlar</div>
                     <div class="text-lg font-bold text-emerald-600">{{ number_format($stats['cash_total'] ?? 0, 2) }} ₺</div>
                 </div>
-                <div class="bg-blue-900/30 rounded-lg p-4 text-center border border-blue-500/30">
+                <div class="bg-blue-100 rounded-lg p-4 text-center border border-blue-500/30">
                     <div class="text-xs text-brand-600 mb-1">= Beklenen Nakit</div>
                     <div class="text-lg font-bold text-brand-600">{{ number_format($register->opening_amount + ($stats['cash_total'] ?? 0), 2) }} ₺</div>
                 </div>
@@ -177,7 +177,7 @@
                 X Raporu Yazdır
             </button>
             <button @click="showCloseModal = true"
-                    class="px-8 py-3.5 bg-red-600 hover:bg-red-500 text-gray-900 font-bold rounded-xl transition-colors text-sm flex items-center gap-2 shadow-lg shadow-red-900/30">
+                    class="px-8 py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-colors text-sm flex items-center gap-2 shadow-lg shadow-red-500/30">
                 <i class="fas fa-lock"></i>
                 Kasayı Kapat (Z Raporu)
             </button>
@@ -188,8 +188,8 @@
         {{-- ÖNCEKİ Z RAPORLARI --}}
         {{-- ═══════════════════════════════════════════ --}}
         @if($zReports->isNotEmpty())
-        <div class="bg-white rounded-xl border border-gray-700 overflow-hidden">
-            <div class="p-4 border-b border-gray-700 flex items-center justify-between">
+        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-gray-900">
                     <i class="fas fa-file-lines text-amber-600 mr-2"></i>Önceki Z Raporları
                 </h3>
@@ -197,7 +197,7 @@
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
-                    <thead class="bg-slate-800/50">
+                    <thead class="bg-gray-50">
                         <tr class="text-gray-500 text-xs uppercase tracking-wider">
                             <th class="text-left py-3 px-4 font-medium">Tarih</th>
                             <th class="text-left py-3 px-4 font-medium">Açılış</th>
@@ -277,14 +277,14 @@
         <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showCloseModal = false"></div>
 
         {{-- Modal İçeriği --}}
-        <div class="relative bg-gray-50 rounded-2xl border border-gray-700 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl"
+        <div class="relative bg-gray-50 rounded-2xl border border-gray-200 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl"
              x-transition:enter="transition ease-out duration-200"
              x-transition:enter-start="opacity-0 scale-95"
              x-transition:enter-end="opacity-100 scale-100"
              @click.away="showCloseModal = false">
 
             {{-- Modal Başlık --}}
-            <div class="p-5 border-b border-gray-700 flex items-center justify-between">
+            <div class="p-5 border-b border-gray-200 flex items-center justify-between">
                 <h3 class="text-lg font-bold text-gray-900">
                     <i class="fas fa-file-invoice text-amber-600 mr-2"></i>Kasa Kapat — Z Raporu
                 </h3>
@@ -295,7 +295,7 @@
 
             {{-- Z Rapor Özeti --}}
             <div class="p-5 space-y-4">
-                <div class="bg-slate-800/50 rounded-xl p-4 space-y-2.5 text-sm">
+                <div class="bg-gray-50 rounded-xl p-4 space-y-2.5 text-sm">
                     <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Gün Sonu Özeti</div>
 
                     <div class="flex justify-between">
@@ -307,7 +307,7 @@
                         <span class="text-gray-900">{{ $register->user->name ?? '-' }}</span>
                     </div>
 
-                    <div class="border-t border-gray-700 my-2"></div>
+                    <div class="border-t border-gray-200 my-2"></div>
 
                     <div class="flex justify-between">
                         <span class="text-gray-500">Açılış Bakiye:</span>
@@ -326,7 +326,7 @@
                         <span class="text-gray-900">{{ $stats['sale_count'] ?? 0 }}</span>
                     </div>
 
-                    <div class="border-t border-gray-700 my-2"></div>
+                    <div class="border-t border-gray-200 my-2"></div>
 
                     <div class="flex justify-between text-base">
                         <span class="text-gray-700 font-semibold">Beklenen Nakit:</span>
@@ -344,13 +344,13 @@
                             <span class="absolute left-4 top-3.5 text-gray-500 font-medium">₺</span>
                             <input type="number" name="actual_cash" step="0.01" min="0" required
                                    x-model.number="actualCash"
-                                   class="w-full pl-10 pr-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-gray-900 text-lg font-semibold placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-transparent"
+                                   class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-lg font-semibold placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-transparent"
                                    placeholder="0.00">
                         </div>
                     </div>
 
                     {{-- Fark Gösterimi --}}
-                    <div class="bg-slate-800/50 rounded-lg p-3 flex items-center justify-between"
+                    <div class="bg-gray-50 rounded-lg p-3 flex items-center justify-between"
                          x-show="actualCash !== null && actualCash !== ''">
                         <span class="text-sm text-gray-500">Fark:</span>
                         <span class="text-lg font-bold"
@@ -368,14 +368,14 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Kapanış Notu (İsteğe bağlı)</label>
                         <textarea name="notes" rows="2"
-                                  class="w-full px-4 py-2.5 bg-slate-700/50 border border-slate-600 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 text-sm resize-none"
+                                  class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 text-sm resize-none"
                                   placeholder="Varsa not ekleyin..."></textarea>
                     </div>
 
                     {{-- Aksiyonlar --}}
                     <div class="flex gap-3 pt-2">
                         <button type="button" @click="showCloseModal = false"
-                                class="flex-1 py-3 bg-slate-700 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors text-sm">
+                                class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors text-sm">
                             İptal
                         </button>
                         <button type="submit"

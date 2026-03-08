@@ -18,10 +18,10 @@
     </div>
 
     {{-- SOL: Sipariş Ekleme --}}
-    <div class="flex-1 flex flex-col border-r border-gray-700"
+    <div class="flex-1 flex flex-col border-r border-gray-200"
          :class="{ 'hidden lg:flex': mobileTab !== 'menu' }">
         {{-- Masa Bilgileri --}}
-        <div class="p-3 sm:p-4 bg-gray-50 border-b border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div class="p-3 sm:p-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div class="flex items-center gap-3 sm:gap-4">
                 <a href="{{ route('pos.tables') }}" class="text-gray-500 hover:text-gray-800">
                     <i class="fas fa-arrow-left"></i>
@@ -31,8 +31,8 @@
                     <div class="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
                         <span><i class="fas fa-users mr-1"></i>{{ $table->capacity }} Kişilik</span>
                         <span class="px-2 py-0.5 rounded-full text-xs font-medium
-                            {{ $table->status === 'occupied' ? 'bg-red-900/50 text-red-500' : 
-                               ($table->status === 'reserved' ? 'bg-amber-900/50 text-amber-600' : 'bg-green-900/50 text-emerald-500') }}">
+                            {{ $table->status === 'occupied' ? 'bg-red-100 text-red-600' : 
+                               ($table->status === 'reserved' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-emerald-600') }}">
                             {{ $table->status === 'occupied' ? 'Dolu' : ($table->status === 'reserved' ? 'Reserve' : 'Boş') }}
                         </span>
                         @if($session)
@@ -59,26 +59,26 @@
 
         @if($session)
         {{-- Ürün Arama --}}
-        <div class="p-3 border-b border-gray-700">
+        <div class="p-3 border-b border-gray-200">
             <div class="flex gap-2">
                 <div class="flex-1 relative">
-                    <i class="fas fa-search absolute left-3 top-3 text-gray-500"></i>
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
                     <input type="text" x-model="searchQuery" @input.debounce.300ms="searchProducts()"
                            placeholder="Ürün arayın..."
-                           class="w-full pl-10 pr-4 py-2.5 bg-slate-700/50 border border-slate-600 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 text-sm">
+                           class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 text-sm">
                 </div>
             </div>
             {{-- Kategoriler --}}
             <div class="flex gap-1.5 mt-2 overflow-x-auto pb-1">
                 <button @click="filterCategory(null)" 
                         class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap"
-                        :class="selectedCategory === null ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-gray-900' : 'bg-slate-700 text-gray-500'">
+                        :class="selectedCategory === null ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">
                     Tümü
                 </button>
                 @foreach($categories as $cat)
                 <button @click="filterCategory({{ $cat->id }})" 
                         class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap"
-                        :class="selectedCategory === {{ $cat->id }} ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-gray-900' : 'bg-slate-700 text-gray-500'">
+                        :class="selectedCategory === {{ $cat->id }} ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">
                     {{ $cat->name }}
                 </button>
                 @endforeach
@@ -111,14 +111,14 @@
     {{-- SAĞ: Mevcut Siparişler --}}
     <div class="w-full lg:w-96 flex flex-col bg-gray-50"
          :class="{ 'hidden lg:flex': mobileTab !== 'orders' }">
-        <div class="p-3 border-b border-gray-700">
+        <div class="p-3 border-b border-gray-200">
             <h2 class="text-md font-bold text-gray-900">Siparişler</h2>
         </div>
 
         @if($session)
         {{-- Bekleyen Sipariş --}}
-        <div x-show="pendingItems.length > 0" class="border-b border-gray-700">
-            <div class="px-3 py-2 bg-amber-900/20 border-b border-amber-600/20">
+        <div x-show="pendingItems.length > 0" class="border-b border-gray-200">
+            <div class="px-3 py-2 bg-amber-50 border-b border-amber-200">
                 <span class="text-xs font-bold text-amber-600"><i class="fas fa-clock mr-1"></i> Yeni Sipariş</span>
             </div>
             <div class="divide-y divide-gray-100">
@@ -144,8 +144,8 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <input type="text" x-model="orderNote" placeholder="Sipariş notu..."
-                           class="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-gray-900 focus:outline-none">
-                    <button @click="submitOrder()" class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:shadow-lg hover:shadow-emerald-200 rounded-lg text-sm font-medium">
+                           class="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+                    <button @click="submitOrder()" class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:shadow-lg hover:shadow-emerald-200 rounded-lg text-sm font-medium text-white">
                         <i class="fas fa-paper-plane mr-1"></i> Gönder
                     </button>
                 </div>
@@ -155,14 +155,14 @@
         {{-- Mevcut Siparişler --}}
         <div class="flex-1 overflow-y-auto">
             @forelse($session->orders as $order)
-            <div class="border-b border-gray-700">
-                <div class="px-3 py-2 bg-slate-800/50 flex items-center justify-between">
+            <div class="border-b border-gray-200">
+                <div class="px-3 py-2 bg-gray-50 flex items-center justify-between">
                     <span class="text-xs text-gray-500">
                         Sipariş #{{ $order->order_number }} - {{ $order->created_at->format('H:i') }}
                     </span>
                     <span class="text-xs px-2 py-0.5 rounded-full
-                        {{ $order->status === 'completed' ? 'bg-green-900/50 text-emerald-500' : 
-                           ($order->status === 'preparing' ? 'bg-amber-900/50 text-amber-600' : 'bg-blue-900/50 text-brand-600') }}">
+                        {{ $order->status === 'completed' ? 'bg-green-100 text-emerald-600' : 
+                           ($order->status === 'preparing' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-600') }}">
                         {{ $order->status === 'completed' ? 'Hazır' : ($order->status === 'preparing' ? 'Hazırlanıyor' : 'Bekliyor') }}
                     </span>
                 </div>
@@ -194,9 +194,9 @@
 
         {{-- Alt Toplam --}}
         @if($session)
-        <div class="border-t border-gray-700 p-4 bg-slate-800/50">
+        <div class="border-t border-gray-200 p-4 bg-white">
             <div class="flex items-center justify-between text-sm mb-1">
-                <span class="text-gray-700 font-semibold">Toplam Tutar</span>
+                <span class="text-gray-800 font-semibold">Toplam Tutar</span>
                 <span class="text-lg font-bold text-brand-600" x-text="formatCurrency(grandTotal)"></span>
             </div>
             <div x-show="pendingTotal > 0" class="flex items-center justify-between text-xs text-amber-600 mb-1">
@@ -310,7 +310,7 @@
                     </div>
 
                     <button @click="confirmPayTable()" :disabled="payProcessing || (payMethod==='credit' && !payCustomerId) || (payMethod==='mixed' && !payCustomerId && payMixedCredit > 0)"
-                            class="w-full py-3 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 rounded-xl font-medium text-gray-900 disabled:opacity-50 flex items-center justify-center gap-2">
+                            class="w-full py-3 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 rounded-xl font-medium text-white disabled:opacity-50 flex items-center justify-center gap-2">
                         <template x-if="payProcessing"><i class="fas fa-spinner fa-spin"></i></template>
                         <template x-if="!payProcessing"><i class="fas fa-check-circle"></i></template>
                         <span x-text="payProcessing ? 'İşleniyor...' : 'Ödemeyi Tamamla'"></span>
@@ -414,19 +414,19 @@
 
     {{-- Transfer Modal --}}
     <div x-show="showTransfer" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm" x-cloak>
-        <div class="bg-slate-800 rounded-2xl border border-gray-700 p-5 sm:p-6 w-full max-w-sm mx-4 shadow-2xl" @click.away="showTransfer = false">
+        <div class="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 w-full max-w-sm mx-4 shadow-2xl" @click.away="showTransfer = false">
             <h3 class="text-lg font-bold text-gray-900 mb-4">Masa Transfer</h3>
             <p class="text-sm text-gray-500 mb-3">Masa {{ $table->table_no }} siparişlerini hangi masaya taşımak istiyorsunuz?</p>
             <select x-model="transferTarget" 
-                    class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-gray-900 focus:outline-none text-sm">
+                    class="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 text-sm">
                 <option value="">Masa seçin...</option>
                 @foreach($emptyTables as $emptyTable)
                 <option value="{{ $emptyTable->id }}">Masa {{ $emptyTable->table_no }} - {{ $emptyTable->name }}</option>
                 @endforeach
             </select>
             <div class="flex gap-2 mt-4">
-                <button @click="showTransfer = false" class="flex-1 py-2 bg-slate-600 hover:bg-gray-200 rounded-lg text-sm">İptal</button>
-                <button @click="transferTable()" :disabled="!transferTarget" class="flex-1 py-2 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 disabled:opacity-50 rounded-lg text-sm font-medium">Transfer Et</button>
+                <button @click="showTransfer = false" class="flex-1 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700">İptal</button>
+                <button @click="transferTable()" :disabled="!transferTarget" class="flex-1 py-2 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 disabled:opacity-50 rounded-lg text-sm font-medium text-white">Transfer Et</button>
             </div>
         </div>
     </div>

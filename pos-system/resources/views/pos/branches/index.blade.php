@@ -11,7 +11,7 @@
             <p class="text-sm text-gray-500 mt-1">{{ $branches->count() }} şube kayıtlı</p>
         </div>
         <button @click="openCreate()"
-                class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-gray-900 font-medium rounded-lg text-sm px-5 py-2.5 transition-colors flex items-center gap-2 justify-center">
+                class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-white font-medium rounded-lg text-sm px-5 py-2.5 transition-colors flex items-center gap-2 justify-center">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
@@ -101,33 +101,33 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Şube Adı <span class="text-red-500">*</span></label>
-                        <input type="text" x-model="form.name" required class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5">
+                        <input type="text" x-model="form.name" required class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Şube Kodu</label>
-                        <input type="text" x-model="form.code" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5" placeholder="Ör: SBE-01">
+                        <input type="text" x-model="form.code" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5" placeholder="Ör: SBE-01">
                     </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Adres</label>
-                    <textarea x-model="form.address" rows="2" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5 resize-none"></textarea>
+                    <textarea x-model="form.address" rows="2" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 resize-none"></textarea>
                 </div>
                 <div class="grid grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Telefon</label>
-                        <input type="tel" x-model="form.phone" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5">
+                        <input type="tel" x-model="form.phone" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">İl</label>
-                        <input type="text" x-model="form.city" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5">
+                        <input type="text" x-model="form.city" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">İlçe</label>
-                        <input type="text" x-model="form.district" class="w-full bg-white border border-gray-700 text-gray-900 text-sm rounded-lg px-4 py-2.5">
+                        <input type="text" x-model="form.district" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5">
                     </div>
                 </div>
                 <div class="flex gap-3 pt-4 border-t border-gray-100">
-                    <button type="button" @click="showModal = false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-700 rounded-lg">İptal</button>
+                    <button type="button" @click="showModal = false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg">İptal</button>
                     <button type="submit" :disabled="saving" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-900 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 rounded-lg disabled:opacity-50">
                         <span x-text="editingId ? 'Güncelle' : 'Kaydet'"></span>
                     </button>

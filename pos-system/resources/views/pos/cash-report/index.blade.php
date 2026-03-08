@@ -36,14 +36,14 @@
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Kasa Raporları (Z Raporları)</h1>
         <form method="GET" class="flex flex-wrap items-center gap-3">
-            <select name="status" class="bg-white border border-gray-700 text-gray-700 text-sm rounded-lg px-3 py-2">
+            <select name="status" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-2">
                 <option value="">Tüm Durumlar</option>
                 <option value="open" {{ request('status') == 'open' ? 'selected' : '' }}>Açık</option>
                 <option value="closed" {{ request('status') == 'closed' ? 'selected' : '' }}>Kapalı</option>
             </select>
-            <input type="date" name="start_date" value="{{ request('start_date') }}" class="bg-white border border-gray-700 text-gray-700 text-sm rounded-lg px-3 py-2">
-            <input type="date" name="end_date" value="{{ request('end_date') }}" class="bg-white border border-gray-700 text-gray-700 text-sm rounded-lg px-3 py-2">
-            <button type="submit" class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-gray-900 text-sm font-medium px-4 py-2 rounded-lg">Filtrele</button>
+            <input type="date" name="start_date" value="{{ request('start_date') }}" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-2">
+            <input type="date" name="end_date" value="{{ request('end_date') }}" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-2">
+            <button type="submit" class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-white text-sm font-medium px-4 py-2 rounded-lg">Filtrele</button>
         </form>
     </div>
 
