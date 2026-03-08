@@ -241,7 +241,7 @@
                     </div>
 
                     <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Ödeme Yöntemi</p>
-                    <div class="grid grid-cols-2 gap-2 mb-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                         <button @click="payMethod = 'cash'" :class="payMethod === 'cash' ? 'ring-2 ring-brand-500 bg-brand-50 text-brand-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'"
                                 class="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all">
                             <i class="fas fa-money-bill-wave"></i> Nakit
@@ -357,7 +357,7 @@
 
                     {{-- Ödeme Yöntemi --}}
                     <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Ödeme Yöntemi</p>
-                    <div class="grid grid-cols-3 gap-2 mb-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
                         <button @click="splitMethod = 'cash'" :class="splitMethod === 'cash' ? 'ring-2 ring-emerald-500 bg-emerald-50 text-emerald-700' : 'bg-white border border-gray-200 text-gray-700'"
                                 class="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all">
                             <i class="fas fa-money-bill-wave"></i> Nakit

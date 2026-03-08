@@ -3,7 +3,7 @@
 @section('title', 'Kasa Raporu')
 
 @section('content')
-<div class="p-6 overflow-y-auto h-full">
+<div class="p-3 sm:p-6 overflow-y-auto h-full">
     {{-- Stats --}}
     <div class="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
         <div class="bg-white rounded-xl border border-gray-100 p-4 text-center">
@@ -54,14 +54,14 @@
                 <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
                     <tr>
                         <th class="px-4 py-3.5">Açılış</th>
-                        <th class="px-4 py-3.5">Kapanış</th>
+                        <th class="px-4 py-3.5 hidden md:table-cell">Kapanış</th>
                         <th class="px-4 py-3.5">Personel</th>
-                        <th class="px-4 py-3.5 text-right">Açılış Tutarı</th>
+                        <th class="px-4 py-3.5 text-right hidden lg:table-cell">Açılış Tutarı</th>
                         <th class="px-4 py-3.5 text-right">Satış</th>
-                        <th class="px-4 py-3.5 text-right">Nakit</th>
-                        <th class="px-4 py-3.5 text-right">Kart</th>
-                        <th class="px-4 py-3.5 text-right text-amber-600">Veresiye</th>
-                        <th class="px-4 py-3.5 text-right">Fark</th>
+                        <th class="px-4 py-3.5 text-right hidden md:table-cell">Nakit</th>
+                        <th class="px-4 py-3.5 text-right hidden md:table-cell">Kart</th>
+                        <th class="px-4 py-3.5 text-right text-amber-600 hidden lg:table-cell">Veresiye</th>
+                        <th class="px-4 py-3.5 text-right hidden lg:table-cell">Fark</th>
                         <th class="px-4 py-3.5 text-center">Durum</th>
                     </tr>
                 </thead>
@@ -69,14 +69,14 @@
                     @forelse($registers as $reg)
                         <tr class="hover:bg-gray-50 transition-colors">
                             <td class="px-4 py-3 text-xs">{{ $reg->opened_at ? \Carbon\Carbon::parse($reg->opened_at)->format('d.m.Y H:i') : '-' }}</td>
-                            <td class="px-4 py-3 text-xs">{{ $reg->closed_at ? \Carbon\Carbon::parse($reg->closed_at)->format('d.m.Y H:i') : '-' }}</td>
+                            <td class="px-4 py-3 text-xs hidden md:table-cell">{{ $reg->closed_at ? \Carbon\Carbon::parse($reg->closed_at)->format('d.m.Y H:i') : '-' }}</td>
                             <td class="px-4 py-3">{{ $reg->user->name ?? '-' }}</td>
-                            <td class="px-4 py-3 text-right font-mono">{{ formatCurrency($reg->opening_amount) }}</td>
+                            <td class="px-4 py-3 text-right font-mono hidden lg:table-cell">{{ formatCurrency($reg->opening_amount) }}</td>
                             <td class="px-4 py-3 text-right font-mono font-medium text-gray-900">{{ formatCurrency($reg->total_sales) }}</td>
-                            <td class="px-4 py-3 text-right font-mono text-emerald-600">{{ formatCurrency($reg->total_cash) }}</td>
-                            <td class="px-4 py-3 text-right font-mono text-brand-500">{{ formatCurrency($reg->total_card) }}</td>
-                            <td class="px-4 py-3 text-right font-mono text-amber-500">{{ formatCurrency($creditByRegister[$reg->id] ?? 0) }}</td>
-                            <td class="px-4 py-3 text-right font-mono {{ ($reg->difference ?? 0) >= 0 ? 'text-emerald-600' : 'text-red-500' }}">
+                            <td class="px-4 py-3 text-right font-mono text-emerald-600 hidden md:table-cell">{{ formatCurrency($reg->total_cash) }}</td>
+                            <td class="px-4 py-3 text-right font-mono text-brand-500 hidden md:table-cell">{{ formatCurrency($reg->total_card) }}</td>
+                            <td class="px-4 py-3 text-right font-mono text-amber-500 hidden lg:table-cell">{{ formatCurrency($creditByRegister[$reg->id] ?? 0) }}</td>
+                            <td class="px-4 py-3 text-right font-mono hidden lg:table-cell {{ ($reg->difference ?? 0) >= 0 ? 'text-emerald-600' : 'text-red-500' }}">
                                 {{ formatCurrency($reg->difference ?? 0) }}
                             </td>
                             <td class="px-4 py-3 text-center">

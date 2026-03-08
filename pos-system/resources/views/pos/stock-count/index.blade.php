@@ -2,7 +2,7 @@
 @section('title', 'Stok Sayımı')
 
 @section('content')
-<div class="p-6 overflow-y-auto h-full" x-data="stockCountManager()" x-cloak>
+<div class="p-3 sm:p-6 overflow-y-auto h-full" x-data="stockCountManager()" x-cloak>
     {{-- Header --}}
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>

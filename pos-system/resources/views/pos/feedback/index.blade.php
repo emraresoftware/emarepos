@@ -2,7 +2,7 @@
 @section('title', 'Geri Bildirimler')
 
 @section('content')
-<div class="p-6 space-y-6" x-data="feedbackAdmin()">
+<div class="p-3 sm:p-6 space-y-4 sm:space-y-6" x-data="feedbackAdmin()">
 
     {{-- Başlık --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

@@ -3,7 +3,7 @@
 @section('title', 'Siparişler')
 
 @section('content')
-<div class="p-6 overflow-y-auto h-full" x-data="orderManager()" x-cloak>
+<div class="p-3 sm:p-6 overflow-y-auto h-full" x-data="orderManager()" x-cloak>
     {{-- Stats --}}
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
         <div class="bg-white rounded-xl border border-gray-100 p-4 text-center">

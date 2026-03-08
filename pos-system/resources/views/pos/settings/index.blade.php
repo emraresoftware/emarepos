@@ -3,7 +3,7 @@
 @section('title', 'Ayarlar')
 
 @section('content')
-<div x-data="{ activeTab: 'branch' }" class="p-6 overflow-y-auto h-full">
+<div x-data="{ activeTab: 'branch' }" class="p-3 sm:p-6 overflow-y-auto h-full">
     <h1 class="text-2xl font-bold text-gray-900 mb-6">Ayarlar</h1>
 
     {{-- Tabs --}}

@@ -2,7 +2,7 @@
 @section('title', 'Satış Geçmişi')
 
 @section('content')
-<div x-data="salesList()" class="flex-1 overflow-y-auto p-6 space-y-6">
+<div x-data="salesList()" class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
 
     {{-- Top Bar --}}
     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
@@ -101,13 +101,13 @@
                         <th class="text-left text-gray-500 font-semibold py-3 px-4 w-8"></th>
                         <th class="text-left text-gray-500 font-semibold py-3 px-4">Fiş No</th>
                         <th class="text-left text-gray-500 font-semibold py-3 px-4">Tarih / Saat</th>
-                        <th class="text-left text-gray-500 font-semibold py-3 px-4">Müşteri</th>
-                        <th class="text-center text-gray-500 font-semibold py-3 px-4">Ürün Sayısı</th>
-                        <th class="text-right text-gray-500 font-semibold py-3 px-4">Ara Toplam</th>
-                        <th class="text-right text-gray-500 font-semibold py-3 px-4">İndirim</th>
-                        <th class="text-right text-gray-500 font-semibold py-3 px-4">KDV</th>
+                        <th class="text-left text-gray-500 font-semibold py-3 px-4 hidden md:table-cell">Müşteri</th>
+                        <th class="text-center text-gray-500 font-semibold py-3 px-4 hidden lg:table-cell">Ürün Sayısı</th>
+                        <th class="text-right text-gray-500 font-semibold py-3 px-4 hidden md:table-cell">Ara Toplam</th>
+                        <th class="text-right text-gray-500 font-semibold py-3 px-4 hidden lg:table-cell">İndirim</th>
+                        <th class="text-right text-gray-500 font-semibold py-3 px-4 hidden lg:table-cell">KDV</th>
                         <th class="text-right text-gray-500 font-semibold py-3 px-4">Genel Toplam</th>
-                        <th class="text-center text-gray-500 font-semibold py-3 px-4">Ödeme</th>
+                        <th class="text-center text-gray-500 font-semibold py-3 px-4 hidden md:table-cell">Ödeme</th>
                         <th class="text-center text-gray-500 font-semibold py-3 px-4">Durum</th>
                         <th class="text-center text-gray-500 font-semibold py-3 px-4">İşlemler</th>
                     </tr>
@@ -127,7 +127,7 @@
                                 {{ $sale->sold_at?->format('d.m.Y') }}
                                 <span class="text-gray-400 ml-1">{{ $sale->sold_at?->format('H:i') }}</span>
                             </td>
-                            <td class="py-3 px-4">
+                            <td class="py-3 px-4 hidden md:table-cell">
                                 @if($sale->customer)
                                     <div class="flex items-center gap-2">
                                         <div class="w-6 h-6 bg-brand-50 rounded-full flex items-center justify-center">
@@ -139,20 +139,20 @@
                                     <span class="text-gray-300">—</span>
                                 @endif
                             </td>
-                            <td class="py-3 px-4 text-center text-gray-700">
+                            <td class="py-3 px-4 text-center text-gray-700 hidden lg:table-cell">
                                 <span class="bg-gray-100 px-2 py-0.5 rounded-full text-xs font-medium">{{ $sale->items->count() }}</span>
                             </td>
-                            <td class="py-3 px-4 text-right text-gray-700">{{ number_format($sale->subtotal, 2, ',', '.') }} ₺</td>
-                            <td class="py-3 px-4 text-right">
+                            <td class="py-3 px-4 text-right text-gray-700 hidden md:table-cell">{{ number_format($sale->subtotal, 2, ',', '.') }} ₺</td>
+                            <td class="py-3 px-4 text-right hidden lg:table-cell">
                                 @if($sale->discount_total > 0)
                                     <span class="text-amber-600">-{{ number_format($sale->discount_total, 2, ',', '.') }} ₺</span>
                                 @else
                                     <span class="text-gray-300">—</span>
                                 @endif
                             </td>
-                            <td class="py-3 px-4 text-right text-gray-500">{{ number_format($sale->vat_total, 2, ',', '.') }} ₺</td>
+                            <td class="py-3 px-4 text-right text-gray-500 hidden lg:table-cell">{{ number_format($sale->vat_total, 2, ',', '.') }} ₺</td>
                             <td class="py-3 px-4 text-right text-gray-900 font-bold">{{ number_format($sale->grand_total, 2, ',', '.') }} ₺</td>
-                            <td class="py-3 px-4 text-center">
+                            <td class="py-3 px-4 text-center hidden md:table-cell">
                                 @switch($sale->payment_method)
                                     @case('cash')
                                         <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-600 border border-emerald-200">

@@ -228,7 +228,7 @@
              class="fixed inset-0 z-50 flex items-center justify-center p-4"
              @keydown.escape.window="showRegionModal = false">
             <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" @click="showRegionModal = false"></div>
-            <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 z-10">
+            <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 z-10 max-h-[90vh] overflow-y-auto">
                 <h3 class="text-lg font-bold text-gray-900 mb-5" x-text="editingRegion ? 'Mekanı Düzenle' : 'Yeni Mekan Ekle'"></h3>
                 <div class="space-y-4">
                     <div>
@@ -295,10 +295,10 @@
              class="fixed inset-0 z-50 flex items-center justify-center p-4"
              @keydown.escape.window="showTableModal = false">
             <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" @click="showTableModal = false"></div>
-            <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 z-10">
+            <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 z-10 max-h-[90vh] overflow-y-auto">
                 <h3 class="text-lg font-bold text-gray-900 mb-5" x-text="editingTable ? 'Masayı Düzenle' : 'Yeni Masa Ekle'"></h3>
                 <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1.5">Masa No <span class="text-red-400">*</span></label>
                             <input x-model="tableForm.table_no" type="text" placeholder="1, A2, B-3…"
@@ -379,11 +379,11 @@
              class="fixed inset-0 z-50 flex items-center justify-center p-4"
              @keydown.escape.window="showBulkTableModal = false">
             <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" @click="showBulkTableModal = false"></div>
-            <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 z-10">
+            <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 z-10 max-h-[90vh] overflow-y-auto">
                 <h3 class="text-lg font-bold text-gray-900 mb-1">Toplu Masa Ekle</h3>
                 <p class="text-xs text-gray-400 mb-5">Belirttiğiniz aralıkta masalar otomatik oluşturulur</p>
                 <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1.5">Ön Ek (İsteğe Bağlı)</label>
                             <input x-model="bulkForm.prefix" type="text" placeholder="Masa, Salon, VIP…"
@@ -400,7 +400,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1.5">Başlangıç No</label>
                             <input x-model.number="bulkForm.start" type="number" min="1"

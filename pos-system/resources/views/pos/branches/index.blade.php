@@ -38,7 +38,7 @@
                         </div>
                     </div>
                     <button @click="openEdit({{ json_encode(['id' => $branch->id, 'name' => $branch->name, 'code' => $branch->code, 'address' => $branch->address, 'phone' => $branch->phone, 'city' => $branch->city, 'district' => $branch->district, 'is_active' => $branch->is_active]) }})"
-                            class="p-2 text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100" title="Düzenle">
+                            class="p-2 text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors sm:opacity-0 sm:group-hover:opacity-100" title="Düzenle">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                         </svg>
@@ -92,13 +92,13 @@
     {{-- Modal --}}
     <div x-show="showModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
         <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showModal = false"></div>
-        <div class="relative bg-white rounded-xl border border-gray-100 shadow-2xl w-full max-w-lg" x-transition>
+        <div class="relative bg-white rounded-xl border border-gray-100 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" x-transition>
             <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
                 <h2 class="text-lg font-semibold text-gray-900" x-text="editingId ? 'Şube Düzenle' : 'Yeni Şube'"></h2>
                 <button @click="showModal = false" class="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-lg"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
             </div>
             <form @submit.prevent="submitForm()" class="p-6 space-y-4">
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Şube Adı <span class="text-red-500">*</span></label>
                         <input type="text" x-model="form.name" required class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5">
@@ -112,7 +112,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Adres</label>
                     <textarea x-model="form.address" rows="2" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 resize-none"></textarea>
                 </div>
-                <div class="grid grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Telefon</label>
                         <input type="tel" x-model="form.phone" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5">

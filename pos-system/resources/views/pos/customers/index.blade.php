@@ -96,11 +96,11 @@
                     <tr>
                         <th class="px-4 py-3.5">Ad Soyad</th>
                         <th class="px-4 py-3.5">Telefon</th>
-                        <th class="px-4 py-3.5">E-posta</th>
-                        <th class="px-4 py-3.5">Vergi No</th>
+                        <th class="px-4 py-3.5 hidden md:table-cell">E-posta</th>
+                        <th class="px-4 py-3.5 hidden lg:table-cell">Vergi No</th>
                         <th class="px-4 py-3.5 text-right">Bakiye</th>
-                        <th class="px-4 py-3.5 text-right">Toplam Satış</th>
-                        <th class="px-4 py-3.5">Son İşlem</th>
+                        <th class="px-4 py-3.5 text-right hidden md:table-cell">Toplam Satış</th>
+                        <th class="px-4 py-3.5 hidden lg:table-cell">Son İşlem</th>
                         <th class="px-4 py-3.5 text-center">İşlemler</th>
                     </tr>
                 </thead>
@@ -129,11 +129,11 @@
                                 <span class="text-gray-700">{{ $customer->phone ?? '-' }}</span>
                             </td>
                             {{-- Email --}}
-                            <td class="px-4 py-3">
+                            <td class="px-4 py-3 hidden md:table-cell">
                                 <span class="text-gray-500">{{ $customer->email ?? '-' }}</span>
                             </td>
                             {{-- Tax Number --}}
-                            <td class="px-4 py-3">
+                            <td class="px-4 py-3 hidden lg:table-cell">
                                 <span class="font-mono text-xs text-gray-500">{{ $customer->tax_number ?? '-' }}</span>
                             </td>
                             {{-- Balance --}}
@@ -149,11 +149,11 @@
                                 @endif
                             </td>
                             {{-- Total Sales --}}
-                            <td class="px-4 py-3 text-right font-mono">
+                            <td class="px-4 py-3 text-right font-mono hidden md:table-cell">
                                 {{ formatCurrency($customer->sales_sum_grand_total ?? 0) }}
                             </td>
                             {{-- Last Transaction --}}
-                            <td class="px-4 py-3">
+                            <td class="px-4 py-3 hidden lg:table-cell">
                                 @if($customer->sales_max_sold_at)
                                     <span class="text-gray-500 text-xs">{{ \Carbon\Carbon::parse($customer->sales_max_sold_at)->diffForHumans() }}</span>
                                 @else
@@ -249,7 +249,7 @@
 
             <div x-show="!detailLoading && detailData" class="flex flex-col overflow-hidden flex-1">
                 {{-- Özet Bakiye Kartları --}}
-                <div class="grid grid-cols-3 gap-3 p-4 border-b border-gray-100 flex-shrink-0">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 border-b border-gray-100 flex-shrink-0">
                     <div class="bg-gray-50 rounded-xl p-3 text-center">
                         <p class="text-xs text-gray-400">Bakiye</p>
                         <p class="font-bold text-lg mt-0.5" :class="(detailData?.customer?.balance??0)<0?'text-red-500':((detailData?.customer?.balance??0)>0?'text-emerald-600':'text-gray-700')" x-text="formatCurrency(detailData?.customer?.balance??0)"></p>
@@ -487,7 +487,7 @@
              x-transition:leave="transition ease-in duration-150"
              x-transition:leave-start="opacity-100 scale-100"
              x-transition:leave-end="opacity-0 scale-95"
-             class="relative bg-white rounded-2xl border border-gray-200 shadow-lg shadow-gray-100/50 w-full max-w-md">
+             class="relative bg-white rounded-2xl border border-gray-200 shadow-lg shadow-gray-100/50 w-full max-w-md max-h-[90vh] overflow-y-auto">
 
             {{-- Header --}}
             <div class="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
@@ -531,7 +531,7 @@
                 {{-- Payment Method --}}
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Ödeme Yöntemi</label>
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <label class="cursor-pointer">
                             <input type="radio" x-model="collectForm.payment_method" value="cash" class="peer hidden">
                             <div class="peer-checked:border-emerald-500 peer-checked:bg-emerald-50 border border-gray-200 rounded-xl p-3 text-center transition-colors hover:bg-gray-50">

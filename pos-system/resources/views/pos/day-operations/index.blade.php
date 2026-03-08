@@ -3,7 +3,7 @@
 @section('title', 'Gün İşlemleri')
 
 @section('content')
-<div class="p-6 overflow-y-auto h-full">
+<div class="p-3 sm:p-6 overflow-y-auto h-full">
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>

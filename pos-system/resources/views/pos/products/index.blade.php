@@ -237,18 +237,18 @@
                         <th class="px-3 py-3.5 w-10">
                             <input type="checkbox" @change="toggleSelectAll($event)" class="rounded text-brand-500 border-gray-300 w-4 h-4">
                         </th>
-                        <th class="px-3 py-3.5 font-semibold">Görsel</th>
-                        <th class="px-3 py-3.5 font-semibold">Barkod</th>
-                        <th class="px-3 py-3.5 font-semibold">Stok Kodu</th>
+                        <th class="px-3 py-3.5 font-semibold hidden md:table-cell">Görsel</th>
+                        <th class="px-3 py-3.5 font-semibold hidden lg:table-cell">Barkod</th>
+                        <th class="px-3 py-3.5 font-semibold hidden lg:table-cell">Stok Kodu</th>
                         <th class="px-3 py-3.5 font-semibold">Ürün Adı</th>
-                        <th class="px-3 py-3.5 font-semibold">Kategori</th>
-                        <th class="px-3 py-3.5 font-semibold">Firma</th>
-                        <th class="px-3 py-3.5 text-right font-semibold">Alış</th>
+                        <th class="px-3 py-3.5 font-semibold hidden md:table-cell">Kategori</th>
+                        <th class="px-3 py-3.5 font-semibold hidden lg:table-cell">Firma</th>
+                        <th class="px-3 py-3.5 text-right font-semibold hidden md:table-cell">Alış</th>
                         <th class="px-3 py-3.5 text-right font-semibold">Satış</th>
-                        <th class="px-3 py-3.5 text-center font-semibold">KDV%</th>
+                        <th class="px-3 py-3.5 text-center font-semibold hidden lg:table-cell">KDV%</th>
                         <th class="px-3 py-3.5 text-center font-semibold">Stok</th>
-                        <th class="px-3 py-3.5 font-semibold">Birim</th>
-                        <th class="px-3 py-3.5 text-center font-semibold">POS</th>
+                        <th class="px-3 py-3.5 font-semibold hidden lg:table-cell">Birim</th>
+                        <th class="px-3 py-3.5 text-center font-semibold hidden md:table-cell">POS</th>
                         <th class="px-3 py-3.5 text-center font-semibold">İşlemler</th>
                     </tr>
                 </thead>
@@ -258,7 +258,7 @@
                             <td class="px-3 py-3">
                                 <input type="checkbox" value="{{ $product->id }}" x-model="selectedIds" class="rounded text-brand-500 border-gray-300 w-4 h-4">
                             </td>
-                            <td class="px-3 py-3">
+                            <td class="px-3 py-3 hidden md:table-cell">
                                 <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center border border-gray-200 overflow-hidden">
                                     @if($product->image_url)
                                         <img src="{{ asset('storage/' . $product->image_url) }}" alt="{{ $product->name }}" class="w-10 h-10 object-cover">
@@ -269,10 +269,10 @@
                                     @endif
                                 </div>
                             </td>
-                            <td class="px-3 py-3">
+                            <td class="px-3 py-3 hidden lg:table-cell">
                                 <span class="font-mono text-xs text-gray-400">{{ $product->barcode ?? '-' }}</span>
                             </td>
-                            <td class="px-3 py-3">
+                            <td class="px-3 py-3 hidden lg:table-cell">
                                 <span class="font-mono text-xs text-gray-400">{{ $product->stock_code ?? '-' }}</span>
                             </td>
                             <td class="px-3 py-3 font-medium text-gray-900">
@@ -281,7 +281,7 @@
                                     <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-600">Hizmet</span>
                                 @endif
                             </td>
-                            <td class="px-3 py-3">
+                            <td class="px-3 py-3 hidden md:table-cell">
                                 @if($product->category)
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-brand-50 text-brand-600 border border-brand-200">
                                         {{ $product->category->name }}
@@ -290,7 +290,7 @@
                                     <span class="text-gray-300">-</span>
                                 @endif
                             </td>
-                            <td class="px-3 py-3">
+                            <td class="px-3 py-3 hidden lg:table-cell">
                                 @if($product->firm)
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-orange-50 text-orange-600 border border-orange-200">
                                         {{ $product->firm->name }}
@@ -299,13 +299,13 @@
                                     <span class="text-gray-300">-</span>
                                 @endif
                             </td>
-                            <td class="px-3 py-3 text-right font-mono text-xs">
+                            <td class="px-3 py-3 text-right font-mono text-xs hidden md:table-cell">
                                 {{ $product->purchase_price ? formatCurrency($product->purchase_price) : '-' }}
                             </td>
                             <td class="px-3 py-3 text-right font-mono font-medium text-gray-900">
                                 {{ formatCurrency($product->sale_price) }}
                             </td>
-                            <td class="px-3 py-3 text-center text-xs">%{{ $product->vat_rate ?? 0 }}</td>
+                            <td class="px-3 py-3 text-center text-xs hidden lg:table-cell">%{{ $product->vat_rate ?? 0 }}</td>
                             <td class="px-3 py-3 text-center">
                                 @php $isCritical = !$product->is_service && $product->critical_stock && $product->stock_quantity <= $product->critical_stock; @endphp
                                 <span class="{{ $isCritical ? 'text-red-500 font-semibold' : '' }}">
@@ -315,8 +315,8 @@
                                     <i class="fas fa-exclamation-triangle text-red-400 text-xs ml-0.5"></i>
                                 @endif
                             </td>
-                            <td class="px-3 py-3 text-xs">{{ $product->unit ?? 'Adet' }}</td>
-                            <td class="px-3 py-3 text-center">
+                            <td class="px-3 py-3 text-xs hidden lg:table-cell">{{ $product->unit ?? 'Adet' }}</td>
+                            <td class="px-3 py-3 text-center hidden md:table-cell">
                                 @if($product->show_on_pos ?? true)
                                     <i class="fas fa-check-circle text-emerald-500 text-xs"></i>
                                 @else
@@ -450,7 +450,7 @@
                            placeholder="Ürün adını girin">
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Barkod</label>
                         <input type="text" x-model="form.barcode"
@@ -508,7 +508,7 @@
                                             <span x-show="!cat.children || !cat.children.length" class="w-5"></span>
                                             <span @click="selectCat(cat)" class="flex-1 text-sm truncate" x-text="cat.name"></span>
                                             <button type="button" @click.stop="startAddSub(cat)"
-                                                    class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-brand-600 transition-all shrink-0" title="Alt kategori ekle">
+                                                    class="sm:opacity-0 sm:group-hover:opacity-100 text-gray-400 hover:text-brand-600 transition-all shrink-0" title="Alt kategori ekle">
                                                 <i class="fas fa-plus text-[9px]"></i>
                                             </button>
                                         </div>
@@ -527,7 +527,7 @@
                                                             <span x-show="!sub.children || !sub.children.length" class="w-5"></span>
                                                             <span @click="selectCat(sub)" class="flex-1 text-sm truncate" x-text="sub.name"></span>
                                                             <button type="button" @click.stop="startAddSub(sub)"
-                                                                    class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-brand-600 transition-all shrink-0" title="Alt kategori ekle">
+                                                                    class="sm:opacity-0 sm:group-hover:opacity-100 text-gray-400 hover:text-brand-600 transition-all shrink-0" title="Alt kategori ekle">
                                                                 <i class="fas fa-plus text-[9px]"></i>
                                                             </button>
                                                         </div>
@@ -546,7 +546,7 @@
                                                                             <span x-show="!deep.children || !deep.children.length" class="w-5"></span>
                                                                             <span @click="selectCat(deep)" class="flex-1 text-sm truncate" x-text="deep.name"></span>
                                                                             <button type="button" @click.stop="startAddSub(deep)"
-                                                                                    class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-brand-600 transition-all shrink-0" title="Alt kategori ekle">
+                                                                                    class="sm:opacity-0 sm:group-hover:opacity-100 text-gray-400 hover:text-brand-600 transition-all shrink-0" title="Alt kategori ekle">
                                                                                 <i class="fas fa-plus text-[9px]"></i>
                                                                             </button>
                                                                         </div>
@@ -559,7 +559,7 @@
                                                                                         <span class="w-5"></span>
                                                                                         <span @click="selectCat(d4)" class="flex-1 text-sm truncate" x-text="d4.name"></span>
                                                                                         <button type="button" @click.stop="startAddSub(d4)"
-                                                                                                class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-brand-600 transition-all shrink-0" title="Alt kategori ekle">
+                                                                                                class="sm:opacity-0 sm:group-hover:opacity-100 text-gray-400 hover:text-brand-600 transition-all shrink-0" title="Alt kategori ekle">
                                                                                             <i class="fas fa-plus text-[9px]"></i>
                                                                                         </button>
                                                                                     </div>
@@ -626,7 +626,7 @@
                     </select>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Alış Fiyatı</label>
                         <div class="relative">
@@ -659,7 +659,7 @@
                     </select>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Stok Miktarı</label>
                         <input type="number" x-model="form.stock_quantity" min="0" step="0.01"
@@ -674,7 +674,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Birim</label>
                         <select x-model="form.unit" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
@@ -747,7 +747,7 @@
                                     </div>
                                     <span class="text-[10px] px-2 py-0.5 rounded-full" :class="b.enabled ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-200 text-gray-500'" x-text="b.enabled ? 'Aktif' : 'Kapalı'"></span>
                                 </div>
-                                <div x-show="b.enabled" class="grid grid-cols-2 gap-2">
+                                <div x-show="b.enabled" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     <div>
                                         <label class="block text-[10px] text-gray-500 mb-0.5">Satış Fiyatı (₺)</label>
                                         <input type="number" x-model="b.sale_price" step="0.01" min="0" class="w-full text-sm px-2.5 py-1.5 border border-gray-200 rounded-lg bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20">
@@ -1025,7 +1025,7 @@
                         </div>
                         <p x-show="selectedSubDefProduct" class="text-xs text-emerald-600 mt-1"><i class="fas fa-check mr-1"></i><span x-text="selectedSubDefProduct?.name"></span></p>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs text-gray-500 mb-1">Çarpan</label>
                             <input type="number" x-model="newSubDefMultiplier" step="0.01" min="0.01" placeholder="12" class="w-full text-sm px-3 py-2 border border-gray-200 rounded-xl">
@@ -1068,7 +1068,7 @@
                     </button>
                 </div>
 
-                <div x-show="labelData.length > 0" class="grid grid-cols-3 gap-3 overflow-y-auto max-h-96" id="labelContainer">
+                <div x-show="labelData.length > 0" class="grid grid-cols-1 sm:grid-cols-3 gap-3 overflow-y-auto max-h-96" id="labelContainer">
                     <template x-for="(lbl, li) in labelData" :key="li">
                         <div class="border border-gray-300 rounded-lg p-3 text-center bg-white">
                             <p class="text-xs font-medium text-gray-900 mb-1 truncate" x-text="lbl.name"></p>

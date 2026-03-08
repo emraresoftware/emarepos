@@ -263,7 +263,7 @@
     {{-- ── GELİR / GİDER MODAL ── --}}
     <div x-show="showModal" x-transition.opacity class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
         <div @click.outside="showModal = false"
-             class="bg-white rounded-3xl shadow-2xl w-full max-w-md"
+             class="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 scale-95"
              x-transition:enter-end="opacity-100 scale-100">
@@ -358,7 +358,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Yön</label>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <button @click="typeForm.direction = 'income'"
                                     :class="typeForm.direction === 'income' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-500'"
                                     class="py-2.5 border-2 rounded-xl text-sm font-medium transition-all">

@@ -25,7 +25,7 @@
         </div>
     </div>
 
-    <div class="flex-1 overflow-y-auto p-6 space-y-6">
+    <div class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
 
         @if(!$register)
         {{-- ═══════════════════════════════════════════ --}}
@@ -473,7 +473,7 @@
             </div>
             <div x-show="saleDetail && !saleDetailLoading" class="flex-1 overflow-y-auto p-5 space-y-4">
                 {{-- Özet --}}
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div class="bg-gray-50 rounded-xl p-3">
                         <div class="text-xs text-gray-400">Müşteri</div>
                         <div class="font-semibold text-gray-800 mt-0.5" x-text="saleDetail?.customer_name"></div>

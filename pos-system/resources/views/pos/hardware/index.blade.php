@@ -2,7 +2,7 @@
 @section('title', 'Donanım Yönetimi')
 
 @section('content')
-<div class="p-6 space-y-6" x-data="hardwareManager()">
+<div class="p-3 sm:p-6 space-y-4 sm:space-y-6" x-data="hardwareManager()">
 
     {{-- Başlık --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -272,7 +272,7 @@
                 <button @click="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {{-- Cihaz Adı --}}
                 <div class="col-span-2">
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Cihaz Adı *</label>
@@ -331,7 +331,7 @@
 
                 {{-- Ethernet alanlar --}}
                 <template x-if="form.connection === 'ethernet' || form.connection === 'wifi'">
-                    <div class="col-span-2 grid grid-cols-2 gap-4">
+                    <div class="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 mb-1">IP Adresi</label>
                             <input x-model="form.ip_address" type="text" placeholder="192.168.1.100"
@@ -347,7 +347,7 @@
 
                 {{-- Serial/RS-232 alanlar --}}
                 <template x-if="form.connection === 'serial'">
-                    <div class="col-span-2 grid grid-cols-2 gap-4">
+                    <div class="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 mb-1">Seri Port</label>
                             <input x-model="form.serial_port" type="text" placeholder="/dev/ttyUSB0 veya COM3"
@@ -371,7 +371,7 @@
 
                 {{-- USB alanlar --}}
                 <template x-if="form.connection === 'usb'">
-                    <div class="col-span-2 grid grid-cols-2 gap-4">
+                    <div class="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 mb-1">Vendor ID (isteğe bağlı)</label>
                             <input x-model="form.vendor_id" type="text" placeholder="04b8"

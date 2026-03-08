@@ -23,7 +23,7 @@
     <div x-show="showProductModal" x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
          @keydown.escape.window="showProductModal = false">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6" @click.stop>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 max-h-[90vh] overflow-y-auto" @click.stop>
             <div class="flex items-center justify-between mb-5">
                 <h3 class="text-base font-semibold text-gray-900"><i class="fas fa-box mr-2 text-brand-500"></i>Hızı Ürün Ekle</h3>
                 <button @click="showProductModal = false" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
@@ -35,7 +35,7 @@
                            placeholder="Ürün adını girin..."
                            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20">
                 </div>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Satış Fiyatı *</label>
                         <input type="number" x-model="productForm.sale_price" min="0" step="0.01" placeholder="0.00"
@@ -448,7 +448,7 @@
     {{-- İSKONTO UYGULA MODALI --}}
     <div x-show="showDiscountModal" x-transition x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4" @click.away="showDiscountModal = false">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" @click.away="showDiscountModal = false">
             <div class="flex items-center justify-between px-5 py-3 bg-blue-600 rounded-t-2xl">
                 <h3 class="text-base font-bold text-white"><i class="fas fa-percent mr-2"></i>İskonto Uygula</h3>
                 <button @click="showDiscountModal = false" class="text-white/70 hover:text-white"><i class="fas fa-times-circle text-lg"></i></button>
@@ -736,7 +736,7 @@
             </div>
 
             {{-- Toplam & Kalan --}}
-            <div class="grid grid-cols-2 gap-3 mb-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
                 <div class="bg-gray-50 rounded-xl p-3 text-center">
                     <div class="text-xs text-gray-500 mb-1">Toplam Tutar</div>
                     <div class="text-xl font-bold text-gray-900" x-text="formatCurrency(totals.grand_total)"></div>

@@ -89,10 +89,10 @@
                     <tr>
                         <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Personel</th>
                         <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Görev</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">İletişim</th>
-                        <th class="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Satış</th>
-                        <th class="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">İşlem</th>
-                        <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Yetki</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">İletişim</th>
+                        <th class="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Satış</th>
+                        <th class="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">İşlem</th>
+                        <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Yetki</th>
                         <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Durum</th>
                         <th class="px-5 py-3"></th>
                     </tr>
@@ -116,7 +116,7 @@
                                 <span class="text-gray-300">—</span>
                             @endif
                         </td>
-                        <td class="px-5 py-3.5 text-gray-500 text-xs space-y-0.5">
+                        <td class="px-5 py-3.5 text-gray-500 text-xs space-y-0.5 hidden md:table-cell">
                             @if($member->phone)
                                 <div><i class="fas fa-phone w-3 mr-1"></i>{{ $member->phone }}</div>
                             @endif
@@ -127,13 +127,13 @@
                                 <span class="text-gray-300">—</span>
                             @endif
                         </td>
-                        <td class="px-5 py-3.5 text-right font-bold text-gray-800">
+                        <td class="px-5 py-3.5 text-right font-bold text-gray-800 hidden lg:table-cell">
                             {{ number_format($member->total_sales, 2, ',', '.') }} ₺
                         </td>
-                        <td class="px-5 py-3.5 text-right text-gray-500">
+                        <td class="px-5 py-3.5 text-right text-gray-500 hidden lg:table-cell">
                             {{ number_format($member->total_transactions) }}
                         </td>
-                        <td class="px-5 py-3.5 text-center">
+                        <td class="px-5 py-3.5 text-center hidden md:table-cell">
                             @php $permCount = is_array($member->permissions) ? count($member->permissions) : (($member->permissions && $member->permissions !== 'null') ? count(json_decode($member->permissions, true) ?? []) : 0); @endphp
                             @if($permCount > 0)
                                 <span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">{{ $permCount }} yetki</span>
@@ -149,7 +149,7 @@
                             @endif
                         </td>
                         <td class="px-5 py-3.5 text-right">
-                            <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div class="flex items-center justify-end gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                 <button @click="showPerformance({{ $member->id }})"
                                         class="p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors" title="Performans">
                                     <i class="fas fa-chart-line text-xs"></i>
@@ -209,7 +209,7 @@
                         <input type="text" x-model="form.name" placeholder="örn. Ahmet Yılmaz"
                                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none text-sm transition-all">
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1.5">Görev / Pozisyon</label>
                             <input type="text" x-model="form.role" placeholder="Garson, Kasiyer, Şef..."
@@ -221,7 +221,7 @@
                                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none text-sm transition-all">
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1.5">Telefon</label>
                             <input type="tel" x-model="form.phone" placeholder="05XX XXX XX XX"

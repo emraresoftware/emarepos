@@ -2,7 +2,7 @@
 @section('title', 'Alış Faturaları')
 
 @section('content')
-<div class="p-6 overflow-y-auto h-full" x-data="purchaseInvoiceManager()" x-cloak>
+<div class="p-3 sm:p-6 overflow-y-auto h-full" x-data="purchaseInvoiceManager()" x-cloak>
     {{-- Header --}}
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
@@ -231,7 +231,7 @@
                 <button @click="detailModal = false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-6 overflow-y-auto flex-1">
-                <div class="grid grid-cols-3 gap-4 mb-4 text-sm">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 text-sm">
                     <div class="bg-gray-50 rounded-lg p-3">
                         <span class="text-gray-500 text-xs">Ara Toplam</span>
                         <p class="font-bold text-gray-900" x-text="Number(detailData?.subtotal || 0).toFixed(2) + ' ₺'"></p>

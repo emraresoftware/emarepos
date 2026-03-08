@@ -2,7 +2,7 @@
 @section('title', 'Özet')
 
 @section('content')
-<div class="flex-1 overflow-y-auto p-6 space-y-6">
+<div class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
