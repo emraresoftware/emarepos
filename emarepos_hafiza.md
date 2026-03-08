@@ -3,8 +3,8 @@
 > 🔗 **Ortak Hafıza:** [`EMARE_ORTAK_HAFIZA.md`](/Users/emre/Desktop/Emare/EMARE_ORTAK_HAFIZA.md) — Tüm Emare ekosistemi, sunucu bilgileri, standartlar ve proje envanteri için bak.
 
 
-> **Son Güncelleme:** 3 Mart 2026
-> **Proje Durumu:** Aktif geliştirme — tüm sayfalar çalışır (18 sayfa, 67 route), tasarım yenileme devam ediyor
+> **Son Güncelleme:** 9 Mart 2026
+> **Proje Durumu:** Aktif geliştirme — tüm sayfalar çalışır (18 sayfa, 71+ route), güvenlik denetimi tamamlandı
 > **Bu dosyanın amacı:** Yeni bir AI oturumunda "bu dosyayı oku, kaldığımız yerden devam et" demen yeterlidir — projenin tüm detayları buradadır.
 > **Kayıt:** Bu dosyayı taşıyabilirsin, içindeki bilgiler projenin tüm teknik, görsel ve iş mantığı detaylarını kapsar.
 
@@ -1107,3 +1107,48 @@ php artisan migrate:status
 ---
 
 *Bu dosyayı farklı bir yere taşısa bile içeriği bütün projeyi anlatır. Yeni AI oturumunda sadece "emarepos_hafiza.md dosyasını oku ve devam et" demek yeterlidir.*
+
+---
+
+## BÖLÜM — SON GELİŞMELER (9 Mart 2026)
+
+### Kapsamlı Güvenlik Denetimi & Bug Fix (commit 8bb1e5f)
+
+**Migration Eklendi:**
+- `2026_03_09_000001_add_branch_id_to_incomes_expenses_stock_movements` — incomes, expenses, stock_movements tablolarına `branch_id` FK eklendi
+
+**Kritik Bug Düzeltmeleri:**
+- **BUG-01:** Income/Expense/StockMovement modellerine `branch_id` fillable eklendi, controller'larda branch_id filtreleme
+- **BUG-02:** SaleController payment_method validation: `in:` → `regex:` (other_xxx custom ödeme tipleri desteği)
+- **BUG-03:** CashReportController tüm sorgulara `branch_id` filtresi eklendi
+- **BUG-04:** Sale show/refund — branch_id yetkilendirme (403) kontrolü
+
+**Orta Seviye Bug Düzeltmeleri:**
+- **BUG-05:** StockController index/store branch_id filtresi
+- **BUG-07:** StaffController branch_id filtresi
+- **BUG-08:** SaleController summaryStats tarih/ödeme filtrelerini doğru kullanıyor
+- **BUG-09:** Feedback modeline `BelongsToTenant` trait eklendi
+- **BUG-11:** PurchaseInvoiceController N+1 sorgu optimizasyonu (Product::whereIn)
+
+**Eksik CRUD Endpoint'leri:**
+- Firma silme: `DELETE /firms/{firm}` (soft-delete, bakiye kontrolü)
+- Müşteri silme: `DELETE /customers/{customer}` (soft-delete, bakiye kontrolü)
+- Gelir güncelleme: `PUT /income-expense/income/{income}`
+- Gider güncelleme: `PUT /income-expense/expense/{expense}`
+
+**StockMovement branch_id Tamamlama:**
+Tüm StockMovement::create çağrılarına (9 konum) branch_id eklendi:
+- SaleService (satış, iade, iptal)
+- StockController (manuel hareket)
+- StockCountController (sayım düzeltme)
+- StockTransferController (gönderen/alan şube)
+- PurchaseInvoiceController (alış faturası)
+
+**AUDIT_REPORT.md:** Detaylı denetim raporu repo'ya eklendi (28 bulgu: 4 kritik, 8 orta, 8 iyileştirme, 8 eksik özellik)
+
+### Kalan İyileştirmeler (Düşük Öncelik)
+- BUG-10: posAjax response standardizasyonu
+- BUG-12: ReportController query clone optimizasyonu
+- IMP-01~08: Çeşitli N+1, DB::transaction, withQueryString iyileştirmeleri
+- MISS-03: Şube silme endpoint'i
+- MISS-05~08: StockCount izolasyon, toplu fiyat güncelleme, activity log, rate limiting
