@@ -85,6 +85,7 @@ class SaleService
                     // Create stock movement
                     StockMovement::create([
                         'tenant_id' => $tenantId,
+                        'branch_id' => $data['branch_id'] ?? session('branch_id'),
                         'type' => 'sale',
                         'barcode' => $product->barcode,
                         'product_id' => $product->id,
@@ -317,6 +318,7 @@ class SaleService
                         
                         StockMovement::create([
                             'tenant_id' => $sale->tenant_id,
+                            'branch_id' => $sale->branch_id,
                             'type' => 'return',
                             'product_id' => $product->id,
                             'product_name' => $product->name,
@@ -385,6 +387,7 @@ class SaleService
                         
                         StockMovement::create([
                             'tenant_id' => $sale->tenant_id,
+                            'branch_id' => $sale->branch_id,
                             'type' => 'return',
                             'product_id' => $product->id,
                             'product_name' => $product->name,

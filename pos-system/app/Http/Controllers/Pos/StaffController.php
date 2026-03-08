@@ -12,7 +12,9 @@ class StaffController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Staff::orderBy('name');
+        $branchId = session('branch_id');
+
+        $query = Staff::where('branch_id', $branchId)->orderBy('name');
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -31,10 +33,10 @@ class StaffController extends Controller
         $staff = $query->paginate(30)->withQueryString();
 
         $stats = [
-            'total'        => Staff::count(),
-            'active'       => Staff::where('is_active', true)->count(),
-            'total_sales'  => Staff::sum('total_sales'),
-            'top_seller'   => Staff::orderBy('total_sales', 'desc')->first()?->name ?? '—',
+            'total'        => Staff::where('branch_id', $branchId)->count(),
+            'active'       => Staff::where('branch_id', $branchId)->where('is_active', true)->count(),
+            'total_sales'  => Staff::where('branch_id', $branchId)->sum('total_sales'),
+            'top_seller'   => Staff::where('branch_id', $branchId)->orderBy('total_sales', 'desc')->first()?->name ?? '—',
         ];
 
         return view('pos.staff.index', compact('staff', 'stats'));

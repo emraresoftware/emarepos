@@ -98,6 +98,7 @@ class StockCountController extends Controller
             // Stok hareketi kaydet
             StockMovement::create([
                 'tenant_id' => $stockCount->tenant_id,
+                'branch_id' => session('branch_id'),
                 'type' => 'adjustment',
                 'barcode' => $product->barcode,
                 'product_id' => $product->id,

@@ -92,6 +92,19 @@ class FirmController extends Controller
         return response()->json(['success' => true, 'firm' => $firm->fresh()->load('group')]);
     }
 
+    public function destroy(Firm $firm)
+    {
+        if (abs($firm->balance) > 0.01) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bakiyesi olan cari silinemez. Önce bakiyeyi sıfırlayın.',
+            ], 422);
+        }
+
+        $firm->update(['is_active' => false]);
+        return response()->json(['success' => true, 'message' => 'Cari pasife alındı.']);
+    }
+
     public function addPayment(Request $request, Firm $firm)
     {
         $request->validate([

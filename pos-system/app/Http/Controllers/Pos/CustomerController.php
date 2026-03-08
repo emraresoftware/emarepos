@@ -103,4 +103,17 @@ class CustomerController extends Controller
 
         return response()->json(['success' => true, 'customer' => $customer->fresh()]);
     }
+
+    public function destroy(Customer $customer)
+    {
+        if (abs($customer->balance) > 0.01) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bakiyesi olan müşteri silinemez. Önce bakiyeyi sıfırlayın.',
+            ], 422);
+        }
+
+        $customer->update(['is_active' => false]);
+        return response()->json(['success' => true, 'message' => 'Müşteri pasife alındı.']);
+    }
 }

@@ -11,7 +11,10 @@ class CashReportController extends Controller
 {
     public function index(Request $request)
     {
+        $branchId = session('branch_id');
+
         $query = CashRegister::with('user')
+            ->where('branch_id', $branchId)
             ->orderBy('opened_at', 'desc');
 
         if ($request->filled('status')) {
@@ -27,14 +30,12 @@ class CashReportController extends Controller
 
         $registers = $query->paginate(30);
 
-        $branchId = session('branch_id');
-
         $stats = [
-            'total_registers' => CashRegister::count(),
-            'total_sales_all' => CashRegister::where('status', 'closed')->sum('total_sales'),
-            'total_cash_all'  => CashRegister::where('status', 'closed')->sum('total_cash'),
-            'total_card_all'  => CashRegister::where('status', 'closed')->sum('total_card'),
-            'avg_difference'  => CashRegister::where('status', 'closed')->avg('difference') ?? 0,
+            'total_registers' => CashRegister::where('branch_id', $branchId)->count(),
+            'total_sales_all' => CashRegister::where('branch_id', $branchId)->where('status', 'closed')->sum('total_sales'),
+            'total_cash_all'  => CashRegister::where('branch_id', $branchId)->where('status', 'closed')->sum('total_cash'),
+            'total_card_all'  => CashRegister::where('branch_id', $branchId)->where('status', 'closed')->sum('total_card'),
+            'avg_difference'  => CashRegister::where('branch_id', $branchId)->where('status', 'closed')->avg('difference') ?? 0,
             // Veresiye: Sales tablosundan hesapla (cash_register'da sütun yok)
             'total_credit_all' => Sale::where('branch_id', $branchId)
                 ->where('status', 'completed')

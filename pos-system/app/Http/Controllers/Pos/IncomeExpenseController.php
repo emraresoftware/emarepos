@@ -13,6 +13,7 @@ class IncomeExpenseController extends Controller
     public function index(Request $request)
     {
         $tenantId = session('tenant_id');
+        $branchId = session('branch_id');
 
         // --- Filtreler ---
         $startDate = $request->filled('start_date')
@@ -27,23 +28,27 @@ class IncomeExpenseController extends Controller
         $tab          = $request->input('tab', 'income'); // income | expense | types
 
         // --- İstatistikler ---
-        $totalIncome  = Income::whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+        $totalIncome  = Income::where('branch_id', $branchId)
+            ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
             ->sum('amount');
-        $totalExpense = Expense::whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+        $totalExpense = Expense::where('branch_id', $branchId)
+            ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
             ->sum('amount');
         $netBalance   = $totalIncome - $totalExpense;
-        $thisMonthIncome  = Income::whereBetween('date', [now()->startOfMonth()->toDateString(), now()->toDateString()])->sum('amount');
-        $thisMonthExpense = Expense::whereBetween('date', [now()->startOfMonth()->toDateString(), now()->toDateString()])->sum('amount');
+        $thisMonthIncome  = Income::where('branch_id', $branchId)
+            ->whereBetween('date', [now()->startOfMonth()->toDateString(), now()->toDateString()])->sum('amount');
+        $thisMonthExpense = Expense::where('branch_id', $branchId)
+            ->whereBetween('date', [now()->startOfMonth()->toDateString(), now()->toDateString()])->sum('amount');
 
         // --- Gelirler ---
-        $incomeQuery = Income::with('type')->orderBy('date', 'desc')->orderBy('id', 'desc');
+        $incomeQuery = Income::where('branch_id', $branchId)->with('type')->orderBy('date', 'desc')->orderBy('id', 'desc');
         $incomeQuery->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()]);
         if ($typeFilter) $incomeQuery->where('income_expense_type_id', $typeFilter);
         if ($searchFilter) $incomeQuery->where('note', 'like', "%{$searchFilter}%");
         $incomes = $incomeQuery->paginate(20, ['*'], 'income_page')->withQueryString();
 
         // --- Giderler ---
-        $expenseQuery = Expense::with('type')->orderBy('date', 'desc')->orderBy('id', 'desc');
+        $expenseQuery = Expense::where('branch_id', $branchId)->with('type')->orderBy('date', 'desc')->orderBy('id', 'desc');
         $expenseQuery->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()]);
         if ($typeFilter) $expenseQuery->where('income_expense_type_id', $typeFilter);
         if ($searchFilter) $expenseQuery->where('note', 'like', "%{$searchFilter}%");
@@ -74,6 +79,7 @@ class IncomeExpenseController extends Controller
             'date'         => 'required|date',
         ]);
         $data['tenant_id']  = session('tenant_id');
+        $data['branch_id']  = session('branch_id');
         $data['type_name']  = IncomeExpenseType::find($data['income_expense_type_id'])?->name;
         $data['payment_type'] = $data['payment_type'] ?? 'cash';
 
@@ -88,6 +94,21 @@ class IncomeExpenseController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function updateIncome(Request $request, Income $income)
+    {
+        $data = $request->validate([
+            'income_expense_type_id' => 'required|exists:income_expense_types,id',
+            'amount'       => 'required|numeric|min:0.01',
+            'note'         => 'nullable|string|max:500',
+            'payment_type' => 'nullable|string',
+            'date'         => 'required|date',
+        ]);
+        $data['type_name'] = IncomeExpenseType::find($data['income_expense_type_id'])?->name;
+        $income->update($data);
+        $income->load('type');
+        return response()->json(['success' => true, 'income' => $income]);
+    }
+
     // ─── Gider CRUD ─────────────────────────────────────────────────────
 
     public function storeExpense(Request $request)
@@ -100,6 +121,7 @@ class IncomeExpenseController extends Controller
             'date'         => 'required|date',
         ]);
         $data['tenant_id']  = session('tenant_id');
+        $data['branch_id']  = session('branch_id');
         $data['type_name']  = IncomeExpenseType::find($data['income_expense_type_id'])?->name;
         $data['payment_type'] = $data['payment_type'] ?? 'cash';
 
@@ -112,6 +134,21 @@ class IncomeExpenseController extends Controller
     {
         $expense->delete();
         return response()->json(['success' => true]);
+    }
+
+    public function updateExpense(Request $request, Expense $expense)
+    {
+        $data = $request->validate([
+            'income_expense_type_id' => 'required|exists:income_expense_types,id',
+            'amount'       => 'required|numeric|min:0.01',
+            'note'         => 'nullable|string|max:500',
+            'payment_type' => 'nullable|string',
+            'date'         => 'required|date',
+        ]);
+        $data['type_name'] = IncomeExpenseType::find($data['income_expense_type_id'])?->name;
+        $expense->update($data);
+        $expense->load('type');
+        return response()->json(['success' => true, 'expense' => $expense]);
     }
 
     // ─── Tür CRUD ───────────────────────────────────────────────────────

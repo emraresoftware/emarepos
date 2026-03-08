@@ -11,7 +11,10 @@ class StockController extends Controller
 {
     public function index(Request $request)
     {
+        $branchId = session('branch_id');
+
         $query = StockMovement::with('product')
+            ->where('branch_id', $branchId)
             ->orderBy('movement_date', 'desc');
 
         if ($request->filled('type')) {
@@ -52,7 +55,7 @@ class StockController extends Controller
             'total_products' => Product::where('is_active', true)->count(),
             'low_stock' => $criticalStock->count(),
             'total_stock_value' => Product::where('is_active', true)->selectRaw('SUM(stock_quantity * purchase_price) as val')->value('val') ?? 0,
-            'movements_today' => StockMovement::whereDate('movement_date', Carbon::today())->count(),
+            'movements_today' => StockMovement::where('branch_id', $branchId)->whereDate('movement_date', Carbon::today())->count(),
         ];
 
         return view('pos.stock.index', compact('movements', 'criticalStock', 'stats'));
@@ -72,6 +75,7 @@ class StockController extends Controller
 
         $product = Product::findOrFail($data['product_id']);
         $data['tenant_id'] = session('tenant_id');
+        $data['branch_id'] = session('branch_id');
         $data['barcode'] = $product->barcode;
         $data['product_name'] = $product->name;
         $data['total'] = ($data['unit_price'] ?? 0) * abs($data['quantity']);

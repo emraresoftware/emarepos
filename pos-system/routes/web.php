@@ -136,6 +136,7 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class])->group(fu
     Route::post('/customers', [CustomerController::class, 'store'])->name('pos.customers.store');
     Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('pos.customers.show');
     Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('pos.customers.update');
+    Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('pos.customers.destroy');
     Route::post('/customers/{customer}/payment', [CustomerController::class, 'addPayment'])->name('pos.customers.payment');
     
     // Raporlar (Reports)
@@ -201,6 +202,7 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class])->group(fu
     Route::post('/firms', [FirmController::class, 'store'])->name('pos.firms.store');
     Route::get('/firms/{firm}', [FirmController::class, 'show'])->name('pos.firms.show');
     Route::put('/firms/{firm}', [FirmController::class, 'update'])->name('pos.firms.update');
+    Route::delete('/firms/{firm}', [FirmController::class, 'destroy'])->name('pos.firms.destroy');
     Route::post('/firms/{firm}/payment', [FirmController::class, 'addPayment'])->name('pos.firms.payment');
     Route::post('/firm-groups', [FirmController::class, 'storeGroup'])->name('pos.firm-groups.store');
     Route::put('/firm-groups/{group}', [FirmController::class, 'updateGroup'])->name('pos.firm-groups.update');
@@ -227,8 +229,10 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class])->group(fu
     // Gelir / Gider (Income & Expense)
     Route::get('/income-expense', [IncomeExpenseController::class, 'index'])->name('pos.income-expense');
     Route::post('/income-expense/income', [IncomeExpenseController::class, 'storeIncome'])->name('pos.income-expense.income.store');
+    Route::put('/income-expense/income/{income}', [IncomeExpenseController::class, 'updateIncome'])->name('pos.income-expense.income.update');
     Route::delete('/income-expense/income/{income}', [IncomeExpenseController::class, 'destroyIncome'])->name('pos.income-expense.income.destroy');
     Route::post('/income-expense/expense', [IncomeExpenseController::class, 'storeExpense'])->name('pos.income-expense.expense.store');
+    Route::put('/income-expense/expense/{expense}', [IncomeExpenseController::class, 'updateExpense'])->name('pos.income-expense.expense.update');
     Route::delete('/income-expense/expense/{expense}', [IncomeExpenseController::class, 'destroyExpense'])->name('pos.income-expense.expense.destroy');
     Route::post('/income-expense/type', [IncomeExpenseController::class, 'storeType'])->name('pos.income-expense.type.store');
     Route::delete('/income-expense/type/{type}', [IncomeExpenseController::class, 'destroyType'])->name('pos.income-expense.type.destroy');

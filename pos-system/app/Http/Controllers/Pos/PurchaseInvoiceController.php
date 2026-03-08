@@ -78,8 +78,13 @@ class PurchaseInvoiceController extends Controller
             'user_id' => auth()->id(),
         ]);
 
+        // Ürünleri önceden toplu yükle (N+1 önleme)
+        $productIds = collect($request->items)->pluck('product_id')->unique();
+        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
         foreach ($request->items as $item) {
-            $product = Product::find($item['product_id']);
+            $product = $products[$item['product_id']] ?? null;
+            if (!$product) continue;
             $qty = $item['quantity'];
             $unitPrice = $item['unit_price'];
             $discount = $item['discount'] ?? 0;
@@ -109,6 +114,7 @@ class PurchaseInvoiceController extends Controller
             // Stok hareketi kaydet
             StockMovement::create([
                 'tenant_id' => session('tenant_id'),
+                'branch_id' => $branchId,
                 'type' => 'purchase',
                 'barcode' => $product->barcode,
                 'product_id' => $product->id,

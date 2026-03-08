@@ -97,6 +97,7 @@ class StockTransferController extends Controller
 
             StockMovement::create([
                 'tenant_id' => $transfer->tenant_id,
+                'branch_id' => $transfer->from_branch_id,
                 'type' => 'transfer',
                 'barcode' => $product->barcode,
                 'product_id' => $product->id,
@@ -125,6 +126,7 @@ class StockTransferController extends Controller
 
             StockMovement::create([
                 'tenant_id' => $transfer->tenant_id,
+                'branch_id' => $transfer->to_branch_id,
                 'type' => 'transfer',
                 'barcode' => $product->barcode,
                 'product_id' => $product->id,

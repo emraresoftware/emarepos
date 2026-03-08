@@ -121,7 +121,7 @@ class SaleController extends Controller
             'items.*.product_id' => 'required|integer',
             'items.*.quantity' => 'required|numeric|min:0.01',
             'items.*.unit_price' => 'required|numeric|min:0',
-            'payment_method' => 'required|string|in:cash,card,credit,mixed,transfer',
+            'payment_method' => ['required', 'string', 'regex:/^(cash|card|credit|mixed|transfer|other_.+)$/'],
         ]);
 
         try {
@@ -176,6 +176,9 @@ class SaleController extends Controller
      */
     public function show(Sale $sale)
     {
+        if ($sale->branch_id !== (int) session('branch_id')) {
+            abort(403, 'Bu satışa erişim yetkiniz yok.');
+        }
         $sale->load(['items', 'customer', 'user']);
         return response()->json($sale);
     }
@@ -185,6 +188,9 @@ class SaleController extends Controller
      */
     public function refund(Request $request, Sale $sale)
     {
+        if ($sale->branch_id !== (int) session('branch_id')) {
+            abort(403, 'Bu satışa erişim yetkiniz yok.');
+        }
         try {
             $result = $this->saleService->refundSale($sale->id, $request->reason);
             return response()->json([
@@ -264,11 +270,26 @@ class SaleController extends Controller
         
         $sales = $query->paginate(25);
         
+        // summaryStats: aynı filtreleri uygula
+        $statsQuery = Sale::where('branch_id', $branchId)->where('status', 'completed');
+        if ($request->filled('start_date')) {
+            $statsQuery->whereDate('sold_at', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $statsQuery->whereDate('sold_at', '<=', $request->end_date);
+        }
+        if ($request->filled('payment_method')) {
+            $statsQuery->where('payment_method', $request->payment_method);
+        }
+
         $summaryStats = [
-            'total' => Sale::where('branch_id', $branchId)->where('status', 'completed')->sum('grand_total'),
-            'cash' => Sale::where('branch_id', $branchId)->where('status', 'completed')->where('payment_method', 'cash')->sum('grand_total'),
-            'card' => Sale::where('branch_id', $branchId)->where('status', 'completed')->where('payment_method', 'card')->sum('grand_total'),
-            'refunded' => Sale::where('branch_id', $branchId)->where('status', 'refunded')->sum('grand_total'),
+            'total' => (clone $statsQuery)->sum('grand_total'),
+            'cash' => (clone $statsQuery)->where('payment_method', 'cash')->sum('grand_total'),
+            'card' => (clone $statsQuery)->where('payment_method', 'card')->sum('grand_total'),
+            'refunded' => Sale::where('branch_id', $branchId)->where('status', 'refunded')
+                ->when($request->filled('start_date'), fn($q) => $q->whereDate('sold_at', '>=', $request->start_date))
+                ->when($request->filled('end_date'), fn($q) => $q->whereDate('sold_at', '<=', $request->end_date))
+                ->sum('grand_total'),
         ];
         
         return view('pos.sales.list', compact('sales', 'summaryStats'));

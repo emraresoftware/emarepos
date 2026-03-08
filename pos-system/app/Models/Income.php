@@ -12,6 +12,7 @@ class Income extends Model
 
     protected $fillable = [
         'tenant_id',
+        'branch_id',
         'external_id',
         'income_expense_type_id',
         'type_name',
