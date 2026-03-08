@@ -1179,3 +1179,23 @@ Tüm StockMovement::create çağrılarına (9 konum) branch_id eklendi:
 ### 📊 AUDIT_REPORT.md — TAMAMI ÇÖZÜLDÜ ✅
 28/28 bulgunun tamamı düzeltildi veya mevcut olduğu tespit edildi.
 
+### Derin Fonksiyonel Analiz & 13 Bug Düzeltmesi (commit 531ca96)
+
+Tüm controller fonksiyonları migration şemalarıyla karşılaştırılarak analiz edildi. 13 yeni hata tespit ve düzeltildi:
+
+**Schema Migration (2026_03_09_000003_fix_critical_schema_bugs):**
+- `account_transactions.customer_id` → nullable (firma ödeme SQL hatası)
+- `purchase_invoices.invoice_no` → nullable
+- `purchase_invoices.status` → string(20) (enum 'received' eksikti)
+- `order_items.status` → string(20) (enum 'paid' eksikti)
+
+**Controller Düzeltmeleri:**
+- **BUG-3:** PurchaseInvoiceController — `Firm::get(['id','name','type'])` → type sütunu yok, kaldırıldı
+- **BUG-6:** PurchaseInvoiceController — firma bakiye yönü düzeltildi (increment↔decrement swap)
+- **BUG-7:** PurchaseInvoiceController — update status validation genişletildi (draft,received,approved,returned,cancelled)
+- **BUG-8:** IncomeExpenseController — ActivityLog `$income->description` → `$income->note`
+- **BUG-9:** CustomerController — store'a district+notes, update'e city+district eklendi
+- **BUG-10:** DayOperationController — total_sales/cash/card/avg_basket/hourly sorgularına `where('status','completed')` eklendi
+- **BUG-11:** AdminController — `Sale::whereDate('created_at')` → `sold_at` düzeltildi
+- **BUG-12:** AdminController — `withoutGlobalScope('tenant')` eklendi (süper admin tüm tenant verisini görsün)
+- **BUG-13:** ReportController suspiciousTransactions — 5 sorgunun tamamında `created_at` → `sold_at`
