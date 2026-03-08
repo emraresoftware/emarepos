@@ -23,7 +23,7 @@ class PurchaseInvoiceController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $firms = Firm::where('is_active', true)->orderBy('name')->get(['id', 'name', 'type']);
+        $firms = Firm::where('is_active', true)->orderBy('name')->get(['id', 'name']);
         $products = Product::where('is_active', true)->orderBy('name')->get(['id', 'name', 'barcode', 'purchase_price', 'sale_price']);
 
         return view('pos.purchase-invoice.index', compact('invoices', 'firms', 'products'));
@@ -130,10 +130,10 @@ class PurchaseInvoiceController extends Controller
             ]);
         }
 
-        // Cari bakiyeyi güncelle (Tedarikçi borç artan)
+        // Cari bakiyeyi güncelle (Tedarikçi borç artan → decrement)
         $firm = Firm::find($request->firm_id);
         if ($firm) {
-            $firm->increment('balance', $grandTotal);
+            $firm->decrement('balance', $grandTotal);
         }
 
         return response()->json(['success' => true, 'invoice' => $invoice->load('items', 'firm')]);
@@ -151,7 +151,7 @@ class PurchaseInvoiceController extends Controller
             'invoice_date' => 'required|date',
             'notes' => 'nullable|string',
             'payment_status' => 'nullable|in:unpaid,partial,paid',
-            'status' => 'nullable|in:received,returned,cancelled',
+            'status' => 'nullable|in:draft,received,approved,returned,cancelled',
         ]);
 
         $invoice->update($request->only('invoice_no', 'invoice_date', 'notes', 'payment_status', 'status'));
@@ -172,7 +172,7 @@ class PurchaseInvoiceController extends Controller
             // Cari bakiyeyi geri al
             $firm = Firm::find($invoice->firm_id);
             if ($firm) {
-                $firm->decrement('balance', $invoice->grand_total);
+                $firm->increment('balance', $invoice->grand_total);
             }
         }
 

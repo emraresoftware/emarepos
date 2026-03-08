@@ -85,7 +85,7 @@ class IncomeExpenseController extends Controller
         $data['payment_type'] = $data['payment_type'] ?? 'cash';
 
         $income = Income::create($data);
-        ActivityLog::log('create', 'Gelir kaydedildi: ' . $income->description . ' (₺' . number_format($income->amount, 2) . ')', $income);
+        ActivityLog::log('create', 'Gelir kaydedildi: ' . $income->note . ' (₺' . number_format($income->amount, 2) . ')', $income);
         $income->load('type');
         return response()->json(['success' => true, 'income' => $income]);
     }
@@ -128,7 +128,7 @@ class IncomeExpenseController extends Controller
         $data['payment_type'] = $data['payment_type'] ?? 'cash';
 
         $expense = Expense::create($data);
-        ActivityLog::log('create', 'Gider kaydedildi: ' . $expense->description . ' (₺' . number_format($expense->amount, 2) . ')', $expense);
+        ActivityLog::log('create', 'Gider kaydedildi: ' . $expense->note . ' (₺' . number_format($expense->amount, 2) . ')', $expense);
         $expense->load('type');
         return response()->json(['success' => true, 'expense' => $expense]);
     }

@@ -17,14 +17,14 @@ class DayOperationController extends Controller
 
         // Bugünün özet bilgileri
         $stats = [
-            'total_sales' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->sum('grand_total'),
-            'sale_count' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->count(),
-            'cash_total' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->where('payment_method', 'cash')->sum('grand_total'),
-            'card_total' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->where('payment_method', 'card')->sum('grand_total'),
+            'total_sales' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->where('status', 'completed')->sum('grand_total'),
+            'sale_count' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->where('status', 'completed')->count(),
+            'cash_total' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->where('status', 'completed')->where('payment_method', 'cash')->sum('grand_total'),
+            'card_total' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->where('status', 'completed')->where('payment_method', 'card')->sum('grand_total'),
             'order_count' => Order::where('branch_id', $branchId)->whereDate('ordered_at', $today)->count(),
             'cancelled_orders' => Order::where('branch_id', $branchId)->whereDate('ordered_at', $today)->where('status', 'cancelled')->count(),
             'refund_total' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->where('status', 'refunded')->sum('grand_total'),
-            'avg_basket' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->avg('grand_total') ?? 0,
+            'avg_basket' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->where('status', 'completed')->avg('grand_total') ?? 0,
         ];
 
         // Aktif kasa
@@ -44,6 +44,7 @@ class DayOperationController extends Controller
             : "LPAD(HOUR(sold_at), 2, '0') as hour";
         
         $hourlySales = Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)
+            ->where('status', 'completed')
             ->selectRaw("{$hourExpr}, SUM(grand_total) as total, COUNT(*) as count")
             ->groupBy('hour')
             ->orderBy('hour')

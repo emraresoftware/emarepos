@@ -408,7 +408,7 @@ class ReportController extends Controller
         // 1) İade edilen satışlar
         $refunds = Sale::where('branch_id', $branchId)
             ->where('status', 'refunded')
-            ->whereBetween('created_at', [$startDate, $endDate . ' 23:59:59'])
+            ->whereBetween('sold_at', [$startDate, $endDate . ' 23:59:59'])
             ->with('items')
             ->get()
             ->map(function ($sale) {
@@ -419,7 +419,7 @@ class ReportController extends Controller
                     'sale_id' => $sale->id,
                     'amount' => $sale->grand_total,
                     'staff' => $sale->staff_name ?? 'Bilinmiyor',
-                    'date' => $sale->created_at->format('d.m.Y H:i'),
+                    'date' => $sale->sold_at->format('d.m.Y H:i'),
                     'detail' => ($sale->items->count() ?? 0) . ' kalem iade',
                 ];
             });
@@ -428,7 +428,7 @@ class ReportController extends Controller
         // 2) İptal edilen satışlar
         $cancelled = Sale::where('branch_id', $branchId)
             ->where('status', 'cancelled')
-            ->whereBetween('created_at', [$startDate, $endDate . ' 23:59:59'])
+            ->whereBetween('sold_at', [$startDate, $endDate . ' 23:59:59'])
             ->get()
             ->map(function ($sale) {
                 return [
@@ -438,7 +438,7 @@ class ReportController extends Controller
                     'sale_id' => $sale->id,
                     'amount' => $sale->grand_total,
                     'staff' => $sale->staff_name ?? 'Bilinmiyor',
-                    'date' => $sale->created_at->format('d.m.Y H:i'),
+                    'date' => $sale->sold_at->format('d.m.Y H:i'),
                     'detail' => 'Satış iptal edildi',
                 ];
             });
@@ -447,7 +447,7 @@ class ReportController extends Controller
         // 3) Yüksek iskonto oranı (%30 üzeri)
         $highDiscount = Sale::where('branch_id', $branchId)
             ->where('status', 'completed')
-            ->whereBetween('created_at', [$startDate, $endDate . ' 23:59:59'])
+            ->whereBetween('sold_at', [$startDate, $endDate . ' 23:59:59'])
             ->whereRaw('discount_total > 0 AND (discount_total / (grand_total + discount_total)) > 0.3')
             ->get()
             ->map(function ($sale) {
@@ -460,7 +460,7 @@ class ReportController extends Controller
                     'sale_id' => $sale->id,
                     'amount' => $sale->discount_total,
                     'staff' => $sale->staff_name ?? 'Bilinmiyor',
-                    'date' => $sale->created_at->format('d.m.Y H:i'),
+                    'date' => $sale->sold_at->format('d.m.Y H:i'),
                     'detail' => '%' . $rate . ' iskonto (₺' . number_format($sale->discount_total, 2) . ')',
                 ];
             });
@@ -472,9 +472,9 @@ class ReportController extends Controller
             ->join('products', 'products.id', '=', 'sale_items.product_id')
             ->where('sales.branch_id', $branchId)
             ->where('sales.status', 'completed')
-            ->whereBetween('sales.created_at', [$startDate, $endDate . ' 23:59:59'])
+            ->whereBetween('sales.sold_at', [$startDate, $endDate . ' 23:59:59'])
             ->whereRaw('products.purchase_price > 0 AND sale_items.unit_price < products.purchase_price')
-            ->select('sales.id as sale_id', 'sales.staff_name', 'sales.created_at', 'sale_items.product_name', 'sale_items.unit_price', 'products.purchase_price')
+            ->select('sales.id as sale_id', 'sales.staff_name', 'sales.sold_at', 'sale_items.product_name', 'sale_items.unit_price', 'products.purchase_price')
             ->get()
             ->map(function ($row) {
                 return [
@@ -484,7 +484,7 @@ class ReportController extends Controller
                     'sale_id' => $row->sale_id,
                     'amount' => $row->purchase_price - $row->unit_price,
                     'staff' => $row->staff_name ?? 'Bilinmiyor',
-                    'date' => Carbon::parse($row->created_at)->format('d.m.Y H:i'),
+                    'date' => Carbon::parse($row->sold_at)->format('d.m.Y H:i'),
                     'detail' => $row->product_name . ': Satış ₺' . number_format($row->unit_price, 2) . ' < Alış ₺' . number_format($row->purchase_price, 2),
                 ];
             });
@@ -493,14 +493,14 @@ class ReportController extends Controller
         // 5) Gece geç saatte satış (22:00 - 06:00)
         $driver = \DB::getDriverName();
         if ($driver === 'sqlite') {
-            $hourExpr = "cast(strftime('%H', sales.created_at) as integer)";
+            $hourExpr = "cast(strftime('%H', sold_at) as integer)";
         } else {
-            $hourExpr = "HOUR(sales.created_at)";
+            $hourExpr = "HOUR(sold_at)";
         }
 
         $lateNight = Sale::where('branch_id', $branchId)
             ->where('status', 'completed')
-            ->whereBetween('created_at', [$startDate, $endDate . ' 23:59:59'])
+            ->whereBetween('sold_at', [$startDate, $endDate . ' 23:59:59'])
             ->whereRaw("({$hourExpr} >= 22 OR {$hourExpr} < 6)")
             ->get()
             ->map(function ($sale) {
@@ -511,7 +511,7 @@ class ReportController extends Controller
                     'sale_id' => $sale->id,
                     'amount' => $sale->grand_total,
                     'staff' => $sale->staff_name ?? 'Bilinmiyor',
-                    'date' => $sale->created_at->format('d.m.Y H:i'),
+                    'date' => $sale->sold_at->format('d.m.Y H:i'),
                     'detail' => 'Geç saatte yapılan satış',
                 ];
             });

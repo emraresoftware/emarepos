@@ -26,11 +26,11 @@ class AdminController extends Controller
     {
         $stats = [
             'tenant_count'   => Tenant::count(),
-            'user_count'     => User::count(),
-            'sale_today'     => Sale::whereDate('created_at', today())->count(),
-            'sale_total'     => Sale::sum('grand_total'),
-            'feedback_open'  => Feedback::where('status', 'open')->count(),
-            'feedback_total' => Feedback::count(),
+            'user_count'     => User::withoutGlobalScope('tenant')->count(),
+            'sale_today'     => Sale::withoutGlobalScope('tenant')->whereDate('sold_at', today())->count(),
+            'sale_total'     => Sale::withoutGlobalScope('tenant')->sum('grand_total'),
+            'feedback_open'  => Feedback::withoutGlobalScope('tenant')->where('status', 'open')->count(),
+            'feedback_total' => Feedback::withoutGlobalScope('tenant')->count(),
         ];
 
         // Plan dağılımı

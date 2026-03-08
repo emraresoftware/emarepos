@@ -41,6 +41,8 @@ class CustomerController extends Controller
             'tax_office' => 'nullable|string',
             'address' => 'nullable|string',
             'city' => 'nullable|string',
+            'district' => 'nullable|string',
+            'notes' => 'nullable|string',
         ]);
         
         $data['tenant_id'] = session('tenant_id');
@@ -75,6 +77,8 @@ class CustomerController extends Controller
             'tax_number' => 'nullable|string',
             'tax_office' => 'nullable|string',
             'address' => 'nullable|string',
+            'city' => 'nullable|string',
+            'district' => 'nullable|string',
             'notes' => 'nullable|string',
         ]);
 
