@@ -912,7 +912,7 @@ function posScreen() {
         pendingProduct: null,
         pendingPriceCallback: null,
         // Fiş ayarları
-        receiptSettings: @json($receiptSettings ?? ['receipt_header' => '', 'receipt_footer' => '', 'auto_print_receipt' => false, 'kitchen_print' => false]),
+        receiptSettings: @json($receiptSettings),
 
         init() {
             this.showAllProducts();
