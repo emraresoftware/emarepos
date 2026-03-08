@@ -1147,8 +1147,35 @@ Tüm StockMovement::create çağrılarına (9 konum) branch_id eklendi:
 **AUDIT_REPORT.md:** Detaylı denetim raporu repo'ya eklendi (28 bulgu: 4 kritik, 8 orta, 8 iyileştirme, 8 eksik özellik)
 
 ### Kalan İyileştirmeler (Düşük Öncelik)
-- BUG-10: posAjax response standardizasyonu
-- BUG-12: ReportController query clone optimizasyonu
-- IMP-01~08: Çeşitli N+1, DB::transaction, withQueryString iyileştirmeleri
-- MISS-03: Şube silme endpoint'i
-- MISS-05~08: StockCount izolasyon, toplu fiyat güncelleme, activity log, rate limiting
+~~BUG-10: posAjax response standardizasyonu~~ ✅
+~~BUG-12: ReportController query clone optimizasyonu~~ ✅
+~~IMP-01~08: Çeşitli N+1, DB::transaction, withQueryString iyileştirmeleri~~ ✅
+~~MISS-03: Şube silme endpoint'i~~ ✅
+~~MISS-05~08: StockCount izolasyon, toplu fiyat güncelleme, activity log, rate limiting~~ ✅
+
+### Tüm İyileştirmeler Tamamlandı (commit 3d4710e)
+
+**Bug Düzeltmeleri:**
+- **BUG-10:** posAjax — 422 validation error detaylarını parse ediyor (her iki layout'ta)
+- **BUG-12:** ReportController periodComparison — 8 sorgu → 1 tek selectRaw sorgusu
+
+**Performans İyileştirmeleri:**
+- **IMP-01:** SaleController searchProducts — N+1 fix (eager-load branches)
+- **IMP-02:** withQueryString() — 11 controller'a eklendi (sayfalama filtreleri artık korunuyor)
+- **IMP-03:** StockController store — DB::transaction ile atomik stok güncellemesi
+- **IMP-05:** suspiciousTransactions — array_merge → Collection::concat optimizasyonu
+- **IMP-07:** ApiResponse trait oluşturuldu — base Controller'a eklendi, tüm controller'lar kullanabiliyor
+
+**Yeni Özellikler:**
+- **MISS-03:** Şube silme: `DELETE /branches/{branch}` (soft-delete, satış/personel kontrolü)
+- **MISS-05:** StockCount show/apply/destroy — branch_id izolasyonu (403 check)
+- **MISS-07:** Activity Log sistemi:
+  - `activity_logs` tablosu (migration)
+  - `ActivityLog` modeli (`::log()` statik metod)
+  - 7 controller'a entegre (Sale, Product, Firm, Customer, Stock, IncomeExpense)
+- **MISS-08:** API Rate Limiting: `throttle:120,1` tüm POS route'larına eklendi
+- **MISS-06:** Toplu fiyat güncelleme zaten mevcuttu (bulkPriceUpdate)
+
+### 📊 AUDIT_REPORT.md — TAMAMI ÇÖZÜLDÜ ✅
+28/28 bulgunun tamamı düzeltildi veya mevcut olduğu tespit edildi.
+
