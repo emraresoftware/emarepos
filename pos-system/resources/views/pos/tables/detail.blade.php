@@ -138,6 +138,10 @@
                 </template>
             </div>
             <div class="p-3">
+                <div class="flex items-center justify-between mb-2 px-1">
+                    <span class="text-sm font-semibold text-gray-700">Bekleyen Toplam</span>
+                    <span class="text-sm font-bold text-amber-600" x-text="formatCurrency(pendingTotal)"></span>
+                </div>
                 <div class="flex items-center gap-2">
                     <input type="text" x-model="orderNote" placeholder="Sipariş notu..."
                            class="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-gray-900 focus:outline-none">
@@ -192,10 +196,12 @@
         @if($session)
         <div class="border-t border-gray-700 p-4 bg-slate-800/50">
             <div class="flex items-center justify-between text-sm mb-1">
-                <span class="text-gray-500">Sipariş Toplamı</span>
-                <span class="text-gray-900 font-bold" id="session-total">
-                    {{ number_format($session->orders->sum(function($o) { return $o->items->sum('total'); }), 2) }} ₺
-                </span>
+                <span class="text-gray-700 font-semibold">Toplam Tutar</span>
+                <span class="text-lg font-bold text-brand-600" x-text="formatCurrency(grandTotal)"></span>
+            </div>
+            <div x-show="pendingTotal > 0" class="flex items-center justify-between text-xs text-amber-600 mb-1">
+                <span><i class="fas fa-clock mr-1"></i>Bekleyen</span>
+                <span x-text="formatCurrency(pendingTotal)"></span>
             </div>
             <div class="flex items-center justify-between text-xs text-gray-500">
                 <span>{{ $session->orders->count() }} sipariş</span>
@@ -458,6 +464,15 @@ function tableDetail() {
         splitTotal: 0,
         splitMethod: 'cash',
         splitItemTotals: @json($splitItemTotals),
+        existingTotal: {{ $session ? $session->orders->sum(function($o) { return $o->items->sum('total'); }) : 0 }},
+
+        get pendingTotal() {
+            return this.pendingItems.reduce((sum, item) => sum + item.total, 0);
+        },
+
+        get grandTotal() {
+            return this.existingTotal + this.pendingTotal;
+        },
 
         async init() {
             await this.loadProducts();
