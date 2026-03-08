@@ -9,6 +9,7 @@ use App\Models\AccountTransaction;
 use App\Models\StockMovement;
 use App\Models\CampaignUsage;
 use App\Models\LoyaltyPoint;
+use App\Services\PrinterService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
@@ -202,6 +203,27 @@ class SaleService
                 }
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::warning('Mutfak siparişi oluşturulamadı: ' . $e->getMessage(), ['sale_id' => $sale->id]);
+            }
+
+            // Mutfak yazıcısına gönder (kitchen_print ayarı açıksa)
+            try {
+                $tenant = \App\Models\Tenant::find($tenantId);
+                $kitchenPrintEnabled = $tenant?->meta['kitchen_print'] ?? false;
+                if ($kitchenPrintEnabled) {
+                    $kitchenData = [
+                        'receipt_no' => $receiptNo,
+                        'table_name' => $data['table_name'] ?? null,
+                        'note' => $data['notes'] ?? null,
+                        'items' => array_map(fn($item) => [
+                            'product_name' => $item['product_name'] ?? Product::find($item['product_id'])?->name ?? '',
+                            'quantity' => $item['quantity'] ?? 1,
+                            'note' => $item['note'] ?? null,
+                        ], $items),
+                    ];
+                    PrinterService::printKitchenTicket($kitchenData);
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Mutfak fişi yazdırılamadı: ' . $e->getMessage(), ['sale_id' => $sale->id]);
             }
 
             return $sale->load('items');

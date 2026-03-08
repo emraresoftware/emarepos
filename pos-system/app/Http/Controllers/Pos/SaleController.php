@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Sale;
 use App\Models\PaymentType;
+use App\Models\Tenant;
 use App\Services\SaleService;
 use Illuminate\Http\Request;
 
@@ -26,8 +27,17 @@ class SaleController extends Controller
     {
         $categories = Category::where('is_active', true)->orderBy('sort_order')->get();
         $paymentTypes = PaymentType::where('is_active', true)->orderBy('sort_order')->get();
+
+        // Fiş ayarlarını tenant meta'dan al
+        $tenant = Tenant::find(session('tenant_id'));
+        $receiptSettings = [
+            'receipt_header' => $tenant->meta['receipt_header'] ?? '',
+            'receipt_footer' => $tenant->meta['receipt_footer'] ?? '',
+            'auto_print_receipt' => $tenant->meta['auto_print_receipt'] ?? false,
+            'kitchen_print' => $tenant->meta['kitchen_print'] ?? false,
+        ];
         
-        return view('pos.sales.index', compact('categories', 'paymentTypes'));
+        return view('pos.sales.index', compact('categories', 'paymentTypes', 'receiptSettings'));
     }
 
     /**

@@ -169,8 +169,13 @@
             </div>
         </div>
 
-        {{-- Kasa Kapat Butonu --}}
-        <div class="flex justify-center">
+        {{-- Kasa İşlem Butonları --}}
+        <div class="flex justify-center gap-3">
+            <button @click="printXReport()"
+                    class="px-6 py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition-colors text-sm flex items-center gap-2 shadow-lg">
+                <i class="fas fa-print"></i>
+                X Raporu Yazdır
+            </button>
             <button @click="showCloseModal = true"
                     class="px-8 py-3.5 bg-red-600 hover:bg-red-500 text-gray-900 font-bold rounded-xl transition-colors text-sm flex items-center gap-2 shadow-lg shadow-red-900/30">
                 <i class="fas fa-lock"></i>
@@ -201,6 +206,7 @@
                             <th class="text-right py-3 px-4 font-medium">Kapanış Bakiye</th>
                             <th class="text-right py-3 px-4 font-medium">Toplam Satış</th>
                             <th class="text-right py-3 px-4 font-medium">Fark</th>
+                            <th class="py-3 px-4 font-medium"></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -231,6 +237,19 @@
                                 @else
                                     <span class="text-gray-500">0.00 ₺</span>
                                 @endif
+                            </td>
+                            <td class="py-3 px-4 text-right">
+                                <button @click="printZReport({
+                                    date: '{{ $report->opened_at->format('d.m.Y') }}',
+                                    opened: '{{ $report->opened_at->format('H:i') }}',
+                                    closed: '{{ $report->closed_at ? $report->closed_at->format('H:i') : '-' }}',
+                                    opening: {{ $report->opening_amount }},
+                                    closing: {{ $report->closing_amount ?? 0 }},
+                                    total: {{ $report->total_sales ?? 0 }},
+                                    diff: {{ $report->difference ?? 0 }}
+                                })" class="text-gray-400 hover:text-brand-500 transition-colors" title="Z Raporu Yazdır">
+                                    <i class="fas fa-print"></i>
+                                </button>
                             </td>
                         </tr>
                         @endforeach
@@ -521,6 +540,12 @@
                     <div class="text-sm text-gray-700" x-text="saleDetail?.notes"></div>
                 </div>
             </div>
+            {{-- Fiş Yazdır Butonu --}}
+            <div x-show="saleDetail && !saleDetailLoading" class="p-4 border-t border-gray-100 flex justify-end">
+                <button @click="printSaleReceipt()" class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors text-sm flex items-center gap-2">
+                    <i class="fas fa-print"></i> Fişi Yazdır
+                </button>
+            </div>
         </div>
     </div>
 
@@ -580,6 +605,90 @@ function cashRegisterScreen() {
             } finally {
                 this.saleDetailLoading = false;
             }
+        },
+
+        // Fiş yazdır (satış detay modalından)
+        printSaleReceipt() {
+            if (!this.saleDetail) return;
+            const s = this.saleDetail;
+            let rows = '';
+            (s.items || []).forEach(item => {
+                rows += `<tr><td style="text-align:left">${item.product_name}</td><td style="text-align:center">${item.quantity}</td><td style="text-align:right">${parseFloat(item.unit_price).toFixed(2)}</td><td style="text-align:right">${parseFloat(item.total).toFixed(2)}</td></tr>`;
+            });
+            const w = window.open('', '_blank', 'width=320,height=600');
+            if (!w) { showToast('Popup engelleyici aktif!', 'error'); return; }
+            w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Fiş</title>
+            <style>body{font-family:'Courier New',monospace;font-size:12px;margin:0;padding:8px;width:280px}.center{text-align:center}.bold{font-weight:bold}.line{border-top:1px dashed #000;margin:6px 0}table{width:100%;border-collapse:collapse}td{padding:2px 0;font-size:11px}.total-row td{font-weight:bold;font-size:13px;padding-top:4px}@media print{@page{margin:2mm;size:80mm auto}}</style></head><body>
+                <div class="center bold" style="font-size:14px">{{ config('app.name', 'EMARE POS') }}</div>
+                <div class="center" style="font-size:10px">${s.sold_at}</div>
+                <div class="center" style="font-size:10px">Fiş: ${s.receipt_no}</div>
+                <div class="line"></div>
+                <table><tr style="font-weight:bold;border-bottom:1px solid #000"><td>Ürün</td><td style="text-align:center">Ad.</td><td style="text-align:right">Fiyat</td><td style="text-align:right">Tutar</td></tr>${rows}</table>
+                <div class="line"></div>
+                <table><tr class="total-row"><td>TOPLAM</td><td colspan="3" style="text-align:right">${parseFloat(s.grand_total).toFixed(2)} ₺</td></tr>
+                <tr><td>Ödeme</td><td colspan="3" style="text-align:right;text-transform:capitalize">${s.payment_method === 'cash' ? 'Nakit' : s.payment_method === 'card' ? 'Kart' : s.payment_method === 'credit' ? 'Veresiye' : 'Karışık'}</td></tr></table>
+                <div class="line"></div>
+                <div class="center" style="font-size:10px;margin-top:8px">Teşekkür ederiz!</div>
+            </body></html>`);
+            w.document.close();
+            w.onafterprint = () => w.close();
+            setTimeout(() => { w.focus(); w.print(); }, 300);
+        },
+
+        // X Raporu yazdır (anlık kasa durumu)
+        printXReport() {
+            const w = window.open('', '_blank', 'width=320,height=500');
+            if (!w) { showToast('Popup engelleyici aktif!', 'error'); return; }
+            const now = new Date().toLocaleString('tr-TR');
+            w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>X Raporu</title>
+            <style>body{font-family:'Courier New',monospace;font-size:12px;margin:0;padding:8px;width:280px}.center{text-align:center}.bold{font-weight:bold}.line{border-top:1px dashed #000;margin:6px 0}.row{display:flex;justify-content:space-between;padding:2px 0}@media print{@page{margin:2mm;size:80mm auto}}</style></head><body>
+                <div class="center bold" style="font-size:14px">{{ config('app.name', 'EMARE POS') }}</div>
+                <div class="center bold" style="font-size:12px;margin:4px 0">X RAPORU (Ara Rapor)</div>
+                <div class="center" style="font-size:10px">${now}</div>
+                <div class="line"></div>
+                <div class="row"><span>Açılış Saati:</span><span>{{ $register ? $register->opened_at->format('H:i') : '-' }}</span></div>
+                <div class="row"><span>Açan:</span><span>{{ $register ? ($register->user->name ?? '-') : '-' }}</span></div>
+                <div class="line"></div>
+                <div class="row"><span>Açılış Bakiye:</span><span>{{ number_format($register ? $register->opening_amount : 0, 2) }} ₺</span></div>
+                <div class="row"><span>Nakit Satış:</span><span>{{ number_format($stats['cash_total'] ?? 0, 2) }} ₺</span></div>
+                <div class="row"><span>Kart Satış:</span><span>{{ number_format($stats['card_total'] ?? 0, 2) }} ₺</span></div>
+                <div class="row"><span>Veresiye:</span><span>{{ number_format($stats['credit_total'] ?? 0, 2) }} ₺</span></div>
+                <div class="row"><span>Satış Adedi:</span><span>{{ $stats['sale_count'] ?? 0 }}</span></div>
+                <div class="line"></div>
+                <div class="row bold" style="font-size:13px"><span>Toplam Satış:</span><span>{{ number_format(($stats['cash_total'] ?? 0) + ($stats['card_total'] ?? 0) + ($stats['credit_total'] ?? 0), 2) }} ₺</span></div>
+                <div class="row bold" style="font-size:13px"><span>Beklenen Nakit:</span><span>{{ number_format(($register ? $register->opening_amount : 0) + ($stats['cash_total'] ?? 0), 2) }} ₺</span></div>
+                <div class="line"></div>
+                <div class="center" style="font-size:9px;margin-top:6px">* Bu bir ara rapordur, kasa kapatılmamıştır.</div>
+            </body></html>`);
+            w.document.close();
+            w.onafterprint = () => w.close();
+            setTimeout(() => { w.focus(); w.print(); }, 300);
+        },
+
+        // Z Raporu yazdır (geçmiş rapor)
+        printZReport(report) {
+            const w = window.open('', '_blank', 'width=320,height=500');
+            if (!w) { showToast('Popup engelleyici aktif!', 'error'); return; }
+            w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Z Raporu</title>
+            <style>body{font-family:'Courier New',monospace;font-size:12px;margin:0;padding:8px;width:280px}.center{text-align:center}.bold{font-weight:bold}.line{border-top:1px dashed #000;margin:6px 0}.row{display:flex;justify-content:space-between;padding:2px 0}@media print{@page{margin:2mm;size:80mm auto}}</style></head><body>
+                <div class="center bold" style="font-size:14px">{{ config('app.name', 'EMARE POS') }}</div>
+                <div class="center bold" style="font-size:12px;margin:4px 0">Z RAPORU</div>
+                <div class="center" style="font-size:10px">${report.date}</div>
+                <div class="line"></div>
+                <div class="row"><span>Açılış:</span><span>${report.opened}</span></div>
+                <div class="row"><span>Kapanış:</span><span>${report.closed}</span></div>
+                <div class="line"></div>
+                <div class="row"><span>Açılış Bakiye:</span><span>${report.opening.toFixed(2)} ₺</span></div>
+                <div class="row"><span>Kapanış Bakiye:</span><span>${report.closing.toFixed(2)} ₺</span></div>
+                <div class="line"></div>
+                <div class="row bold" style="font-size:13px"><span>Toplam Satış:</span><span>${report.total.toFixed(2)} ₺</span></div>
+                <div class="row"><span>Fark:</span><span style="color:${report.diff >= 0 ? '#059669' : '#ef4444'}">${report.diff >= 0 ? '+' : ''}${report.diff.toFixed(2)} ₺</span></div>
+                <div class="line"></div>
+                <div class="center" style="font-size:9px;margin-top:6px">Gün sonu Z raporu</div>
+            </body></html>`);
+            w.document.close();
+            w.onafterprint = () => w.close();
+            setTimeout(() => { w.focus(); w.print(); }, 300);
         },
     };
 }

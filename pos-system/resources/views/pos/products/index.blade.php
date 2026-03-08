@@ -1981,18 +1981,38 @@ function productManager() {
 
         printLabels() {
             const w = window.open('', '_blank');
-            let html = '<html><head><title>Barkod Etiketleri</title><style>body{font-family:sans-serif;margin:0;padding:10px}' +
-                '.label{display:inline-block;width:180px;border:1px solid #ccc;padding:8px;margin:4px;text-align:center;page-break-inside:avoid}' +
+            let html = '<html><head><title>Barkod Etiketleri</title>' +
+                '<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>' +
+                '<style>body{font-family:sans-serif;margin:0;padding:10px}' +
+                '.label{display:inline-block;width:200px;border:1px solid #ccc;padding:8px;margin:4px;text-align:center;page-break-inside:avoid}' +
                 '.label .name{font-size:11px;font-weight:600;margin-bottom:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}' +
-                '.label .barcode{font-size:16px;font-weight:700;font-family:monospace;letter-spacing:2px;margin:4px 0}' +
+                '.label svg{display:block;margin:4px auto}' +
+                '.label .barcode-text{font-size:12px;font-family:monospace;letter-spacing:1px;margin:2px 0}' +
                 '.label .price{font-size:14px;font-weight:700;color:#333}@media print{body{margin:0}}</style></head><body>';
-            this.labelData.forEach(l => {
-                html += '<div class="label"><div class="name">' + l.name + '</div><div class="barcode">' + (l.barcode || '-') + '</div><div class="price">' + l.price + '</div></div>';
+            this.labelData.forEach((l, i) => {
+                const barcodeVal = l.barcode || '';
+                if (barcodeVal) {
+                    html += '<div class="label"><div class="name">' + l.name + '</div>' +
+                        '<svg id="bc' + i + '"></svg>' +
+                        '<div class="price">' + l.price + '</div></div>';
+                } else {
+                    html += '<div class="label"><div class="name">' + l.name + '</div>' +
+                        '<div class="barcode-text">Barkod yok</div>' +
+                        '<div class="price">' + l.price + '</div></div>';
+                }
             });
-            html += '</body></html>';
+            html += '<script>' +
+                'document.addEventListener("DOMContentLoaded", function(){' +
+                'var labels = ' + JSON.stringify(this.labelData.map(l => l.barcode || '')) + ';' +
+                'labels.forEach(function(code, i){' +
+                'if(code && document.getElementById("bc"+i)){' +
+                'try{JsBarcode("#bc"+i, code, {width:1.5,height:40,fontSize:12,margin:2,displayValue:true});}catch(e){' +
+                'document.getElementById("bc"+i).outerHTML="<div style=\\"font-family:monospace;font-size:14px;letter-spacing:2px;margin:4px 0\\">"+code+"</div>";}' +
+                '}});' +
+                'setTimeout(function(){window.print();},300);' +
+                '});<\/script></body></html>';
             w.document.write(html);
             w.document.close();
-            setTimeout(() => w.print(), 200);
         },
 
         // ── Ürün Özet Dökümü ─────────────────────

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Pos;
 use App\Http\Controllers\Controller;
 use App\Models\HardwareDevice;
 use App\Models\HardwareDriver;
+use App\Services\PrinterService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -207,5 +208,79 @@ class HardwareController extends Controller
         ->get();
 
         return response()->json($drivers);
+    }
+
+    /**
+     * POST /hardware/{device}/print — Belirli cihaza fiş yazdır
+     */
+    public function print(Request $request, HardwareDevice $device): JsonResponse
+    {
+        $data = $request->validate([
+            'receipt_no'      => 'nullable|string',
+            'date'            => 'nullable|string',
+            'grand_total'     => 'required|numeric',
+            'payment_method'  => 'nullable|string',
+            'items'           => 'required|array',
+            'items.*.product_name' => 'required|string',
+            'items.*.quantity'     => 'required|numeric',
+            'items.*.total'        => 'required|numeric',
+            'receipt_header'  => 'nullable|string',
+            'receipt_footer'  => 'nullable|string',
+            'open_drawer'     => 'nullable|boolean',
+        ]);
+
+        $result = PrinterService::printReceipt($data, $device);
+        return response()->json($result);
+    }
+
+    /**
+     * POST /hardware/print-receipt — Varsayılan yazıcıya fiş yazdır
+     */
+    public function printReceipt(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'receipt_no'      => 'nullable|string',
+            'date'            => 'nullable|string',
+            'grand_total'     => 'required|numeric',
+            'payment_method'  => 'nullable|string',
+            'items'           => 'required|array',
+            'items.*.product_name' => 'required|string',
+            'items.*.quantity'     => 'required|numeric',
+            'items.*.total'        => 'required|numeric',
+            'receipt_header'  => 'nullable|string',
+            'receipt_footer'  => 'nullable|string',
+            'open_drawer'     => 'nullable|boolean',
+        ]);
+
+        $result = PrinterService::printReceipt($data);
+        return response()->json($result);
+    }
+
+    /**
+     * POST /hardware/print-kitchen — Mutfak fişi yazdır
+     */
+    public function printKitchen(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'receipt_no'   => 'nullable|string',
+            'table_name'   => 'nullable|string',
+            'note'         => 'nullable|string',
+            'items'        => 'required|array',
+            'items.*.product_name' => 'required|string',
+            'items.*.quantity'     => 'required|numeric',
+            'items.*.note'         => 'nullable|string',
+        ]);
+
+        $result = PrinterService::printKitchenTicket($data);
+        return response()->json($result);
+    }
+
+    /**
+     * POST /hardware/open-drawer — Para çekmecesini aç
+     */
+    public function openDrawer(): JsonResponse
+    {
+        $result = PrinterService::openCashDrawer();
+        return response()->json($result);
     }
 }

@@ -200,6 +200,17 @@
                                             title="Detay">
                                         <i class="fas fa-eye"></i> Detay
                                     </button>
+                                    <button @click="printSaleReceipt({
+                                        receipt_no: '{{ $sale->receipt_no }}',
+                                        sold_at: '{{ $sale->sold_at?->format('d.m.Y H:i') }}',
+                                        grand_total: {{ $sale->grand_total }},
+                                        payment_method: '{{ $sale->payment_method }}',
+                                        items: {{ json_encode($sale->items->map(fn($i) => ['product_name' => $i->product_name, 'quantity' => $i->quantity, 'unit_price' => $i->unit_price, 'total' => $i->total])) }}
+                                    })"
+                                            class="px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 rounded-lg text-xs text-brand-600 hover:text-brand-800 transition-colors border border-brand-200"
+                                            title="Yaıdır">
+                                        <i class="fas fa-print"></i>
+                                    </button>
                                     @if($sale->status === 'completed')
                                         <button @click="openRefundModal({{ $sale->id }}, '{{ $sale->receipt_no }}')"
                                                 class="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 rounded-lg text-xs text-red-500 hover:text-red-700 transition-colors border border-red-200"
@@ -361,6 +372,32 @@
                 this.refundSaleId = null;
                 this.refundReceiptNo = '';
                 this.refundReason = '';
+            },
+
+            printSaleReceipt(sale) {
+                let rows = '';
+                (sale.items || []).forEach(item => {
+                    rows += `<tr><td style="text-align:left">${item.product_name}</td><td style="text-align:center">${item.quantity}</td><td style="text-align:right">${parseFloat(item.unit_price).toFixed(2)}</td><td style="text-align:right">${parseFloat(item.total).toFixed(2)}</td></tr>`;
+                });
+                const pmLabel = {cash:'Nakit',card:'Kart',credit:'Veresiye',mixed:'Karışık'}[sale.payment_method] || sale.payment_method;
+                const w = window.open('', '_blank', 'width=320,height=600');
+                if (!w) { showToast('Popup engelleyici aktif!', 'error'); return; }
+                w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Fiş</title>
+                <style>body{font-family:'Courier New',monospace;font-size:12px;margin:0;padding:8px;width:280px}.center{text-align:center}.bold{font-weight:bold}.line{border-top:1px dashed #000;margin:6px 0}table{width:100%;border-collapse:collapse}td{padding:2px 0;font-size:11px}.total-row td{font-weight:bold;font-size:13px;padding-top:4px}@media print{@page{margin:2mm;size:80mm auto}}</style></head><body>
+                    <div class="center bold" style="font-size:14px">{{ config('app.name', 'EMARE POS') }}</div>
+                    <div class="center" style="font-size:10px">${sale.sold_at}</div>
+                    <div class="center" style="font-size:10px">Fiş: ${sale.receipt_no}</div>
+                    <div class="line"></div>
+                    <table><tr style="font-weight:bold;border-bottom:1px solid #000"><td>Ürün</td><td style="text-align:center">Ad.</td><td style="text-align:right">Fiyat</td><td style="text-align:right">Tutar</td></tr>${rows}</table>
+                    <div class="line"></div>
+                    <table><tr class="total-row"><td>TOPLAM</td><td colspan="3" style="text-align:right">${parseFloat(sale.grand_total).toFixed(2)} ₺</td></tr>
+                    <tr><td>Ödeme</td><td colspan="3" style="text-align:right">${pmLabel}</td></tr></table>
+                    <div class="line"></div>
+                    <div class="center" style="font-size:10px;margin-top:8px">Teşekkür ederiz!</div>
+                </body></html>`);
+                w.document.close();
+                w.onafterprint = () => w.close();
+                setTimeout(() => { w.focus(); w.print(); }, 300);
             },
 
             async submitRefund() {

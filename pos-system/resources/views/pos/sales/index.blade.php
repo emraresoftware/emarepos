@@ -911,6 +911,8 @@ function posScreen() {
         showPriceSelectModal: false,
         pendingProduct: null,
         pendingPriceCallback: null,
+        // Fiş ayarları
+        receiptSettings: @json($receiptSettings ?? ['receipt_header' => '', 'receipt_footer' => '', 'auto_print_receipt' => false, 'kitchen_print' => false]),
 
         init() {
             this.showAllProducts();
@@ -1178,6 +1180,10 @@ function posScreen() {
                     this.lastSale = data.sale;
                     this.showReceipt = true;
                     showToast('Satış başarıyla kaydedildi!');
+                    // Otomatik yazdırma
+                    if (this.receiptSettings.auto_print_receipt) {
+                        this.$nextTick(() => this.printReceipt());
+                    }
                 }
             } catch(e) {
                 showToast(e.message || 'Satış kaydedilemedi.', 'error');
@@ -1228,6 +1234,10 @@ function posScreen() {
                     this.showReceipt = true;
                     this.mixedCash = 0; this.mixedCard = 0; this.mixedCredit = 0; this.mixedTransfer = 0; this.mixedRemaining = 0;
                     showToast('Satış başarıyla kaydedildi!');
+                    // Otomatik yazdırma
+                    if (this.receiptSettings.auto_print_receipt) {
+                        this.$nextTick(() => this.printReceipt());
+                    }
                 }
             } catch(e) {
                 showToast(e.message || 'Satış kaydedilemedi.', 'error');
@@ -1317,6 +1327,7 @@ function posScreen() {
                 .total-row td{font-weight:bold;font-size:13px;padding-top:4px}
                 @media print { @page { margin: 2mm; size: 80mm auto; } }
             </style></head><body>
+                ${this.receiptSettings.receipt_header ? '<div class="center" style="font-size:10px;white-space:pre-line;margin-bottom:4px">' + this.receiptSettings.receipt_header.replace(/</g,'&lt;') + '</div>' : ''}
                 <div class="center bold" style="font-size:14px">{{ config('app.name', 'EMARE POS') }}</div>
                 <div class="center" style="font-size:10px">${now}</div>
                 <div class="center" style="font-size:10px">Fiş: ${receiptNo}</div>
@@ -1331,7 +1342,7 @@ function posScreen() {
                     <tr><td>Ödeme</td><td colspan="3" style="text-align:right;text-transform:capitalize">${paymentMethod}</td></tr>
                 </table>
                 <div class="line"></div>
-                <div class="center" style="font-size:10px;margin-top:8px">Teşekkür ederiz!</div>
+                <div class="center" style="font-size:10px;margin-top:8px">${this.receiptSettings.receipt_footer || 'Teşekkür ederiz!'}</div>
             </body></html>`;
             printWindow.document.write(htmlContent);
             printWindow.document.close();

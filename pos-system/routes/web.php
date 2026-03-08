@@ -247,6 +247,11 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class])->group(fu
     Route::delete('/hardware/{device}', [HardwareController::class, 'destroy'])->name('pos.hardware.destroy');
     Route::post('/hardware/{device}/test', [HardwareController::class, 'test'])->name('pos.hardware.test');
     Route::get('/hardware/drivers', [HardwareController::class, 'drivers'])->name('pos.hardware.drivers');
+    // Yazdırma endpoint'leri
+    Route::post('/hardware/{device}/print', [HardwareController::class, 'print'])->name('pos.hardware.print');
+    Route::post('/hardware/print-receipt', [HardwareController::class, 'printReceipt'])->name('pos.hardware.print-receipt');
+    Route::post('/hardware/print-kitchen', [HardwareController::class, 'printKitchen'])->name('pos.hardware.print-kitchen');
+    Route::post('/hardware/open-drawer', [HardwareController::class, 'openDrawer'])->name('pos.hardware.open-drawer');
 
     // Geri Bildirim — API (widget)
     Route::post('/api/feedback', [FeedbackController::class, 'store'])->name('pos.feedback.store');
