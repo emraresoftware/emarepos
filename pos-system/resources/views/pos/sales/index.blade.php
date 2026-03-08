@@ -997,12 +997,14 @@ function posScreen() {
                     quantity: 1,
                     discount: 0,
                     discountType: 'TL',
+                    discountAmount: 0,
                     vat_rate: product.vat_rate || 20,
                     vat_amount: 0,
                     additional_tax_amount: 0,
                     total: product.sale_price,
                     showDiscount: false,
                 });
+                this.recalcItem(this.cart.length - 1);
             }
             this.recalcTotals();
         },
@@ -1150,6 +1152,11 @@ function posScreen() {
             const isOther = method.startsWith('other_');
             const actualMethod = isOther ? method : method;
 
+            // Genel iskonto TL cinsinden hesapla
+            const genDiscTL = this.generalDiscountType === '%'
+                ? Math.round((this.totals.subtotal + this.totals.vat_total) * (this.generalDiscount || 0) / 100 * 100) / 100
+                : (this.generalDiscount || 0);
+
             const payload = {
                 items: this.cart.map(i => ({
                     product_id: i.product_id,
@@ -1157,7 +1164,7 @@ function posScreen() {
                     barcode: i.barcode,
                     quantity: i.quantity,
                     unit_price: i.unit_price,
-                    discount: i.discount,
+                    discount: i.discountAmount ?? i.discount,
                     vat_rate: i.vat_rate,
                     vat_amount: i.vat_amount,
                     additional_tax_amount: i.additional_tax_amount || 0,
@@ -1165,7 +1172,7 @@ function posScreen() {
                 })),
                 payment_method: actualMethod,
                 customer_id: this.selectedCustomer?.id,
-                discount: this.generalDiscount,
+                discount: genDiscTL,
                 cash_amount: method === 'cash' ? this.totals.grand_total : 0,
                 card_amount: method === 'card' ? this.totals.grand_total : 0,
                 credit_amount: method === 'credit' ? this.totals.grand_total : 0,
@@ -1202,6 +1209,11 @@ function posScreen() {
                 return;
             }
 
+            // Genel iskonto TL cinsinden hesapla
+            const genDiscTL = this.generalDiscountType === '%'
+                ? Math.round((this.totals.subtotal + this.totals.vat_total) * (this.generalDiscount || 0) / 100 * 100) / 100
+                : (this.generalDiscount || 0);
+
             const payload = {
                 items: this.cart.map(i => ({
                     product_id: i.product_id,
@@ -1209,7 +1221,7 @@ function posScreen() {
                     barcode: i.barcode,
                     quantity: i.quantity,
                     unit_price: i.unit_price,
-                    discount: i.discount,
+                    discount: i.discountAmount ?? i.discount,
                     vat_rate: i.vat_rate,
                     vat_amount: i.vat_amount,
                     additional_tax_amount: i.additional_tax_amount || 0,
@@ -1217,7 +1229,7 @@ function posScreen() {
                 })),
                 payment_method: 'mixed',
                 customer_id: this.selectedCustomer?.id,
-                discount: this.generalDiscount,
+                discount: genDiscTL,
                 cash_amount: this.mixedCash || 0,
                 card_amount: this.mixedCard || 0,
                 credit_amount: this.mixedCredit || 0,
@@ -1441,7 +1453,7 @@ function posScreen() {
                     this.recalcItem(this.cart.indexOf(existing));
                 } else {
                     const vatRate = parseFloat(product.vat_rate) || 0;
-                    const vatAmount = price * (vatRate / 100);
+                    const vatAmount = Math.round(price * vatRate / (100 + vatRate) * 100) / 100;
                     this.cart.unshift({
                         product_id: product.id,
                         product_name: product.name,
@@ -1451,10 +1463,11 @@ function posScreen() {
                         discount: 0,
                         discountType: 'TL',
                         showDiscount: false,
+                        discountAmount: 0,
                         vat_rate: vatRate,
                         vat_amount: vatAmount,
                         additional_tax_amount: 0,
-                        total: price + vatAmount,
+                        total: price,
                     });
                 }
                 this.recalcTotals();

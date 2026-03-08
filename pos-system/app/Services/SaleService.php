@@ -58,8 +58,9 @@ class SaleService
                 'sold_at' => $data['sold_at'] ?? Carbon::now(),
             ]);
             
-            // Create sale items and update stock
-            foreach ($items as $item) {
+            // Create sale items and update stock (use calculated items for correct vat/totals)
+            $calculatedItems = $calculated['items'];
+            foreach ($calculatedItems as $item) {
                 $product = Product::find($item['product_id']);
                 
                 $saleItem = SaleItem::create([
