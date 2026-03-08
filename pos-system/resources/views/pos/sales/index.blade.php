@@ -1259,7 +1259,7 @@ function posScreen() {
             if (!barcode) { showToast('Barkod alanına ürün barkodunu girin', 'warning'); return; }
             const product = this.products.find(p => p.barcode === barcode);
             if (product) {
-                showToast(`${product.name} → ${this.formatCurrency(product.sale_price)} (Stok: ${product.stock_quantity})`, 'success');
+                showToast(`${product.name} → ${formatCurrency(product.sale_price)} (Stok: ${product.stock_quantity})`, 'success');
             } else {
                 showToast('Bu barkod ile ürün bulunamadı', 'error');
             }
@@ -1308,7 +1308,7 @@ function posScreen() {
                 const qty = item.quantity || item.qty || 1;
                 const price = item.unit_price || item.sale_price || item.price || 0;
                 const total = item.total || (qty * price);
-                rows += `<tr><td style="text-align:left">${name}</td><td style="text-align:center">${qty}</td><td style="text-align:right">${this.formatCurrency(price)}</td><td style="text-align:right">${this.formatCurrency(total)}</td></tr>`;
+                rows += `<tr><td style="text-align:left">${name}</td><td style="text-align:center">${qty}</td><td style="text-align:right">${formatCurrency(price)}</td><td style="text-align:right">${formatCurrency(total)}</td></tr>`;
             });
 
             const printWindow = window.open('', '_blank', 'width=320,height=600');
@@ -1338,7 +1338,7 @@ function posScreen() {
                 </table>
                 <div class="line"></div>
                 <table>
-                    <tr class="total-row"><td>TOPLAM</td><td colspan="3" style="text-align:right">${this.formatCurrency(grandTotal)}</td></tr>
+                    <tr class="total-row"><td>TOPLAM</td><td colspan="3" style="text-align:right">${formatCurrency(grandTotal)}</td></tr>
                     <tr><td>Ödeme</td><td colspan="3" style="text-align:right;text-transform:capitalize">${paymentMethod}</td></tr>
                 </table>
                 <div class="line"></div>
@@ -1437,7 +1437,7 @@ function posScreen() {
                 const existing = this.cart.find(i => i.product_id === product.id && i.unit_price === price);
                 if (existing) {
                     existing.quantity++;
-                    this.recalcItem(existing);
+                    this.recalcItem(this.cart.indexOf(existing));
                 } else {
                     const vatRate = parseFloat(product.vat_rate) || 0;
                     const vatAmount = price * (vatRate / 100);
@@ -1448,6 +1448,8 @@ function posScreen() {
                         unit_price: price,
                         quantity: 1,
                         discount: 0,
+                        discountType: 'TL',
+                        showDiscount: false,
                         vat_rate: vatRate,
                         vat_amount: vatAmount,
                         additional_tax_amount: 0,

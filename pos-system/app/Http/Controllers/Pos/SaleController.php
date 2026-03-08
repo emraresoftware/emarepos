@@ -121,7 +121,7 @@ class SaleController extends Controller
             'items.*.product_id' => 'required|integer',
             'items.*.quantity' => 'required|numeric|min:0.01',
             'items.*.unit_price' => 'required|numeric|min:0',
-            'payment_method' => 'required|string',
+            'payment_method' => 'required|string|in:cash,card,credit,mixed,transfer',
         ]);
 
         try {
@@ -136,6 +136,7 @@ class SaleController extends Controller
                 'cash_amount' => $request->cash_amount ?? 0,
                 'card_amount' => $request->card_amount ?? 0,
                 'credit_amount' => $request->credit_amount ?? 0,
+                'transfer_amount' => $request->transfer_amount ?? 0,
                 'staff_name' => auth()->user()->name,
                 'application' => 'pos',
                 'notes' => $request->notes,

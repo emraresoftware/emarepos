@@ -332,16 +332,23 @@ class SaleService
             }
             
             // Refund customer balance if credit sale
+            $creditRefundAmount = 0;
             if ($sale->payment_method === 'credit' && $sale->customer_id) {
+                $creditRefundAmount = $sale->grand_total;
+            } elseif ($sale->payment_method === 'mixed' && $sale->credit_amount > 0 && $sale->customer_id) {
+                $creditRefundAmount = $sale->credit_amount;
+            }
+
+            if ($creditRefundAmount > 0 && $sale->customer_id) {
                 $customer = Customer::find($sale->customer_id);
                 if ($customer) {
-                    $customer->increment('balance', $sale->grand_total);
+                    $customer->increment('balance', $creditRefundAmount);
                     
                     AccountTransaction::create([
                         'tenant_id' => $sale->tenant_id,
                         'customer_id' => $customer->id,
                         'type' => 'refund',
-                        'amount' => $sale->grand_total,
+                        'amount' => $creditRefundAmount,
                         'balance_after' => $customer->balance,
                         'description' => "İade: {$sale->receipt_no}",
                         'reference' => $sale->receipt_no,
@@ -367,29 +374,52 @@ class SaleService
                 'notes' => ($sale->notes ? $sale->notes . "\n" : '') . "İptal: " . ($reason ?? 'Belirtilmedi'),
             ]);
             
-            // Same stock restoration logic
+            // Stock restoration + movement kaydı
             foreach ($sale->items as $item) {
                 if ($item->product_id) {
                     $product = Product::find($item->product_id);
                     if ($product && !$product->is_service) {
                         $product->increment('stock_quantity', $item->quantity);
+                        
+                        StockMovement::create([
+                            'tenant_id' => $sale->tenant_id,
+                            'type' => 'return',
+                            'product_id' => $product->id,
+                            'product_name' => $product->name,
+                            'barcode' => $product->barcode,
+                            'transaction_code' => $sale->receipt_no,
+                            'note' => "İptal: " . ($reason ?? ''),
+                            'quantity' => $item->quantity,
+                            'remaining' => $product->stock_quantity,
+                            'unit_price' => $item->unit_price,
+                            'total' => $item->total,
+                            'movement_date' => Carbon::now(),
+                        ]);
                     }
                 }
             }
             
+            // Veresiye bakiye geri yükle (credit veya mixed'deki credit kısmı)
+            $creditCancelAmount = 0;
             if ($sale->payment_method === 'credit' && $sale->customer_id) {
+                $creditCancelAmount = $sale->grand_total;
+            } elseif ($sale->payment_method === 'mixed' && $sale->credit_amount > 0 && $sale->customer_id) {
+                $creditCancelAmount = $sale->credit_amount;
+            }
+
+            if ($creditCancelAmount > 0 && $sale->customer_id) {
                 $customer = Customer::find($sale->customer_id);
                 if ($customer) {
-                    $customer->increment('balance', $sale->grand_total);
+                    $customer->increment('balance', $creditCancelAmount);
                     AccountTransaction::create([
                         'tenant_id' => $sale->tenant_id,
                         'customer_id' => $customer->id,
                         'type' => 'refund',
-                        'amount' => $sale->grand_total,
+                        'amount' => $creditCancelAmount,
                         'balance_after' => $customer->balance,
                         'description' => "İptal: {$sale->receipt_no}",
                         'reference' => $sale->receipt_no,
-                        'transaction_date' => \Carbon\Carbon::now(),
+                        'transaction_date' => Carbon::now(),
                     ]);
                 }
             }
