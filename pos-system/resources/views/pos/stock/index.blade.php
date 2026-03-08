@@ -59,7 +59,7 @@
             </select>
             <input type="text" x-model="searchQuery" @input.debounce.400ms="applyFilters()"
                    placeholder="Ürün / Barkod ara..."
-                   class="bg-white border border-gray-700 text-gray-700 text-sm rounded-lg pl-3 pr-4 py-2 w-52 placeholder-gray-400">
+                   class="bg-white border border-gray-700 text-gray-700 text-sm rounded-lg pl-3 pr-4 py-2 w-full sm:w-52 placeholder-gray-400">
             <button @click="openNewMovement()"
                     class="bg-emerald-600 hover:bg-emerald-700 text-gray-900 font-medium rounded-lg text-sm px-5 py-2 transition-colors flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>

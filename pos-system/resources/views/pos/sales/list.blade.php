@@ -19,17 +19,17 @@
                 <div>
                     <label class="text-xs text-gray-500 mb-1 block font-medium">Başlangıç</label>
                     <input type="date" name="start_date" value="{{ request('start_date') }}"
-                           class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 w-36 transition-all">
+                           class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 w-full sm:w-36 transition-all">
                 </div>
                 <div>
                     <label class="text-xs text-gray-500 mb-1 block font-medium">Bitiş</label>
                     <input type="date" name="end_date" value="{{ request('end_date') }}"
-                           class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 w-36 transition-all">
+                           class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 w-full sm:w-36 transition-all">
                 </div>
                 <div>
                     <label class="text-xs text-gray-500 mb-1 block font-medium">Ödeme Yöntemi</label>
                     <select name="payment_method"
-                            class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 w-36 transition-all">
+                            class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 w-full sm:w-36 transition-all">
                         <option value="">Tümü</option>
                         <option value="cash" {{ request('payment_method') === 'cash' ? 'selected' : '' }}>Nakit</option>
                         <option value="card" {{ request('payment_method') === 'card' ? 'selected' : '' }}>Kredi Kartı</option>
@@ -43,7 +43,7 @@
                         <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
                         <input type="text" name="search" value="{{ request('search') }}"
                                placeholder="Fiş no ara..."
-                               class="bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 w-40 transition-all">
+                               class="bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 w-full sm:w-40 transition-all">
                     </div>
                 </div>
                 <div class="flex items-center gap-2">

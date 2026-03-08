@@ -48,7 +48,7 @@
             background-clip: text;
         }
         /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f8fafc; }
         ::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
@@ -56,14 +56,42 @@
         @media print {
             .no-print { display: none !important; }
         }
+        /* iOS safe area */
+        @supports (padding: env(safe-area-inset-bottom)) {
+            .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        }
+        /* Mobile: hide scrollbar for category strips */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
     @stack('styles')
 </head>
 <body class="h-full bg-gray-50 font-sans antialiased text-gray-800">
-    <div x-data="{ sidebarOpen: true, sidebarMobile: false }" class="h-full flex">
+    <div x-data="{ sidebarOpen: window.innerWidth >= 1024, sidebarMobile: false }" 
+         @resize.window="sidebarOpen = window.innerWidth >= 1024; if(window.innerWidth >= 1024) sidebarMobile = false" 
+         class="h-full flex">
+
+        <!-- Mobile Hamburger -->
+        <button @click="sidebarMobile = !sidebarMobile" 
+                class="lg:hidden fixed top-2 left-2 z-50 w-10 h-10 bg-white border border-gray-200 rounded-xl shadow-lg flex items-center justify-center text-gray-600 hover:text-brand-600 no-print"
+                x-show="!sidebarMobile">
+            <i class="fas fa-bars text-sm"></i>
+        </button>
+
+        <!-- Mobile Overlay -->
+        <div x-show="sidebarMobile" x-transition.opacity 
+             @click="sidebarMobile = false" 
+             class="lg:hidden fixed inset-0 bg-black/40 z-40 no-print" x-cloak></div>
+
         <!-- Sidebar -->
-        <aside class="no-print transition-all duration-300 bg-white border-r border-gray-200 flex flex-col shadow-sm"
-               :class="sidebarOpen ? 'w-60' : 'w-[68px]'"
+        <aside class="no-print transition-all duration-300 bg-white border-r border-gray-200 flex flex-col shadow-sm
+                      fixed lg:relative inset-y-0 left-0 z-40
+                      w-60 lg:w-60"
+               :class="{
+                   'lg:w-[68px]': !sidebarOpen,
+                   '-translate-x-full lg:translate-x-0': !sidebarMobile && window.innerWidth < 1024,
+                   'translate-x-0': sidebarMobile || window.innerWidth >= 1024
+               }"
                x-cloak>
             <!-- Logo -->
             <div class="p-3.5 border-b border-gray-100 flex items-center" :class="sidebarOpen ? 'justify-between' : 'justify-center'">
@@ -73,9 +101,16 @@
                     </div>
                     <span class="text-lg font-bold text-gray-900">Emare <span class="gradient-text">POS</span></span>
                 </div>
-                <button @click="sidebarOpen = !sidebarOpen" class="text-gray-400 hover:text-brand-600 p-1.5 rounded-lg hover:bg-brand-50 transition-colors">
-                    <i class="fas text-xs" :class="sidebarOpen ? 'fa-chevron-left' : 'fa-chevron-right'"></i>
-                </button>
+                <div class="flex items-center gap-1">
+                    <!-- Close mobile sidebar -->
+                    <button @click="sidebarMobile = false" class="lg:hidden text-gray-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition-colors">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                    <!-- Desktop collapse -->
+                    <button @click="sidebarOpen = !sidebarOpen" class="hidden lg:block text-gray-400 hover:text-brand-600 p-1.5 rounded-lg hover:bg-brand-50 transition-colors">
+                        <i class="fas text-xs" :class="sidebarOpen ? 'fa-chevron-left' : 'fa-chevron-right'"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- Nav Links -->
@@ -116,7 +151,8 @@
                               {{ request()->routeIs($item['route'].'*')
                                     ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white shadow-md shadow-brand-500/25'
                                     : 'text-gray-600 hover:text-brand-700 hover:bg-brand-50' }}"
-                       :class="sidebarOpen ? '' : 'justify-center'"
+                       :class="sidebarOpen ? '' : 'lg:justify-center'"
+                       @click="if(window.innerWidth < 1024) sidebarMobile = false"
                        title="{{ $item['label'] }}">
                         <i class="fas {{ $item['icon'] }} w-5 text-center text-[13px]"></i>
                         <span x-show="sidebarOpen">{{ $item['label'] }}</span>

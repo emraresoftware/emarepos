@@ -83,7 +83,7 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 mb-3">
         <div class="flex flex-wrap items-center gap-2">
             {{-- Metin Arama --}}
-            <div class="flex items-center gap-1 flex-1 min-w-[200px]">
+            <div class="flex items-center gap-1 flex-1 min-w-0 sm:min-w-[200px]">
                 <input type="text"
                        x-model="searchQuery"
                        @input.debounce.400ms="applyFilters()"
@@ -97,7 +97,7 @@
             {{-- Firma Filtresi --}}
             <div class="flex items-center gap-1">
                 <select x-model="firmFilter" @change="applyFilters()"
-                        class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-3 py-2 min-w-[160px] focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                        class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-3 py-2 w-full sm:min-w-[160px] focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
                     <option value="">Tüm firmalar</option>
                     @foreach($firms as $firm)
                         <option value="{{ $firm->id }}">{{ $firm->name }}</option>
@@ -111,7 +111,7 @@
             {{-- Kategori (Grup) Filtresi --}}
             <div class="flex items-center gap-1">
                 <select x-model="categoryFilter" @change="applyFilters()"
-                        class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-3 py-2 min-w-[160px] focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                        class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-3 py-2 w-full sm:min-w-[160px] focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
                     <option value="">Tüm gruplar</option>
                     @php
                         if (!function_exists('renderCatOptions')) {
@@ -136,7 +136,7 @@
             {{-- Varyant Filtresi --}}
             <div class="flex items-center gap-1">
                 <select x-model="variantFilter" @change="applyFilters()"
-                        class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-3 py-2 min-w-[160px] focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                        class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-3 py-2 w-full sm:min-w-[160px] focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
                     <option value="">Tüm varyantlar</option>
                     @foreach($variantTypes as $vt)
                         <option value="{{ $vt->id }}">{{ $vt->name }}</option>
@@ -150,7 +150,7 @@
             {{-- Şablon --}}
             <div class="flex items-center gap-1">
                 <select x-model="selectedTemplateId" @change="loadTemplate()"
-                        class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-3 py-2 min-w-[130px] focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                        class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-3 py-2 w-full sm:min-w-[130px] focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
                     <option value="">Şablon</option>
                     @foreach($filterTemplates as $tpl)
                         <option value="{{ $tpl->id }}" data-filters="{{ json_encode($tpl->filters) }}">{{ $tpl->name }}</option>

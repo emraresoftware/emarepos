@@ -7,7 +7,7 @@
     <h1 class="text-2xl font-bold text-gray-900 mb-6">Ayarlar</h1>
 
     {{-- Tabs --}}
-    <div class="flex gap-2 mb-6 border-b border-gray-100 pb-3">
+    <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-100 pb-3 overflow-x-auto hide-scrollbar">
         <button @click="activeTab = 'branch'" :class="activeTab === 'branch' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-gray-900' : 'bg-white text-gray-500 hover:text-gray-800'" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             <i class="fas fa-store mr-1"></i> Şube Bilgileri
         </button>

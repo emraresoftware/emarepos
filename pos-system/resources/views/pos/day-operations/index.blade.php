@@ -5,9 +5,9 @@
 @section('content')
 <div class="p-6 overflow-y-auto h-full">
     {{-- Header --}}
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Gün İşlemleri</h1>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Gün İşlemleri</h1>
             <p class="text-sm text-gray-500 mt-1">{{ \Carbon\Carbon::today()->translatedFormat('d F Y, l') }}</p>
         </div>
         @if($activeRegister)

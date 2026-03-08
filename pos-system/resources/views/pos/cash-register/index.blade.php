@@ -5,9 +5,9 @@
 <div x-data="cashRegisterScreen()" class="flex-1 flex flex-col overflow-hidden">
 
     {{-- Üst Bar --}}
-    <div class="p-4 bg-gray-50 border-b border-gray-700 flex items-center justify-between">
+    <div class="p-3 sm:p-4 bg-gray-50 border-b border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div class="flex items-center gap-3">
-            <h1 class="text-xl font-bold text-gray-900">
+            <h1 class="text-lg sm:text-xl font-bold text-gray-900">
                 <i class="fas fa-cash-register text-brand-500 mr-2"></i>Kasa İşlemleri
             </h1>
             @if($register)
@@ -394,7 +394,7 @@
     {{-- ║    SATIŞ LİSTESİ MODAL                ║ --}}
     {{-- ╚════════════════════════════════════════╝ --}}
     <div x-show="showSalesModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm" x-cloak>
-        <div class="bg-white rounded-2xl shadow-2xl w-[720px] max-w-[96vw] max-h-[85vh] flex flex-col">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 max-h-[85vh] flex flex-col">
             <div class="flex items-center justify-between p-5 border-b border-gray-100">
                 <div>
                     <h3 class="text-lg font-bold text-gray-900" x-text="salesModalTitle"></h3>
@@ -460,7 +460,7 @@
     {{-- ║    SATIŞ DETAY MODAL                  ║ --}}
     {{-- ╚════════════════════════════════════════╝ --}}
     <div x-show="showSaleDetail" x-transition class="fixed inset-0 z-60 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm" x-cloak>
-        <div class="bg-white rounded-2xl shadow-2xl w-[500px] max-w-[96vw] max-h-[85vh] flex flex-col">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col">
             <div class="flex items-center justify-between p-5 border-b border-gray-100">
                 <div>
                     <h3 class="text-md font-bold text-gray-900">Satış Detayı</h3>

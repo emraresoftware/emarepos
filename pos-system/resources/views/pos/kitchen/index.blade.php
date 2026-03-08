@@ -5,14 +5,14 @@
 <div x-data="kitchenScreen()" x-init="init()" class="flex-1 flex flex-col overflow-hidden">
 
     {{-- Üst Bar --}}
-    <div class="p-4 bg-gray-50 border-b border-gray-700 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-            <h1 class="text-xl font-bold text-gray-900">
-                <i class="fas fa-fire-burner text-orange-400 mr-2"></i>Mutfak Ekranı
+    <div class="p-3 sm:p-4 bg-gray-50 border-b border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+            <h1 class="text-lg sm:text-xl font-bold text-gray-900 shrink-0">
+                <i class="fas fa-fire-burner text-orange-400 mr-2"></i>Mutfak
             </h1>
 
             {{-- Durum Filtreleri --}}
-            <div class="flex gap-1.5">
+            <div class="flex gap-1.5 flex-wrap">
                 <button @click="statusFilter = 'all'"
                         class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                         :class="statusFilter === 'all' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-700'">
@@ -40,7 +40,7 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
             {{-- Ses Bildirimi --}}
             <button @click="soundEnabled = !soundEnabled"
                     class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"

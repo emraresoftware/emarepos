@@ -2,7 +2,22 @@
 @section('title', 'Hızlı Satış')
 
 @section('content')
-<div x-data="posScreen()" x-init="init()" class="flex-1 flex flex-row-reverse overflow-hidden">
+<div x-data="posScreen()" x-init="init()" class="flex-1 flex flex-col lg:flex-row-reverse overflow-hidden relative">
+
+    {{-- Mobil Tab Bar (sadece mobilde görünür) --}}
+    <div class="lg:hidden flex shrink-0 bg-white border-b border-gray-200 safe-bottom z-20">
+        <button @click="mobileTab = 'cart'" 
+                class="flex-1 py-3 text-center text-sm font-semibold transition-colors relative"
+                :class="mobileTab === 'cart' ? 'text-brand-600 bg-brand-50' : 'text-gray-500'">
+            <i class="fas fa-shopping-cart mr-1"></i> Sepet
+            <span x-show="cart.length > 0" class="absolute top-1 right-1/4 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold" x-text="cart.length"></span>
+        </button>
+        <button @click="mobileTab = 'products'" 
+                class="flex-1 py-3 text-center text-sm font-semibold transition-colors"
+                :class="mobileTab === 'products' ? 'text-brand-600 bg-brand-50' : 'text-gray-500'">
+            <i class="fas fa-th-large mr-1"></i> Ürünler
+        </button>
+    </div>
 
     {{-- ─── Hızı Ürün Ekleme Modalı ─── --}}
     <div x-show="showProductModal" x-cloak
@@ -144,7 +159,8 @@
     </div>
 
     {{-- SAĞ PANEL: Sepet --}}
-    <div class="w-[440px] flex flex-col bg-white border-l border-gray-200 shrink-0">
+    <div class="w-full lg:w-[440px] flex flex-col bg-white border-l border-gray-200 shrink-0"
+         :class="{ 'hidden lg:flex': mobileTab !== 'cart' }">
 
         {{-- Koyu Header: Barkod + Toplam + KDV --}}
         <div class="bg-slate-800 shrink-0">
@@ -162,7 +178,7 @@
             </div>
             {{-- Toplam --}}
             <div class="bg-slate-900 px-4 py-2 text-center">
-                <span class="text-3xl font-bold text-white" x-text="formatCurrency(totals.grand_total)"></span>
+                <span class="text-2xl sm:text-3xl font-bold text-white" x-text="formatCurrency(totals.grand_total)"></span>
             </div>
             {{-- KDV Satırı --}}
             <div class="grid grid-cols-4 divide-x divide-slate-600 text-center py-1 bg-slate-700">
@@ -290,30 +306,30 @@
         </div>
 
         {{-- Ödeme Butonları --}}
-        <div class="px-3 py-3 bg-white border-t border-gray-100 shrink-0 space-y-2.5">
+        <div class="px-3 py-3 bg-white border-t border-gray-100 shrink-0 space-y-2.5 safe-bottom">
             {{-- Satır 1: Nakit | Kart | Parçalı Ödeme --}}
-            <div class="grid grid-cols-3 gap-2.5">
+            <div class="grid grid-cols-3 gap-1.5 sm:gap-2.5">
                 <button @click="processPayment('cash')" :disabled="cart.length === 0"
-                        class="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95"
+                        class="flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 rounded-2xl text-white font-semibold text-xs sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95"
                         style="background: linear-gradient(135deg, #43b692, #39a583);">
-                    <i class="fas fa-money-bill-wave text-2xl"></i>
+                    <i class="fas fa-money-bill-wave text-lg sm:text-2xl"></i>
                     <span>Nakit</span>
                 </button>
                 <button @click="processPayment('card')" :disabled="cart.length === 0"
-                        class="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95"
+                        class="flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 rounded-2xl text-white font-semibold text-xs sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95"
                         style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
-                    <i class="fas fa-credit-card text-2xl"></i>
+                    <i class="fas fa-credit-card text-lg sm:text-2xl"></i>
                     <span>Kart</span>
                 </button>
                 <button @click="showMixedPayment = true; mixedRemaining = totals.grand_total" :disabled="cart.length === 0"
-                        class="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95"
+                        class="flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 rounded-2xl text-white font-semibold text-xs sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95"
                         style="background: linear-gradient(135deg, #a855f7, #7c3aed);">
-                    <i class="fas fa-layer-group text-2xl"></i>
-                    <span>Parçalı Ödeme</span>
+                    <i class="fas fa-layer-group text-lg sm:text-2xl"></i>
+                    <span>Parçalı</span>
                 </button>
             </div>
             {{-- Satır 2: Veresiye | Diğer | Temizle --}}
-            <div class="grid grid-cols-3 gap-2.5">
+            <div class="grid grid-cols-3 gap-1.5 sm:gap-2.5">
                 <button @click="processPayment('credit')" :disabled="cart.length === 0 || !selectedCustomer"
                         class="flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95"
                         style="background: linear-gradient(135deg, #f4a84b, #e8913a);">
@@ -439,7 +455,7 @@
             </div>
             <div class="p-4">
                 {{-- Hızlı Yüzdeler --}}
-                <div class="grid grid-cols-6 gap-2 mb-4">
+                <div class="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-4">
                     <template x-for="rate in [0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]" :key="rate">
                         <button @click="applyDiscountRate(rate); showDiscountModal = false"
                                 class="py-4 border-2 rounded-xl text-center hover:border-blue-500 hover:bg-blue-50 transition-all"
@@ -612,9 +628,10 @@
     </div>
 
     {{-- SOL PANEL: Kategoriler + Ürünler --}}
-    <div class="flex-1 flex overflow-hidden">
-        {{-- Dikey Kategori Sidebar --}}
-        <div class="w-44 flex flex-col bg-white border-r border-gray-200 overflow-y-auto shrink-0">
+    <div class="flex-1 flex overflow-hidden"
+         :class="{ 'hidden lg:flex': mobileTab !== 'products' }">
+        {{-- Dikey Kategori Sidebar (tablet+desktop) / Horizontal scroll (mobil) --}}
+        <div class="hidden sm:flex w-32 lg:w-44 flex-col bg-white border-r border-gray-200 overflow-y-auto shrink-0">
             <button @click="filterCategory(null); searchQuery = ''"
                     class="px-3 py-3 text-sm font-semibold text-center transition-colors border-b border-gray-100 uppercase tracking-wide"
                     :class="selectedCategory === null ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-blue-50'">>
@@ -642,6 +659,27 @@
 
         {{-- Arama + Ürün Grid --}}
         <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
+            {{-- Mobil yatay kategori strip --}}
+            <div class="sm:hidden flex items-center gap-1.5 px-2 py-2 bg-white border-b border-gray-200 overflow-x-auto hide-scrollbar shrink-0">
+                <button @click="filterCategory(null); searchQuery = ''"
+                        class="px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors shrink-0"
+                        :class="selectedCategory === null ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'">
+                    <i class="fas fa-star text-[10px] mr-0.5"></i>Tümü
+                </button>
+                @foreach($categories as $cat)
+                <button @click="filterCategory({{ $cat->id }})"
+                        class="px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors shrink-0"
+                        :class="selectedCategory === {{ $cat->id }} ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'">
+                    {{ $cat->name }}
+                </button>
+                @endforeach
+                <template x-for="cat in dynamicCategories" :key="cat.id">
+                    <button @click="filterCategory(cat.id)"
+                            class="px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors shrink-0"
+                            :class="selectedCategory === cat.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'"
+                            x-text="cat.name"></button>
+                </template>
+            </div>
             {{-- Arama Bar --}}
             <div class="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-2 shrink-0">
                 <div class="flex-1 relative">
@@ -663,16 +701,16 @@
             </div>
 
             {{-- Ürün Grid --}}
-            <div class="flex-1 overflow-y-auto p-3">
-                <div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+            <div class="flex-1 overflow-y-auto p-2 sm:p-3">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 sm:gap-2">
                     <template x-for="product in filteredProducts" :key="product.id">
                         <button @click="addToCart(product)"
-                                class="bg-white border border-gray-100 rounded-xl p-3 text-left hover:border-blue-300 hover:shadow-md hover:shadow-blue-100/50 transition-all group active:scale-95">
-                            <div class="text-sm font-medium text-gray-800 group-hover:text-blue-600 truncate" x-text="product.name"></div>
-                            <div class="text-xs text-gray-400 mt-1 truncate" x-text="product.category || ''"></div>
-                            <div class="flex items-center justify-between mt-2">
-                                <span class="text-sm font-bold text-blue-600" x-text="formatCurrency(product.sale_price)"></span>
-                                <span class="text-xs text-gray-400" x-show="!product.is_service" x-text="product.stock_quantity + ' ' + (product.unit || 'Adet')"></span>
+                                class="bg-white border border-gray-100 rounded-xl p-2 sm:p-3 text-left hover:border-blue-300 hover:shadow-md hover:shadow-blue-100/50 transition-all group active:scale-95">
+                            <div class="text-xs sm:text-sm font-medium text-gray-800 group-hover:text-blue-600 truncate" x-text="product.name"></div>
+                            <div class="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 truncate" x-text="product.category || ''"></div>
+                            <div class="flex items-center justify-between mt-1 sm:mt-2">
+                                <span class="text-xs sm:text-sm font-bold text-blue-600" x-text="formatCurrency(product.sale_price)"></span>
+                                <span class="text-[10px] sm:text-xs text-gray-400" x-show="!product.is_service" x-text="product.stock_quantity + ' ' + (product.unit || 'Adet')"></span>
                             </div>
                             <div x-show="product.barcode" class="text-[10px] text-gray-400 mt-1 truncate" x-text="product.barcode"></div>
                         </button>
@@ -691,7 +729,7 @@
 
     {{-- Parçalı (Karışık) Ödeme Modal --}}
     <div x-show="showMixedPayment" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm" x-cloak>
-        <div class="bg-white rounded-2xl border border-gray-200 p-6 w-[440px] shadow-2xl" @click.away="showMixedPayment = false">
+        <div class="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 w-full max-w-md mx-4 shadow-2xl max-h-[90vh] overflow-y-auto" @click.away="showMixedPayment = false">
             <div class="flex items-center justify-between mb-5">
                 <h3 class="text-lg font-bold text-gray-900"><i class="fas fa-layer-group mr-2 text-brand-500"></i>Parçalı Ödeme</h3>
                 <button @click="showMixedPayment = false" class="text-gray-400 hover:text-gray-700"><i class="fas fa-times"></i></button>
@@ -812,7 +850,7 @@
 
     {{-- Satış Tamamlandı Modal --}}
     <div x-show="showReceipt" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm" x-cloak>
-        <div class="bg-white rounded-2xl border border-gray-200 p-6 w-96 shadow-2xl" @click.away="closeReceipt()">
+        <div class="bg-white rounded-2xl border border-gray-200 p-6 w-full max-w-sm mx-4 shadow-2xl" @click.away="closeReceipt()">
             <div class="text-center mb-4">
                 <div class="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3">
                     <i class="fas fa-check-circle text-emerald-500 text-3xl"></i>
@@ -856,6 +894,7 @@
 function posScreen() {
     return {
         // State
+        mobileTab: 'products',
         products: [],
         filteredProducts: [],
         cart: [],
@@ -1007,6 +1046,8 @@ function posScreen() {
                 this.recalcItem(this.cart.length - 1);
             }
             this.recalcTotals();
+            // Mobilde sepete geçiş
+            if (window.innerWidth < 1024) this.mobileTab = 'cart';
         },
 
         updateQty(index, delta) {
@@ -1264,6 +1305,7 @@ function posScreen() {
             this.generalDiscount = 0;
             this.paidAmount = '';
             this.recalcTotals();
+            this.mobileTab = 'products';
             this.$refs.searchInput?.focus();
         },
 

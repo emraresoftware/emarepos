@@ -2,18 +2,32 @@
 @section('title', 'Masa ' . $table->table_no . ' - ' . $table->name)
 
 @section('content')
-<div x-data="tableDetail()" x-init="init()" class="flex-1 flex overflow-hidden">
+<div x-data="tableDetail()" x-init="init()" class="flex-1 flex flex-col lg:flex-row overflow-hidden">
     
+    {{-- Mobil Tab Bar --}}
+    <div class="lg:hidden flex shrink-0 bg-white border-b border-gray-200 z-20">
+        <button @click="mobileTab = 'menu'" class="flex-1 py-3 text-center text-sm font-semibold transition-colors"
+                :class="mobileTab === 'menu' ? 'text-brand-600 bg-brand-50' : 'text-gray-500'">
+            <i class="fas fa-th-large mr-1"></i> Menü
+        </button>
+        <button @click="mobileTab = 'orders'" class="flex-1 py-3 text-center text-sm font-semibold transition-colors relative"
+                :class="mobileTab === 'orders' ? 'text-brand-600 bg-brand-50' : 'text-gray-500'">
+            <i class="fas fa-receipt mr-1"></i> Siparişler
+            <span x-show="pendingItems.length > 0" class="absolute top-1 right-1/4 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold" x-text="pendingItems.length"></span>
+        </button>
+    </div>
+
     {{-- SOL: Sipariş Ekleme --}}
-    <div class="flex-1 flex flex-col border-r border-gray-700">
+    <div class="flex-1 flex flex-col border-r border-gray-700"
+         :class="{ 'hidden lg:flex': mobileTab !== 'menu' }">
         {{-- Masa Bilgileri --}}
-        <div class="p-4 bg-gray-50 border-b border-gray-700 flex items-center justify-between">
-            <div class="flex items-center gap-4">
+        <div class="p-3 sm:p-4 bg-gray-50 border-b border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-3 sm:gap-4">
                 <a href="{{ route('pos.tables') }}" class="text-gray-500 hover:text-gray-800">
                     <i class="fas fa-arrow-left"></i>
                 </a>
                 <div>
-                    <h1 class="text-lg font-bold text-gray-900">Masa {{ $table->table_no }} - {{ $table->name }}</h1>
+                    <h1 class="text-base sm:text-lg font-bold text-gray-900">Masa {{ $table->table_no }} - {{ $table->name }}</h1>
                     <div class="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
                         <span><i class="fas fa-users mr-1"></i>{{ $table->capacity }} Kişilik</span>
                         <span class="px-2 py-0.5 rounded-full text-xs font-medium
@@ -27,16 +41,16 @@
                     </div>
                 </div>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 ml-auto sm:ml-0">
                 @if(!$session)
-                <button @click="openTable()" class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:shadow-lg hover:shadow-emerald-200 rounded-xl text-sm font-medium">
-                    <i class="fas fa-door-open mr-1"></i> Masa Aç
+                <button @click="openTable()" class="px-3 sm:px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:shadow-lg hover:shadow-emerald-200 rounded-xl text-xs sm:text-sm font-medium text-white">
+                    <i class="fas fa-door-open mr-1"></i> <span class="hidden sm:inline">Masa </span>Aç
                 </button>
                 @else
-                <button @click="showTransfer = true" class="px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl text-sm">
+                <button @click="showTransfer = true" class="px-2.5 sm:px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl text-xs sm:text-sm text-white">
                     <i class="fas fa-exchange-alt mr-1"></i> Transfer
                 </button>
-                <button @click="showPayModal = true" class="px-4 py-2 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 rounded-xl text-sm font-medium">
+                <button @click="showPayModal = true" class="px-3 sm:px-4 py-2 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 rounded-xl text-xs sm:text-sm font-medium text-white">
                     <i class="fas fa-cash-register mr-1"></i> Hesap Al
                 </button>
                 @endif
@@ -72,8 +86,8 @@
         </div>
 
         {{-- Ürün Grid --}}
-        <div class="flex-1 overflow-y-auto p-3">
-            <div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+        <div class="flex-1 overflow-y-auto p-2 sm:p-3">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 sm:gap-2">
                 <template x-for="product in filteredProducts" :key="product.id">
                     <button @click="addToOrder(product)"
                             class="bg-white border border-gray-100 rounded-xl p-3 text-left hover:border-brand-300 transition-all">
@@ -95,7 +109,8 @@
     </div>
 
     {{-- SAĞ: Mevcut Siparişler --}}
-    <div class="w-96 flex flex-col bg-gray-50">
+    <div class="w-full lg:w-96 flex flex-col bg-gray-50"
+         :class="{ 'hidden lg:flex': mobileTab !== 'orders' }">
         <div class="p-3 border-b border-gray-700">
             <h2 class="text-md font-bold text-gray-900">Siparişler</h2>
         </div>
@@ -192,7 +207,7 @@
 
     {{-- Ödeme Modal --}}
     <div x-show="showPayModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm" x-cloak>
-        <div class="bg-white rounded-2xl border border-gray-200 shadow-2xl w-[480px] max-h-[90vh] flex flex-col">
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
             <div class="flex items-center justify-between p-6 pb-4 border-b border-gray-100">
                 <h3 class="text-lg font-bold text-gray-900"><i class="fas fa-cash-register mr-2 text-brand-500"></i>Hesap Al</h3>
                 <button @click="showPayModal = false" class="text-gray-400 hover:text-gray-700"><i class="fas fa-times"></i></button>
@@ -393,7 +408,7 @@
 
     {{-- Transfer Modal --}}
     <div x-show="showTransfer" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm" x-cloak>
-        <div class="bg-slate-800 rounded-2xl border border-gray-700 p-6 w-96 shadow-2xl" @click.away="showTransfer = false">
+        <div class="bg-slate-800 rounded-2xl border border-gray-700 p-5 sm:p-6 w-full max-w-sm mx-4 shadow-2xl" @click.away="showTransfer = false">
             <h3 class="text-lg font-bold text-gray-900 mb-4">Masa Transfer</h3>
             <p class="text-sm text-gray-500 mb-3">Masa {{ $table->table_no }} siparişlerini hangi masaya taşımak istiyorsunuz?</p>
             <select x-model="transferTarget" 
@@ -416,6 +431,7 @@
 <script>
 function tableDetail() {
     return {
+        mobileTab: 'menu',
         products: [],
         filteredProducts: [],
         searchQuery: '',
@@ -505,6 +521,7 @@ function tableDetail() {
                     total: product.sale_price,
                 });
             }
+            if (window.innerWidth < 1024) this.mobileTab = 'orders';
         },
 
         removePending(index) {

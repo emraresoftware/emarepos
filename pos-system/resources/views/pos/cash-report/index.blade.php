@@ -35,7 +35,7 @@
     {{-- Header & Filters --}}
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Kasa Raporları (Z Raporları)</h1>
-        <form method="GET" class="flex items-center gap-3">
+        <form method="GET" class="flex flex-wrap items-center gap-3">
             <select name="status" class="bg-white border border-gray-700 text-gray-700 text-sm rounded-lg px-3 py-2">
                 <option value="">Tüm Durumlar</option>
                 <option value="open" {{ request('status') == 'open' ? 'selected' : '' }}>Açık</option>

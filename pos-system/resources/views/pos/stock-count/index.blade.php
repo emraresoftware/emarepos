@@ -16,6 +16,7 @@
 
     {{-- Sayım Listesi --}}
     <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
         <table class="w-full text-sm">
             <thead>
                 <tr class="border-b border-gray-100 bg-gray-50/50">
@@ -69,6 +70,7 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
         <div class="px-4 py-3">
             {{ $counts->links() }}
         </div>

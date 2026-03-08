@@ -10,14 +10,14 @@
             <h1 class="text-xl font-bold text-gray-900">Raporlar</h1>
             <p class="text-sm text-gray-500">Satış performansı ve istatistikler</p>
         </div>
-        <form method="GET" action="{{ route('pos.reports') }}" class="flex items-center gap-2 no-print">
-            <div class="flex items-center gap-1.5 bg-white border border-gray-100 rounded-lg px-3 py-2">
+        <form method="GET" action="{{ route('pos.reports') }}" class="flex flex-wrap items-center gap-2 no-print">
+            <div class="flex flex-wrap items-center gap-1.5 bg-white border border-gray-100 rounded-lg px-3 py-2">
                 <i class="fas fa-calendar-alt text-gray-500 text-xs"></i>
                 <input type="date" name="start_date" value="{{ request('start_date', now()->startOfMonth()->format('Y-m-d')) }}"
-                       class="bg-transparent text-sm text-gray-900 focus:outline-none w-32">
+                       class="bg-transparent text-sm text-gray-900 focus:outline-none w-full sm:w-32">
                 <span class="text-gray-500 text-xs">—</span>
                 <input type="date" name="end_date" value="{{ request('end_date', now()->format('Y-m-d')) }}"
-                       class="bg-transparent text-sm text-gray-900 focus:outline-none w-32">
+                       class="bg-transparent text-sm text-gray-900 focus:outline-none w-full sm:w-32">
             </div>
             <button type="submit"
                     class="px-4 py-2 bg-brand-500 hover:bg-gradient-to-r from-brand-500 to-purple-600 text-gray-900 rounded-lg text-sm font-medium transition-colors">

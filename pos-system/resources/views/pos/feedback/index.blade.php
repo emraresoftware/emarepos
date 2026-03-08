@@ -5,7 +5,7 @@
 <div class="p-6 space-y-6" x-data="feedbackAdmin()">
 
     {{-- Başlık --}}
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">💬 Geri Bildirimler</h1>
             <p class="text-sm text-gray-500 mt-1">Kullanıcılardan gelen hata, öneri ve sorular</p>

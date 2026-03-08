@@ -4,7 +4,7 @@
 @section('content')
 <div class="flex-1 overflow-y-auto p-6 space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Günlük Özet</h1>
             <p class="text-sm text-gray-500 mt-0.5">{{ now()->locale('tr')->isoFormat('DD MMMM YYYY, dddd') }}</p>
