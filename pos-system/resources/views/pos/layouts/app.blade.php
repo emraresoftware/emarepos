@@ -94,8 +94,8 @@
                }"
                x-cloak>
             <!-- Logo -->
-            <div class="p-3.5 border-b border-gray-100 flex items-center" :class="sidebarOpen ? 'justify-between' : 'justify-center'">
-                <div x-show="sidebarOpen" class="flex items-center gap-2.5">
+            <div class="p-3.5 border-b border-gray-100 flex items-center" :class="(sidebarOpen || sidebarMobile) ? 'justify-between' : 'justify-center'">
+                <div x-show="sidebarOpen || sidebarMobile" class="flex items-center gap-2.5">
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center shadow-lg shadow-brand-500/30">
                         <span class="text-white font-bold text-sm">EP</span>
                     </div>
@@ -151,35 +151,35 @@
                               {{ request()->routeIs($item['route'].'*')
                                     ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white shadow-md shadow-brand-500/25'
                                     : 'text-gray-600 hover:text-brand-700 hover:bg-brand-50' }}"
-                       :class="sidebarOpen ? '' : 'lg:justify-center'"
+                       :class="(sidebarOpen || sidebarMobile) ? '' : 'lg:justify-center'"
                        @click="if(window.innerWidth < 1024) sidebarMobile = false"
                        title="{{ $item['label'] }}">
                         <i class="fas {{ $item['icon'] }} w-5 text-center text-[13px]"></i>
-                        <span x-show="sidebarOpen">{{ $item['label'] }}</span>
+                        <span x-show="sidebarOpen || sidebarMobile">{{ $item['label'] }}</span>
                     </a>
                 @endforeach
             </nav>
 
             <!-- User & Logout -->
             <div class="border-t border-gray-100 p-3.5">
-                <div x-show="sidebarOpen" class="mb-2">
+                <div x-show="sidebarOpen || sidebarMobile" class="mb-2">
                     <div class="text-sm text-gray-900 font-semibold">{{ auth()->user()->name }}</div>
                     <div class="text-xs text-gray-500">{{ auth()->user()->role?->name ?? 'Yönetici' }}</div>
                 </div>
                 @if(auth()->user()->is_super_admin)
                     <a href="{{ route('admin.dashboard') }}"
                        class="flex items-center gap-2 text-brand-500 hover:text-brand-700 text-sm rounded-lg hover:bg-brand-50 px-2 py-1.5 transition-colors mb-2 border border-brand-200"
-                       :class="sidebarOpen ? '' : 'justify-center'">
+                       :class="(sidebarOpen || sidebarMobile) ? '' : 'justify-center'">
                         <i class="fas fa-shield-halved w-5 text-center text-xs"></i>
-                        <span x-show="sidebarOpen">Admin Panel</span>
+                        <span x-show="sidebarOpen || sidebarMobile">Admin Panel</span>
                     </a>
                 @endif
                 <form method="POST" action="{{ route('pos.logout') }}">
                     @csrf
                     <button type="submit" class="flex items-center gap-2 text-gray-400 hover:text-red-500 text-sm w-full rounded-lg hover:bg-red-50 px-2 py-1.5 transition-colors"
-                            :class="sidebarOpen ? '' : 'justify-center'">
+                            :class="(sidebarOpen || sidebarMobile) ? '' : 'justify-center'">
                         <i class="fas fa-sign-out-alt w-5 text-center"></i>
-                        <span x-show="sidebarOpen">Çıkış</span>
+                        <span x-show="sidebarOpen || sidebarMobile">Çıkış</span>
                     </button>
                 </form>
             </div>
