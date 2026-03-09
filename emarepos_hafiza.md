@@ -1223,3 +1223,28 @@ Tüm controller fonksiyonları tekrar tarandı. 13 yeni bug tespit ve düzeltild
 - **BUG-10:** ReportController daily — cash/card/credit → sum(amount sütunları) (mixed ödemeler)
 - **BUG-11+12:** StockCount/StockTransfer kod üretimi — `DB::transaction` + `lockForUpdate` (race condition)
 - **BUG-13:** StockTransferController approve — gönderen şube pivot stoğu da düşürülüyor
+
+### Derin Analiz Round 3 — 12 Bug Daha (commit a3344d6)
+
+Tüm controller fonksiyonları üçüncü kez tarandı. 12 yeni bug tespit ve düzeltildi:
+
+**Yüksek (4 — Güvenlik/IDOR):**
+- **BUG-1:** StockTransferController approve — `$product->decrement('stock_quantity')` global stok kaybına yol açıyordu. Kaldırıldı, sadece şube pivot güncelleniyor.
+- **BUG-2:** ProductController deleteVariantValue — tenant scope yoktu (IDOR). Eklendi: `$variantValue->type->tenant_id` kontrolü.
+- **BUG-3:** KitchenController updateItemStatus/updateOrderStatus — tenant scope yoktu (IDOR). Eklendi: `$item->order->tenant_id` / `$order->tenant_id` kontrolü.
+- **BUG-4:** ProductController updatePrice/destroyPrice — ürün-fiyat sahiplik kontrolü yoktu (IDOR). Eklendi: `$price->product_id !== $product->id` kontrolü. deleteVariantType'a da tenant kontrolü eklendi.
+
+**Orta (6 — Mantık Hataları):**
+- **BUG-5:** SaleController searchProducts — `show_on_pos` filtresi eksikti. POS'ta gösterilmeyen ürünler aranabiliyordu.
+- **BUG-6:** CashReportController — credit toplamı `payment_method='credit'` ile hesaplanıyordu, mixed ödemeler kaçıyordu → `sum('credit_amount')` kullanıldı.
+- **BUG-7:** SaleController list summaryStats — cash/card `payment_method` filtresiydi, mixed ödemeler kaçıyordu → `sum('cash_amount')` / `sum('card_amount')` kullanıldı.
+- **BUG-8:** DashboardController lowStockCount — stock=0 ve critical=0 olan ürünleri de sayıyordu (0<=0=true) → `where('critical_stock', '>', 0)` eklendi.
+- **BUG-9:** PurchaseInvoiceController update — 'received' durumundan 'cancelled'/'returned'a geçişte stok ve firma bakiyesi geri alınmıyordu → rollback mantığı eklendi.
+- **BUG-10:** CashRegisterService closeRegister — expectedAmount nakit gelir/giderleri dahil etmiyordu → Income/Expense hesaplaması eklendi.
+
+**Düşük (2 — Validation):**
+- **BUG-11:** Tüm controller'lardaki `exists:tablo,id` kuralları tenant scope bypass'ıydı → `Rule::exists(...)->where('tenant_id', session('tenant_id'))` ile değiştirildi (7 controller, 10+ kural).
+- **BUG-12:** FeedbackController category/priority `nullable` idi ama enum sütunları NOT NULL → `sometimes` ile değiştirildi.
+
+**Etkilenen Dosyalar (12):**
+StockTransferController, ProductController, KitchenController, SaleController, CashReportController, DashboardController, PurchaseInvoiceController, CashRegisterService, FeedbackController, StockCountController, StockController, IncomeExpenseController
