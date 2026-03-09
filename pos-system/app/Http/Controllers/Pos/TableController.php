@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Services\TableService;
 use App\Services\SaleService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class TableController extends Controller
@@ -55,6 +56,12 @@ class TableController extends Controller
         if ($table->branch_id !== (int) session('branch_id')) {
             return response()->json(['success' => false, 'message' => 'Bu masaya erişim yetkiniz yok.'], 403);
         }
+
+        $request->validate([
+            'customer_id' => ['nullable', 'integer', Rule::exists('customers', 'id')->where('tenant_id', session('tenant_id'))],
+            'customer_count' => 'nullable|integer|min:1|max:100',
+        ]);
+
         try {
             $session = $this->tableService->openTable(
                 $table->id,
@@ -110,6 +117,14 @@ class TableController extends Controller
         if ($table->branch_id !== (int) session('branch_id')) {
             return response()->json(['success' => false, 'message' => 'Bu masaya erişim yetkiniz yok.'], 403);
         }
+
+        $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->where('tenant_id', session('tenant_id'))],
+            'items.*.quantity' => 'required|numeric|min:0.01',
+            'items.*.unit_price' => 'required|numeric|min:0',
+        ]);
+
         $session = $table->activeSession;
         if (!$session) {
             return response()->json(['success' => false, 'message' => 'Masa açık değil.'], 422);
@@ -137,57 +152,90 @@ class TableController extends Controller
         if ($table->branch_id !== (int) session('branch_id')) {
             return response()->json(['success' => false, 'message' => 'Bu masaya erişim yetkiniz yok.'], 403);
         }
+
+        $request->validate([
+            'customer_id' => ['nullable', 'integer', Rule::exists('customers', 'id')->where('tenant_id', session('tenant_id'))],
+            'payment_method' => ['nullable', 'string', 'regex:/^(cash|card|credit|mixed|transfer|other_.+)$/'],
+            'cash_amount' => 'nullable|numeric|min:0',
+            'card_amount' => 'nullable|numeric|min:0',
+            'credit_amount' => 'nullable|numeric|min:0',
+            'transfer_amount' => 'nullable|numeric|min:0',
+            'discount' => 'nullable|numeric|min:0',
+        ]);
+
         $session = $table->activeSession;
         if (!$session) {
             return response()->json(['success' => false, 'message' => 'Masa açık değil.'], 422);
         }
 
         try {
-            $summary = $this->tableService->getTableSummary($session->id);
-            
-            // Collect all order items as sale items
-            $saleItems = [];
-            foreach ($summary['orders'] as $order) {
-                if ($order->status === 'cancelled') continue;
-                foreach ($order->items as $item) {
-                    if ($item->status === 'cancelled') continue;
-                    $saleItems[] = [
-                        'product_id' => $item->product_id,
-                        'product_name' => $item->product_name,
-                        'quantity' => $item->quantity,
-                        'unit_price' => $item->unit_price,
-                        'discount' => $item->discount,
-                        'vat_rate' => $item->vat_rate,
-                        'vat_amount' => $item->vat_amount,
-                        'total' => $item->total,
-                    ];
+            $sale = DB::transaction(function () use ($request, $session, $table) {
+                $summary = $this->tableService->getTableSummary($session->id);
+
+                $saleItems = [];
+                foreach ($summary['orders'] as $order) {
+                    if ($order->status === 'cancelled') {
+                        continue;
+                    }
+
+                    foreach ($order->items as $item) {
+                        if (in_array($item->status, ['cancelled', 'paid'], true)) {
+                            continue;
+                        }
+
+                        $saleItems[] = [
+                            'product_id' => $item->product_id,
+                            'product_name' => $item->product_name,
+                            'quantity' => $item->quantity,
+                            'unit_price' => $item->unit_price,
+                            'discount' => $item->discount,
+                            'vat_rate' => $item->vat_rate,
+                            'vat_amount' => $item->vat_amount,
+                            'total' => $item->total,
+                        ];
+                    }
                 }
-            }
 
-            $sale = $this->saleService->createSale([
-                'branch_id' => session('branch_id'),
-                'tenant_id' => session('tenant_id'),
-                'customer_id' => $request->customer_id ?? $session->customer_id,
-                'user_id' => auth()->id(),
-                'payment_method' => $request->payment_method ?? 'cash',
-                'items' => $saleItems,
-                'discount' => $request->discount ?? 0,
-                'cash_amount' => $request->cash_amount ?? 0,
-                'card_amount' => $request->card_amount ?? 0,
-                'credit_amount' => $request->credit_amount ?? 0,
-                'transfer_amount' => $request->transfer_amount ?? 0,
-                'staff_name' => auth()->user()->name,
-                'application' => 'pos',
-                'notes' => "Masa: {$table->name}",
-            ]);
+                if (empty($saleItems)) {
+                    throw new \Exception('Ödenecek kalem bulunamadı.');
+                }
 
-            // Mark all orders as completed
-            foreach ($summary['orders'] as $order) {
-                $order->update(['status' => 'completed', 'sale_id' => $sale->id]);
-            }
+                $sale = $this->saleService->createSale([
+                    'branch_id' => session('branch_id'),
+                    'tenant_id' => session('tenant_id'),
+                    'customer_id' => $request->customer_id ?? $session->customer_id,
+                    'user_id' => auth()->id(),
+                    'payment_method' => $request->payment_method ?? 'cash',
+                    'items' => $saleItems,
+                    'discount' => $request->discount ?? 0,
+                    'cash_amount' => $request->cash_amount ?? 0,
+                    'card_amount' => $request->card_amount ?? 0,
+                    'credit_amount' => $request->credit_amount ?? 0,
+                    'transfer_amount' => $request->transfer_amount ?? 0,
+                    'staff_name' => auth()->user()->name,
+                    'application' => 'pos',
+                    'notes' => "Masa: {$table->name}",
+                ]);
 
-            // Close table
-            $this->tableService->closeTable($session->id, auth()->id());
+                foreach ($summary['orders'] as $order) {
+                    $order->items()
+                        ->whereNotIn('status', ['cancelled', 'paid'])
+                        ->update(['status' => 'paid']);
+
+                    $acikKalemVar = $order->items()
+                        ->whereNotIn('status', ['cancelled', 'paid'])
+                        ->exists();
+
+                    $order->update([
+                        'status' => $acikKalemVar ? $order->status : 'completed',
+                        'sale_id' => $sale->id,
+                    ]);
+                }
+
+                $this->tableService->closeTable($session->id, auth()->id());
+
+                return $sale;
+            });
 
             return response()->json([
                 'success' => true,
@@ -207,82 +255,106 @@ class TableController extends Controller
         if ($table->branch_id !== (int) session('branch_id')) {
             return response()->json(['success' => false, 'message' => 'Bu masaya erişim yetkiniz yok.'], 403);
         }
+
+        $request->validate([
+            'item_ids' => 'required|array|min:1',
+            'item_ids.*' => 'integer',
+            'customer_id' => ['nullable', 'integer', Rule::exists('customers', 'id')->where('tenant_id', session('tenant_id'))],
+            'payment_method' => ['nullable', 'string', 'regex:/^(cash|card|credit|mixed|transfer|other_.+)$/'],
+            'cash_amount' => 'nullable|numeric|min:0',
+            'card_amount' => 'nullable|numeric|min:0',
+            'credit_amount' => 'nullable|numeric|min:0',
+            'transfer_amount' => 'nullable|numeric|min:0',
+        ]);
+
         $session = $table->activeSession;
         if (!$session) {
             return response()->json(['success' => false, 'message' => 'Masa açık değil.'], 422);
         }
 
-        $selectedItemIds = $request->item_ids ?? [];
+        $selectedItemIds = collect($request->item_ids ?? [])->map(fn ($id) => (int) $id)->unique()->values()->all();
         if (empty($selectedItemIds)) {
             return response()->json(['success' => false, 'message' => 'En az bir ürün seçiniz.'], 422);
         }
 
         try {
-            $session->load('orders.items');
-            $saleItems = [];
-            foreach ($session->orders as $order) {
-                if ($order->status === 'cancelled') continue;
-                foreach ($order->items as $item) {
-                    if ($item->status === 'cancelled') continue;
-                    if (in_array($item->id, $selectedItemIds)) {
-                        $saleItems[] = [
-                            'product_id'   => $item->product_id,
-                            'product_name' => $item->product_name,
-                            'quantity'     => $item->quantity,
-                            'unit_price'   => $item->unit_price,
-                            'discount'     => $item->discount,
-                            'vat_rate'     => $item->vat_rate,
-                            'vat_amount'   => $item->vat_amount,
-                            'total'        => $item->total,
-                        ];
-                    }
-                }
-            }
+            [$sale, $tableClosed] = DB::transaction(function () use ($request, $session, $selectedItemIds, $table) {
+                $session->load('orders.items');
+                $saleItems = [];
 
-            if (empty($saleItems)) {
-                return response()->json(['success' => false, 'message' => 'Seçili kalemler bulunamadı.'], 422);
-            }
+                $odenecekKalemIdleri = [];
 
-            $sale = $this->saleService->createSale([
-                'branch_id'      => session('branch_id'),
-                'tenant_id'      => session('tenant_id'),
-                'customer_id'    => $request->customer_id,
-                'user_id'        => auth()->id(),
-                'payment_method' => $request->payment_method ?? 'cash',
-                'items'          => $saleItems,
-                'discount'       => 0,
-                'cash_amount'    => $request->cash_amount ?? 0,
-                'card_amount'    => $request->card_amount ?? 0,
-                'credit_amount'  => $request->credit_amount ?? 0,
-                'transfer_amount' => $request->transfer_amount ?? 0,
-                'staff_name'     => auth()->user()->name,
-                'application'    => 'pos',
-                'notes'          => "Masa: {$table->name} (Kısmi Ödeme)",
-            ]);
-
-            // Ödenen kalemleri paid olarak işaretle (branch doğrulaması ile)
-            \App\Models\OrderItem::whereIn('id', $selectedItemIds)
-                ->whereHas('order', fn($q) => $q->where('branch_id', session('branch_id')))
-                ->update(['status' => 'paid']);
-
-            // Kalan ödenmemiş kalem var mı kontrol et
-            $session->load('orders.items');
-            $hasUnpaid = false;
-            foreach ($session->orders as $order) {
-                foreach ($order->items as $item) {
-                    if (!in_array($item->status, ['cancelled', 'paid'])) {
-                        $hasUnpaid = true;
-                        break 2;
-                    }
-                }
-            }
-
-            if (!$hasUnpaid) {
-                // Tüm kalemler ödendi, masayı kapat
                 foreach ($session->orders as $order) {
-                    $order->update(['status' => 'completed', 'sale_id' => $sale->id]);
+                    if ($order->status === 'cancelled') {
+                        continue;
+                    }
+
+                    foreach ($order->items as $item) {
+                        if (in_array($item->status, ['cancelled', 'paid'], true)) {
+                            continue;
+                        }
+
+                        if (in_array($item->id, $selectedItemIds, true)) {
+                            $odenecekKalemIdleri[] = $item->id;
+                            $saleItems[] = [
+                                'product_id'   => $item->product_id,
+                                'product_name' => $item->product_name,
+                                'quantity'     => $item->quantity,
+                                'unit_price'   => $item->unit_price,
+                                'discount'     => $item->discount,
+                                'vat_rate'     => $item->vat_rate,
+                                'vat_amount'   => $item->vat_amount,
+                                'total'        => $item->total,
+                            ];
+                        }
+                    }
                 }
-                $this->tableService->closeTable($session->id, auth()->id());
+
+                if (empty($saleItems)) {
+                    throw new \Exception('Seçili kalemler bulunamadı.');
+                }
+
+                $sale = $this->saleService->createSale([
+                    'branch_id'      => session('branch_id'),
+                    'tenant_id'      => session('tenant_id'),
+                    'customer_id'    => $request->customer_id,
+                    'user_id'        => auth()->id(),
+                    'payment_method' => $request->payment_method ?? 'cash',
+                    'items'          => $saleItems,
+                    'discount'       => 0,
+                    'cash_amount'    => $request->cash_amount ?? 0,
+                    'card_amount'    => $request->card_amount ?? 0,
+                    'credit_amount'  => $request->credit_amount ?? 0,
+                    'transfer_amount' => $request->transfer_amount ?? 0,
+                    'staff_name'     => auth()->user()->name,
+                    'application'    => 'pos',
+                    'notes'          => "Masa: {$table->name} (Kısmi Ödeme)",
+                ]);
+
+                \App\Models\OrderItem::whereIn('id', $odenecekKalemIdleri)
+                    ->where('status', '!=', 'paid')
+                    ->whereHas('order', fn($q) => $q->where('branch_id', session('branch_id')))
+                    ->update(['status' => 'paid']);
+
+                $session->load('orders.items');
+                $hasUnpaid = false;
+                foreach ($session->orders as $order) {
+                    $acikKalemVar = $order->items->contains(fn ($item) => ! in_array($item->status, ['cancelled', 'paid'], true));
+                    if ($acikKalemVar) {
+                        $hasUnpaid = true;
+                    } else {
+                        $order->update(['status' => 'completed', 'sale_id' => $sale->id]);
+                    }
+                }
+
+                if (! $hasUnpaid) {
+                    $this->tableService->closeTable($session->id, auth()->id());
+                }
+
+                return [$sale, ! $hasUnpaid];
+            });
+
+            if ($tableClosed) {
                 return response()->json(['success' => true, 'table_closed' => true, 'sale' => $sale, 'message' => 'Tüm kalemler ödendi, masa kapatıldı.']);
             }
 
@@ -300,6 +372,11 @@ class TableController extends Controller
         if ($table->branch_id !== (int) session('branch_id')) {
             return response()->json(['success' => false, 'message' => 'Bu masaya erişim yetkiniz yok.'], 403);
         }
+
+        $request->validate([
+            'target_table_id' => ['required', 'integer', Rule::exists('restaurant_tables', 'id')->where('branch_id', session('branch_id'))],
+        ]);
+
         $targetTable = RestaurantTable::where('id', $request->target_table_id)
             ->where('branch_id', session('branch_id'))
             ->firstOrFail();
@@ -313,9 +390,11 @@ class TableController extends Controller
             return response()->json(['success' => false, 'message' => 'Kaynak masa açık değil.'], 422);
         }
 
-        $session->update(['restaurant_table_id' => $targetTable->id]);
-        $table->update(['status' => 'empty']);
-        $targetTable->update(['status' => 'occupied']);
+        DB::transaction(function () use ($session, $table, $targetTable) {
+            $session->update(['restaurant_table_id' => $targetTable->id]);
+            $table->update(['status' => 'empty']);
+            $targetTable->update(['status' => 'occupied']);
+        });
 
         return response()->json(['success' => true, 'message' => 'Masa transferi başarılı.']);
     }

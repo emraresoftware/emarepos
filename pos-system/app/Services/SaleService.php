@@ -16,6 +16,53 @@ use Carbon\Carbon;
 
 class SaleService
 {
+    private function odemeDagiliminiDogrula(array $data, float $grandTotal): array
+    {
+        $paymentMethod = $data['payment_method'] ?? 'cash';
+        $cashAmount = (float) ($data['cash_amount'] ?? 0);
+        $cardAmount = (float) ($data['card_amount'] ?? 0);
+        $creditAmount = (float) ($data['credit_amount'] ?? 0);
+        $transferAmount = (float) ($data['transfer_amount'] ?? 0);
+
+        if ($paymentMethod === 'cash' && $cashAmount <= 0) {
+            $cashAmount = $grandTotal;
+        }
+
+        if ($paymentMethod === 'card' && $cardAmount <= 0) {
+            $cardAmount = $grandTotal;
+        }
+
+        if ($paymentMethod === 'transfer' && $transferAmount <= 0) {
+            $transferAmount = $grandTotal;
+        }
+
+        if ($paymentMethod === 'credit' && $creditAmount <= 0) {
+            $creditAmount = $grandTotal;
+        }
+
+        $toplamOdeme = round($cashAmount + $cardAmount + $creditAmount + $transferAmount, 2);
+        $grandTotal = round($grandTotal, 2);
+
+        if ($paymentMethod === 'mixed' && $toplamOdeme !== $grandTotal) {
+            throw new \Exception('Karma ödeme toplamı satış tutarı ile eşleşmiyor.');
+        }
+
+        if (in_array($paymentMethod, ['cash', 'card', 'transfer', 'credit'], true) && $toplamOdeme !== $grandTotal) {
+            throw new \Exception('Ödeme tutarı satış toplamı ile eşleşmiyor.');
+        }
+
+        if (($paymentMethod === 'credit' || $creditAmount > 0) && empty($data['customer_id'])) {
+            throw new \Exception('Veresiye satış için müşteri seçmelisiniz.');
+        }
+
+        return [
+            'cash_amount' => $cashAmount,
+            'card_amount' => $cardAmount,
+            'credit_amount' => $creditAmount,
+            'transfer_amount' => $transferAmount,
+        ];
+    }
+
     /**
      * Create a new sale with items, update stock, handle payments
      */
@@ -31,6 +78,7 @@ class SaleService
             // Calculate totals from items
             $items = $data['items'] ?? [];
             $calculated = $this->calculateTotals($items, $data['discount'] ?? 0);
+            $paymentBreakdown = $this->odemeDagiliminiDogrula($data, (float) $calculated['grand_total']);
             
             // Create sale record
             $sale = Sale::create([
@@ -47,10 +95,10 @@ class SaleService
                 'discount_total' => $calculated['discount_total'],
                 'grand_total' => $calculated['grand_total'],
                 'discount' => $data['discount'] ?? 0,
-                'cash_amount' => $data['cash_amount'] ?? 0,
-                'card_amount' => $data['card_amount'] ?? 0,
-                'credit_amount' => $data['credit_amount'] ?? 0,
-                'transfer_amount' => $data['transfer_amount'] ?? 0,
+                'cash_amount' => $paymentBreakdown['cash_amount'],
+                'card_amount' => $paymentBreakdown['card_amount'],
+                'credit_amount' => $paymentBreakdown['credit_amount'],
+                'transfer_amount' => $paymentBreakdown['transfer_amount'],
                 'status' => 'completed',
                 'staff_name' => $data['staff_name'] ?? auth()->user()?->name,
                 'application' => $data['application'] ?? 'pos',
@@ -63,9 +111,11 @@ class SaleService
             $productMap = []; // Ürünleri önbelleğe al — alttaki mutfak blokları tekrar sorgu yapmasın
             foreach ($calculatedItems as $item) {
                 $product = Product::where('id', $item['product_id'])->lockForUpdate()->first();
-                if ($product) {
-                    $productMap[$product->id] = $product;
+                if (! $product) {
+                    throw new \Exception('Geçersiz ürün seçimi: #' . $item['product_id']);
                 }
+
+                $productMap[$product->id] = $product;
 
                 if ($product && !$product->is_service) {
                     $qty = $item['quantity'] ?? 1;
@@ -115,27 +165,29 @@ class SaleService
             $creditAmount = 0;
             if ($data['payment_method'] === 'credit') {
                 $creditAmount = $calculated['grand_total'];
-            } elseif ($data['payment_method'] === 'mixed' && !empty($data['credit_amount'])) {
-                $creditAmount = (float)$data['credit_amount'];
+            } elseif ($data['payment_method'] === 'mixed' && !empty($paymentBreakdown['credit_amount'])) {
+                $creditAmount = (float) $paymentBreakdown['credit_amount'];
             }
 
             if ($creditAmount > 0 && !empty($data['customer_id'])) {
                 // lockForUpdate: eş zamanlı credit satışlarda balance_after tutarlılığı
                 $customer = Customer::where('id', $data['customer_id'])->lockForUpdate()->first();
-                if ($customer) {
-                    $customer->decrement('balance', $creditAmount);
-                    
-                    AccountTransaction::create([
-                        'tenant_id' => $tenantId,
-                        'customer_id' => $customer->id,
-                        'type' => 'sale',
-                        'amount' => -$creditAmount,
-                        'balance_after' => $customer->balance,
-                        'description' => "Satış (Veresiye): {$receiptNo}",
-                        'reference' => $receiptNo,
-                        'transaction_date' => Carbon::now(),
-                    ]);
+                if (! $customer) {
+                    throw new \Exception('Geçersiz müşteri seçimi.');
                 }
+
+                $customer->decrement('balance', $creditAmount);
+                
+                AccountTransaction::create([
+                    'tenant_id' => $tenantId,
+                    'customer_id' => $customer->id,
+                    'type' => 'sale',
+                    'amount' => -$creditAmount,
+                    'balance_after' => $customer->balance,
+                    'description' => "Satış (Veresiye): {$receiptNo}",
+                    'reference' => $receiptNo,
+                    'transaction_date' => Carbon::now(),
+                ]);
             }
             
             // Handle campaign usage

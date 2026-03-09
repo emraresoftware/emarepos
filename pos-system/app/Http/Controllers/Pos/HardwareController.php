@@ -11,6 +11,26 @@ use Illuminate\Http\JsonResponse;
 
 class HardwareController extends Controller
 {
+    private function cihazErisimiVarMi(HardwareDevice $device): bool
+    {
+        return $device->tenant_id === (int) session('tenant_id')
+            && $device->branch_id === (int) session('branch_id');
+    }
+
+    private function ozelIpMi(string $ip): bool
+    {
+        return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
+    }
+
+    private function gecerliSeriPortMu(?string $port): bool
+    {
+        if (! $port) {
+            return false;
+        }
+
+        return str_starts_with($port, '/dev/tty') || str_starts_with($port, '/dev/cu.');
+    }
+
     // Desteklenen cihaz tipleri
     const DEVICE_TYPES = [
         'printer'          => ['icon' => 'fa-print',          'label' => 'Fiş Yazıcı',       'color' => 'brand'],
@@ -36,9 +56,11 @@ class HardwareController extends Controller
     public function index(Request $request)
     {
         $tenantId = session('tenant_id');
+        $branchId = session('branch_id');
 
         // Kayıtlı cihazlar
         $devices = HardwareDevice::where('tenant_id', $tenantId)
+            ->where('branch_id', $branchId)
             ->when($request->query('type'), fn($q, $t) => $q->where('type', $t))
             ->orderBy('type')
             ->orderByDesc('is_default')
@@ -89,6 +111,7 @@ class HardwareController extends Controller
         // Aynı tipte is_default varsa öncekini kaldır
         if (!empty($validated['is_default'])) {
             HardwareDevice::where('tenant_id', $tenantId)
+                ->where('branch_id', session('branch_id'))
                 ->where('type', $validated['type'])
                 ->update(['is_default' => false]);
         }
@@ -111,7 +134,7 @@ class HardwareController extends Controller
      */
     public function update(Request $request, HardwareDevice $device): JsonResponse
     {
-        if ($device->tenant_id !== (int) session('tenant_id')) {
+        if (! $this->cihazErisimiVarMi($device)) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
 
@@ -133,6 +156,7 @@ class HardwareController extends Controller
 
         if (!empty($validated['is_default'])) {
             HardwareDevice::where('tenant_id', session('tenant_id'))
+                ->where('branch_id', session('branch_id'))
                 ->where('type', $device->type)
                 ->where('id', '!=', $device->id)
                 ->update(['is_default' => false]);
@@ -148,7 +172,7 @@ class HardwareController extends Controller
      */
     public function destroy(HardwareDevice $device): JsonResponse
     {
-        if ($device->tenant_id !== (int) session('tenant_id')) {
+        if (! $this->cihazErisimiVarMi($device)) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
 
@@ -162,11 +186,23 @@ class HardwareController extends Controller
      */
     public function test(HardwareDevice $device): JsonResponse
     {
+        if (! $this->cihazErisimiVarMi($device)) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $result = false;
         $message = '';
 
         try {
             if ($device->connection === 'ethernet' && $device->ip_address) {
+                if (! $this->ozelIpMi($device->ip_address)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Sadece yerel ağ IP adresleri test edilebilir.',
+                        'status' => 'disconnected',
+                    ], 422);
+                }
+
                 $port = $device->port ?? 9100;
                 $fp = @fsockopen($device->ip_address, $port, $errno, $errstr, 3);
                 if ($fp) {
@@ -181,6 +217,13 @@ class HardwareController extends Controller
                 $result = true; // optimistik
             } elseif ($device->connection === 'serial') {
                 $port = $device->serial_port ?? '/dev/ttyUSB0';
+                if (! $this->gecerliSeriPortMu($port)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Geçersiz seri port yolu.',
+                        'status' => 'disconnected',
+                    ], 422);
+                }
                 $result = file_exists($port);
                 $message = $result ? "Seri port mevcut: {$port}" : "Seri port bulunamadı: {$port}";
             } else {
@@ -223,6 +266,10 @@ class HardwareController extends Controller
      */
     public function print(Request $request, HardwareDevice $device): JsonResponse
     {
+        if (! $this->cihazErisimiVarMi($device)) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $data = $request->validate([
             'receipt_no'      => 'nullable|string',
             'date'            => 'nullable|string',

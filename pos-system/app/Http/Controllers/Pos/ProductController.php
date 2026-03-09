@@ -368,7 +368,7 @@ class ProductController extends Controller
     public function deleteVariantValue(ProductVariantValue $variantValue)
     {
         // Kiracı doğrulaması (parent type üzerinden)
-        if ($variantValue->type && $variantValue->type->tenant_id !== (int) session('tenant_id')) {
+        if (! $variantValue->type || $variantValue->type->tenant_id !== (int) session('tenant_id')) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
         DB::table('product_variant_assignments')->where('variant_value_id', $variantValue->id)->delete();

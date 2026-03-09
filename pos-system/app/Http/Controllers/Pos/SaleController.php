@@ -11,6 +11,7 @@ use App\Models\Tenant;
 use App\Models\ActivityLog;
 use App\Services\SaleService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class SaleController extends Controller
 {
@@ -120,9 +121,10 @@ class SaleController extends Controller
     {
         $request->validate([
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|integer',
+            'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->where('tenant_id', session('tenant_id'))],
             'items.*.quantity' => 'required|numeric|min:0.01',
             'items.*.unit_price' => 'required|numeric|min:0',
+            'customer_id' => ['nullable', 'integer', Rule::exists('customers', 'id')->where('tenant_id', session('tenant_id'))],
             'payment_method' => ['required', 'string', 'regex:/^(cash|card|credit|mixed|transfer|other_.+)$/'],
         ]);
 

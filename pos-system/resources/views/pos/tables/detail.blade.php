@@ -464,7 +464,7 @@ function tableDetail() {
         splitTotal: 0,
         splitMethod: 'cash',
         splitItemTotals: @json($splitItemTotals),
-        existingTotal: {{ $session ? $session->orders->sum(function($o) { return $o->items->sum('total'); }) : 0 }},
+        existingTotal: {{ $session ? $session->orders->sum(function($o) { return $o->items->where('status','!=','cancelled')->where('status','!=','paid')->sum('total'); }) : 0 }},
 
         get pendingTotal() {
             return this.pendingItems.reduce((sum, item) => sum + item.total, 0);

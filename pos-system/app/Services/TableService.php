@@ -115,10 +115,15 @@ class TableService
 
             foreach ($items as $item) {
                 $product = $productMap[$item['product_id'] ?? null] ?? null;
+
+                if (! $product) {
+                    throw new \Exception('Geçersiz ürün seçimi: #' . ($item['product_id'] ?? 'bilinmiyor'));
+                }
+
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $item['product_id'] ?? null,
-                    'product_name' => $item['product_name'] ?? $product?->name ?? 'Bilinmeyen',
+                    'product_name' => $item['product_name'] ?? $product->name,
                     'quantity' => $item['quantity'] ?? 1,
                     'unit_price' => $item['unit_price'] ?? 0,
                     'discount' => $item['discount'] ?? 0,
