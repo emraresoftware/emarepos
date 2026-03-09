@@ -46,18 +46,22 @@ class StockController extends Controller
 
         $movements = $query->paginate(50)->withQueryString();
 
-        // Kritik stok ürünleri
-        $criticalStock = Product::where('is_active', true)
-            ->whereColumn('stock_quantity', '<=', 'critical_stock')
-            ->where('critical_stock', '>', 0)
-            ->orderBy('stock_quantity')
-            ->limit(20)
+        $products = Product::where('is_active', true)
+            ->with(['branches' => fn ($q) => $q->where('branch_id', $branchId)])
             ->get();
 
+        $criticalStock = $products
+            ->filter(function ($product) use ($branchId) {
+                return $product->critical_stock > 0 && $product->stockForBranch($branchId) <= $product->critical_stock;
+            })
+            ->sortBy(fn ($product) => $product->stockForBranch($branchId))
+            ->take(20)
+            ->values();
+
         $stats = [
-            'total_products' => Product::where('is_active', true)->count(),
+            'total_products' => $products->count(),
             'low_stock' => $criticalStock->count(),
-            'total_stock_value' => Product::where('is_active', true)->selectRaw('SUM(stock_quantity * purchase_price) as val')->value('val') ?? 0,
+            'total_stock_value' => $products->sum(fn ($product) => $product->stockForBranch($branchId) * (float) $product->purchase_price),
             'movements_today' => StockMovement::where('branch_id', $branchId)->whereDate('movement_date', Carbon::today())->count(),
         ];
 
@@ -88,19 +92,15 @@ class StockController extends Controller
         $movement = DB::transaction(function () use ($data, $product) {
             // Stok güncelle
             $product = Product::where('id', $product->id)->lockForUpdate()->first();
-            if (in_array($data['type'], ['purchase', 'return'])) {
-                $product->increment('stock_quantity', abs($data['quantity']));
+            if (in_array($data['type'], ['purchase', 'return'], true)) {
+                $remaining = $product->adjustStockForBranch((int) session('branch_id'), abs((float) $data['quantity']));
             } elseif ($data['type'] === 'adjustment') {
-                if ($data['quantity'] >= 0) {
-                    $product->increment('stock_quantity', $data['quantity']);
-                } else {
-                    $product->decrement('stock_quantity', abs($data['quantity']));
-                }
+                $remaining = $product->adjustStockForBranch((int) session('branch_id'), (float) $data['quantity']);
             } else {
-                $product->decrement('stock_quantity', abs($data['quantity']));
+                $remaining = $product->adjustStockForBranch((int) session('branch_id'), -abs((float) $data['quantity']));
             }
 
-            $data['remaining'] = $product->fresh()->stock_quantity;
+            $data['remaining'] = $remaining;
             return StockMovement::create($data);
         });
 

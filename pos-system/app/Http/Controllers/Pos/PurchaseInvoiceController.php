@@ -108,7 +108,7 @@ class PurchaseInvoiceController extends Controller
             ]);
 
             // Stok güncelle
-            $product->increment('stock_quantity', $qty);
+            $remaining = $product->adjustStockForBranch((int) $branchId, (float) $qty);
 
             // Alış fiyatı güncelle
             if ($unitPrice > 0) {
@@ -126,7 +126,7 @@ class PurchaseInvoiceController extends Controller
                 'transaction_code' => 'PI-' . $invoice->id,
                 'note' => 'Alış faturası: ' . ($request->invoice_no ?? $invoice->id),
                 'quantity' => $qty,
-                'remaining' => $product->fresh()->stock_quantity,
+                'remaining' => $remaining,
                 'unit_price' => $unitPrice,
                 'total' => $qty * $unitPrice,
                 'movement_date' => Carbon::parse($request->invoice_date),
@@ -174,7 +174,23 @@ class PurchaseInvoiceController extends Controller
                 foreach ($invoice->items as $item) {
                     $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
                     if ($product) {
-                        $product->decrement('stock_quantity', $item->quantity);
+                        $remaining = $product->adjustStockForBranch((int) $invoice->branch_id, -(float) $item->quantity);
+
+                        StockMovement::create([
+                            'tenant_id' => $invoice->tenant_id,
+                            'branch_id' => $invoice->branch_id,
+                            'type' => 'purchase_return',
+                            'barcode' => $product->barcode,
+                            'product_id' => $product->id,
+                            'product_name' => $product->name,
+                            'transaction_code' => 'PI-' . $invoice->id,
+                            'note' => 'Alış faturası iptal/iade: ' . ($invoice->invoice_no ?? $invoice->id),
+                            'quantity' => -$item->quantity,
+                            'remaining' => $remaining,
+                            'unit_price' => $item->unit_price,
+                            'total' => $item->quantity * $item->unit_price,
+                            'movement_date' => Carbon::now(),
+                        ]);
                     }
                 }
                 $firm = Firm::where('id', $invoice->firm_id)->lockForUpdate()->first();
@@ -200,7 +216,23 @@ class PurchaseInvoiceController extends Controller
                 foreach ($invoice->items as $item) {
                     $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
                     if ($product) {
-                        $product->decrement('stock_quantity', $item->quantity);
+                        $remaining = $product->adjustStockForBranch((int) $invoice->branch_id, -(float) $item->quantity);
+
+                        StockMovement::create([
+                            'tenant_id' => $invoice->tenant_id,
+                            'branch_id' => $invoice->branch_id,
+                            'type' => 'purchase_return',
+                            'barcode' => $product->barcode,
+                            'product_id' => $product->id,
+                            'product_name' => $product->name,
+                            'transaction_code' => 'PI-' . $invoice->id,
+                            'note' => 'Alış faturası silme iadesi: ' . ($invoice->invoice_no ?? $invoice->id),
+                            'quantity' => -$item->quantity,
+                            'remaining' => $remaining,
+                            'unit_price' => $item->unit_price,
+                            'total' => $item->quantity * $item->unit_price,
+                            'movement_date' => Carbon::now(),
+                        ]);
                     }
                 }
                 // Cari bakiyeyi geri al

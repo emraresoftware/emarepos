@@ -24,7 +24,14 @@ class StockCountController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $products = Product::where('is_active', true)->orderBy('name')->get(['id', 'name', 'barcode', 'stock_quantity']);
+        $products = Product::where('is_active', true)
+            ->with(['branches' => fn ($q) => $q->where('branch_id', $branchId)])
+            ->orderBy('name')
+            ->get(['id', 'name', 'barcode', 'stock_quantity']);
+
+        $products->each(function ($product) use ($branchId) {
+            $product->stock_quantity = $product->stockForBranch($branchId);
+        });
 
         return view('pos.stock-count.index', compact('counts', 'products'));
     }
@@ -65,7 +72,7 @@ class StockCountController extends Controller
 
         foreach ($request->items as $item) {
             $product = $productMap[$item['product_id']] ?? null;
-            $systemQty = $product?->stock_quantity ?? 0;
+            $systemQty = $product?->stockForBranch($branchId) ?? 0;
             $countedQty = $item['counted_quantity'];
 
             $count->items()->create([
@@ -119,8 +126,7 @@ class StockCountController extends Controller
                 if ($diff == 0) continue;
 
                 // Stoku güncelle
-                $product->stock_quantity = $item->counted_quantity;
-                $product->save();
+                $remaining = $product->setStockForBranch((int) session('branch_id'), (float) $item->counted_quantity);
 
                 // Stok hareketi kaydet
                 StockMovement::create([
@@ -133,7 +139,7 @@ class StockCountController extends Controller
                     'transaction_code' => $stockCount->code,
                     'note' => 'Stok sayımı düzeltme: ' . ($item->note ?: $stockCount->title),
                     'quantity' => $diff,
-                    'remaining' => $item->counted_quantity,
+                    'remaining' => $remaining,
                     'unit_price' => $product->purchase_price ?? 0,
                     'total' => abs($diff) * ($product->purchase_price ?? 0),
                     'movement_date' => Carbon::now(),

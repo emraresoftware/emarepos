@@ -18,6 +18,7 @@ class SaleItem extends Model
         'barcode',
         'quantity',
         'unit_price',
+        'purchase_cost',
         'discount',
         'vat_rate',
         'vat_amount',
@@ -31,6 +32,7 @@ class SaleItem extends Model
         return [
             'quantity' => 'decimal:2',
             'unit_price' => 'decimal:2',
+            'purchase_cost' => 'decimal:2',
             'discount' => 'decimal:2',
             'vat_rate' => 'integer',
             'vat_amount' => 'decimal:2',

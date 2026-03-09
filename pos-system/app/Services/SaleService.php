@@ -119,8 +119,9 @@ class SaleService
 
                 if ($product && !$product->is_service) {
                     $qty = $item['quantity'] ?? 1;
-                    if ($product->stock_quantity < $qty) {
-                        throw new \Exception("'{$product->name}' için yeterli stok yok (Mevcut: {$product->stock_quantity}).");
+                    $currentStock = $product->stockForBranch($branchId);
+                    if ($currentStock < $qty) {
+                        throw new \Exception("'{$product->name}' için yeterli stok yok (Mevcut: {$currentStock}).");
                     }
                 }
                 
@@ -131,6 +132,7 @@ class SaleService
                     'barcode' => $item['barcode'] ?? $product?->barcode,
                     'quantity' => $item['quantity'] ?? 1,
                     'unit_price' => $item['unit_price'] ?? $product?->sale_price ?? 0,
+                    'purchase_cost' => $product?->purchase_price ?? 0,
                     'discount' => $item['discount'] ?? 0,
                     'vat_rate' => $item['vat_rate'] ?? $product?->vat_rate ?? 20,
                     'vat_amount' => $item['vat_amount'] ?? 0,
@@ -141,7 +143,7 @@ class SaleService
                 
                 // Update stock
                 if ($product && !$product->is_service) {
-                    $product->decrement('stock_quantity', $item['quantity'] ?? 1);
+                    $remainingStock = $product->adjustStockForBranch($branchId, -(float) ($item['quantity'] ?? 1));
                     
                     // Create stock movement
                     StockMovement::create([
@@ -153,7 +155,7 @@ class SaleService
                         'product_name' => $product->name,
                         'transaction_code' => $receiptNo,
                         'quantity' => -($item['quantity'] ?? 1),
-                        'remaining' => $product->stock_quantity,
+                        'remaining' => $remainingStock,
                         'unit_price' => $item['unit_price'] ?? $product->sale_price,
                         'total' => $item['total'] ?? 0,
                         'movement_date' => Carbon::now(),
@@ -381,7 +383,7 @@ class SaleService
                 if ($item->product_id) {
                     $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
                     if ($product && !$product->is_service) {
-                        $product->increment('stock_quantity', $item->quantity);
+                        $remainingStock = $product->adjustStockForBranch((int) $sale->branch_id, (float) $item->quantity);
                         
                         StockMovement::create([
                             'tenant_id' => $sale->tenant_id,
@@ -393,7 +395,7 @@ class SaleService
                             'transaction_code' => $sale->receipt_no,
                             'note' => "İade: " . ($reason ?? ''),
                             'quantity' => $item->quantity,
-                            'remaining' => $product->stock_quantity,
+                            'remaining' => $remainingStock,
                             'unit_price' => $item->unit_price,
                             'total' => $item->total,
                             'movement_date' => Carbon::now(),
@@ -454,7 +456,7 @@ class SaleService
                 if ($item->product_id) {
                     $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
                     if ($product && !$product->is_service) {
-                        $product->increment('stock_quantity', $item->quantity);
+                        $remainingStock = $product->adjustStockForBranch((int) $sale->branch_id, (float) $item->quantity);
                         
                         StockMovement::create([
                             'tenant_id' => $sale->tenant_id,
@@ -466,7 +468,7 @@ class SaleService
                             'transaction_code' => $sale->receipt_no,
                             'note' => "İptal: " . ($reason ?? ''),
                             'quantity' => $item->quantity,
-                            'remaining' => $product->stock_quantity,
+                            'remaining' => $remainingStock,
                             'unit_price' => $item->unit_price,
                             'total' => $item->total,
                             'movement_date' => Carbon::now(),

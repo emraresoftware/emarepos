@@ -40,7 +40,14 @@ class StockTransferController extends Controller
             ->withQueryString();
 
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
-        $products = Product::where('is_active', true)->orderBy('name')->get(['id', 'name', 'barcode', 'stock_quantity']);
+        $products = Product::where('is_active', true)
+            ->with(['branches' => fn ($q) => $q->where('branch_id', $branchId)])
+            ->orderBy('name')
+            ->get(['id', 'name', 'barcode', 'stock_quantity']);
+
+        $products->each(function ($product) use ($branchId) {
+            $product->stock_quantity = $product->stockForBranch($branchId);
+        });
 
         return view('pos.stock-transfer.index', compact('transfers', 'branches', 'products'));
     }
@@ -213,6 +220,8 @@ class StockTransferController extends Controller
                     'total' => $item->quantity * ($product->purchase_price ?? 0),
                     'movement_date' => Carbon::now(),
                 ]);
+
+                $product->syncStockQuantityFromBranches();
             }
 
             $transfer->update([

@@ -28,10 +28,11 @@ class DashboardController extends Controller
         $activeRegister = CashRegister::where('branch_id', $branchId)->where('status', 'open')->first();
         
         // Low stock products
-        $lowStockCount = Product::whereColumn('stock_quantity', '<=', 'critical_stock')
-            ->where('critical_stock', '>', 0)
-            ->where('is_active', true)
+        $lowStockCount = Product::where('is_active', true)
             ->where('is_service', false)
+            ->with(['branches' => fn ($q) => $q->where('branch_id', $branchId)])
+            ->get()
+            ->filter(fn ($product) => $product->critical_stock > 0 && $product->stockForBranch($branchId) <= $product->critical_stock)
             ->count();
         
         // Active tables

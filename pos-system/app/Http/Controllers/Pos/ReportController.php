@@ -180,8 +180,7 @@ class ReportController extends Controller
               ->where('status', 'completed')
               ->whereBetween('sold_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
         })
-        ->join('products', 'sale_items.product_id', '=', 'products.id')
-        ->selectRaw('SUM(sale_items.quantity * products.purchase_price) as cost')
+                ->selectRaw('SUM(sale_items.quantity * sale_items.purchase_cost) as cost')
         ->value('cost') ?? 0;
 
         // İndirimler
@@ -228,13 +227,12 @@ class ReportController extends Controller
               ->where('status', 'completed')
               ->whereBetween('sold_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
         })
-        ->join('products', 'sale_items.product_id', '=', 'products.id')
         ->select(
             'sale_items.product_name',
             DB::raw('SUM(sale_items.quantity) as qty'),
             DB::raw('SUM(sale_items.total) as revenue'),
-            DB::raw('SUM(sale_items.quantity * products.purchase_price) as cost'),
-            DB::raw('SUM(sale_items.total) - SUM(sale_items.quantity * products.purchase_price) as profit')
+            DB::raw('SUM(sale_items.quantity * sale_items.purchase_cost) as cost'),
+            DB::raw('SUM(sale_items.total) - SUM(sale_items.quantity * sale_items.purchase_cost) as profit')
         )
         ->groupBy('sale_items.product_name')
         ->orderByDesc('profit')
@@ -336,7 +334,7 @@ class ReportController extends Controller
             DB::raw('COUNT(DISTINCT sale_items.sale_id) as sale_count'),
             DB::raw('SUM(sale_items.quantity) as total_qty'),
             DB::raw('SUM(sale_items.total) as revenue'),
-            DB::raw('SUM(sale_items.total) - SUM(sale_items.quantity * products.purchase_price) as profit'),
+            DB::raw('SUM(sale_items.total) - SUM(sale_items.quantity * sale_items.purchase_cost) as profit'),
             DB::raw('COUNT(DISTINCT sale_items.product_id) as product_count')
         )
         ->groupBy('category_name')
@@ -471,12 +469,11 @@ class ReportController extends Controller
         // 4) Maliyetin altına satış
         $belowCost = \DB::table('sale_items')
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
-            ->join('products', 'products.id', '=', 'sale_items.product_id')
             ->where('sales.branch_id', $branchId)
             ->where('sales.status', 'completed')
             ->whereBetween('sales.sold_at', [$startDate, $endDate . ' 23:59:59'])
-            ->whereRaw('products.purchase_price > 0 AND sale_items.unit_price < products.purchase_price')
-            ->select('sales.id as sale_id', 'sales.staff_name', 'sales.sold_at', 'sale_items.product_name', 'sale_items.unit_price', 'products.purchase_price')
+            ->whereRaw('sale_items.purchase_cost > 0 AND sale_items.unit_price < sale_items.purchase_cost')
+            ->select('sales.id as sale_id', 'sales.staff_name', 'sales.sold_at', 'sale_items.product_name', 'sale_items.unit_price', 'sale_items.purchase_cost')
             ->get()
             ->map(function ($row) {
                 return [
@@ -484,10 +481,10 @@ class ReportController extends Controller
                     'type_label' => 'Maliyetin Altı',
                     'severity' => 'high',
                     'sale_id' => $row->sale_id,
-                    'amount' => $row->purchase_price - $row->unit_price,
+                    'amount' => $row->purchase_cost - $row->unit_price,
                     'staff' => $row->staff_name ?? 'Bilinmiyor',
                     'date' => Carbon::parse($row->sold_at)->format('d.m.Y H:i'),
-                    'detail' => $row->product_name . ': Satış ₺' . number_format($row->unit_price, 2) . ' < Alış ₺' . number_format($row->purchase_price, 2),
+                    'detail' => $row->product_name . ': Satış ₺' . number_format($row->unit_price, 2) . ' < Alış ₺' . number_format($row->purchase_cost, 2),
                 ];
             });
         $suspicious = $suspicious->concat($belowCost);

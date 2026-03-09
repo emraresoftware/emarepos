@@ -147,4 +147,85 @@ class Product extends Model
 
         return $this->sale_price;
     }
+
+    public function branchStockRecord(int $branchId)
+    {
+        return $this->branches()->where('branch_id', $branchId)->first();
+    }
+
+    public function branchStockEnabled(): bool
+    {
+        return $this->branches()->exists();
+    }
+
+    public function stockForBranch(int $branchId): float
+    {
+        $branchProduct = $this->branchStockRecord($branchId);
+        if ($branchProduct) {
+            return (float) $branchProduct->pivot->stock_quantity;
+        }
+
+        return $this->branchStockEnabled() ? 0.0 : (float) $this->stock_quantity;
+    }
+
+    public function syncStockQuantityFromBranches(): float
+    {
+        $total = (float) ($this->branches()->sum('branch_product.stock_quantity') ?? 0);
+        $this->forceFill(['stock_quantity' => $total])->save();
+
+        return $total;
+    }
+
+    public function adjustStockForBranch(int $branchId, float $delta): float
+    {
+        $branchProduct = $this->branchStockRecord($branchId);
+        $hasAnyBranchStock = $branchProduct !== null || $this->branchStockEnabled();
+        $currentStock = $branchProduct
+            ? (float) $branchProduct->pivot->stock_quantity
+            : ($hasAnyBranchStock ? 0.0 : (float) $this->stock_quantity);
+
+        $newStock = $currentStock + $delta;
+        if ($newStock < 0) {
+            throw new \Exception("'{$this->name}' için yeterli stok yok (Mevcut: {$currentStock}).");
+        }
+
+        if ($branchProduct) {
+            $this->branches()->updateExistingPivot($branchId, [
+                'stock_quantity' => $newStock,
+            ]);
+        } else {
+            $this->branches()->attach($branchId, [
+                'stock_quantity' => $newStock,
+                'sale_price' => $this->sale_price,
+            ]);
+        }
+
+        $this->syncStockQuantityFromBranches();
+
+        return $newStock;
+    }
+
+    public function setStockForBranch(int $branchId, float $quantity): float
+    {
+        if ($quantity < 0) {
+            throw new \Exception('Stok miktarı negatif olamaz.');
+        }
+
+        $branchProduct = $this->branchStockRecord($branchId);
+
+        if ($branchProduct) {
+            $this->branches()->updateExistingPivot($branchId, [
+                'stock_quantity' => $quantity,
+            ]);
+        } else {
+            $this->branches()->attach($branchId, [
+                'stock_quantity' => $quantity,
+                'sale_price' => $this->sale_price,
+            ]);
+        }
+
+        $this->syncStockQuantityFromBranches();
+
+        return $quantity;
+    }
 }

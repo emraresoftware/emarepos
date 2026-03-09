@@ -237,6 +237,7 @@ class ProductController extends Controller
         }
 
         $product->branches()->sync($syncData);
+        $product->syncStockQuantityFromBranches();
 
         return response()->json(['success' => true, 'message' => 'Şube bilgileri güncellendi.']);
     }
