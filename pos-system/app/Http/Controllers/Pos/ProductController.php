@@ -22,13 +22,19 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
+        $branchId = (int) session('branch_id');
         $allowedSorts = ['name', 'sale_price', 'stock_quantity', 'purchase_price', 'created_at', 'barcode', 'stock_code'];
         $sortBy  = in_array($request->get('sort_by'), $allowedSorts) ? $request->get('sort_by') : 'name';
         $sortDir = $request->get('sort_dir') === 'desc' ? 'desc' : 'asc';
 
         $query = Product::where('is_active', true)
-            ->with(['category', 'firm'])
-            ->orderBy($sortBy, $sortDir);
+            ->with(['category', 'firm']);
+
+        $stockExpression = null;
+        if ($branchId > 0) {
+            $stockExpression = $this->effectiveStockExpression();
+            $query->select('products.*')->selectRaw("{$stockExpression} as effective_stock_quantity", [$branchId]);
+        }
         
         if ($request->filled('search')) {
             $s = $request->search;
@@ -60,8 +66,13 @@ class ProductController extends Controller
         }
         
         if ($request->boolean('low_stock')) {
-            $query->where('is_service', false)
-                  ->whereColumn('stock_quantity', '<=', 'critical_stock');
+            $query->where('is_service', false);
+
+            if ($stockExpression !== null) {
+                $query->whereRaw("{$stockExpression} <= products.critical_stock", [$branchId]);
+            } else {
+                $query->whereColumn('stock_quantity', '<=', 'critical_stock');
+            }
         }
 
         if ($request->boolean('has_variant')) {
@@ -74,9 +85,17 @@ class ProductController extends Controller
 
         if ($request->filled('stock_status')) {
             if ($request->stock_status === 'zero') {
-                $query->where('stock_quantity', '<=', 0);
+                if ($stockExpression !== null) {
+                    $query->whereRaw("{$stockExpression} <= 0", [$branchId]);
+                } else {
+                    $query->where('stock_quantity', '<=', 0);
+                }
             } elseif ($request->stock_status === 'positive') {
-                $query->where('stock_quantity', '>', 0);
+                if ($stockExpression !== null) {
+                    $query->whereRaw("{$stockExpression} > 0", [$branchId]);
+                } else {
+                    $query->where('stock_quantity', '>', 0);
+                }
             }
         }
 
@@ -84,7 +103,14 @@ class ProductController extends Controller
             $query->where('show_on_pos', true);
         }
         
+        if ($sortBy === 'stock_quantity' && $stockExpression !== null) {
+            $query->orderBy('effective_stock_quantity', $sortDir);
+        } else {
+            $query->orderBy($sortBy, $sortDir);
+        }
+
         $products = $query->paginate(50)->withQueryString();
+        $this->hydrateEffectiveStock($products->getCollection(), $branchId);
         $allCategories = Category::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
         $categories = $this->buildCategoryTree($allCategories);
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
@@ -103,6 +129,39 @@ class ProductController extends Controller
         return $categories->where('parent_id', $parentId)->values()->map(function ($cat) use ($categories) {
             $cat->setRelation('children', $this->buildCategoryTree($categories, $cat->id));
             return $cat;
+        });
+    }
+
+    private function effectiveStockExpression(): string
+    {
+        return "CASE
+            WHEN EXISTS (
+                SELECT 1
+                FROM branch_product AS bp_any
+                WHERE bp_any.product_id = products.id
+            ) THEN COALESCE((
+                SELECT bp_current.stock_quantity
+                FROM branch_product AS bp_current
+                WHERE bp_current.product_id = products.id
+                  AND bp_current.branch_id = ?
+                LIMIT 1
+            ), 0)
+            ELSE products.stock_quantity
+        END";
+    }
+
+    private function hydrateEffectiveStock($products, int $branchId): void
+    {
+        if ($branchId <= 0) {
+            return;
+        }
+
+        $products->transform(function ($product) {
+            if (isset($product->effective_stock_quantity)) {
+                $product->stock_quantity = (float) $product->effective_stock_quantity;
+            }
+
+            return $product;
         });
     }
 
@@ -547,7 +606,16 @@ class ProductController extends Controller
      */
     public function exportExcel()
     {
-        $products = Product::where('is_active', true)->with('category')->orderBy('name')->get();
+        $branchId = (int) session('branch_id');
+        $query = Product::where('is_active', true)->with('category');
+
+        if ($branchId > 0) {
+            $stockExpression = $this->effectiveStockExpression();
+            $query->select('products.*')->selectRaw("{$stockExpression} as effective_stock_quantity", [$branchId]);
+        }
+
+        $products = $query->orderBy('name')->get();
+        $this->hydrateEffectiveStock($products, $branchId);
 
         $csv = "Barkod;Stok Kodu;Ürün Adı;Kategori;Birim;Alış Fiyatı;Satış Fiyatı;KDV%;Stok;Kritik Stok;Hizmet;POS Göster\n";
         foreach ($products as $p) {
@@ -670,7 +738,13 @@ class ProductController extends Controller
      */
     public function summary(Request $request)
     {
+        $branchId = (int) session('branch_id');
         $query = Product::where('is_active', true)->with('category');
+
+        if ($branchId > 0) {
+            $stockExpression = $this->effectiveStockExpression();
+            $query->select('products.*')->selectRaw("{$stockExpression} as effective_stock_quantity", [$branchId]);
+        }
 
         if ($request->filled('category_id')) {
             $catId = $request->category_id;
@@ -680,6 +754,7 @@ class ProductController extends Controller
         }
 
         $products = $query->orderBy('name')->get();
+        $this->hydrateEffectiveStock($products, $branchId);
 
         $summary = [
             'total_products' => $products->count(),
