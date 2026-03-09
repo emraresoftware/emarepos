@@ -31,10 +31,14 @@ class FirmController extends Controller
 
         $firms = $query->paginate(50)->withQueryString();
 
+        // 3 sorgu yerine tek aggregate
+        $statsAgg = Firm::where('is_active', true)
+            ->selectRaw("COUNT(*) as total_firms, COALESCE(SUM(CASE WHEN balance < 0 THEN balance ELSE 0 END), 0) as total_debt, COALESCE(SUM(CASE WHEN balance > 0 THEN balance ELSE 0 END), 0) as total_credit")
+            ->first();
         $stats = [
-            'total_firms' => Firm::where('is_active', true)->count(),
-            'total_debt' => Firm::where('is_active', true)->where('balance', '<', 0)->sum('balance'),
-            'total_credit' => Firm::where('is_active', true)->where('balance', '>', 0)->sum('balance'),
+            'total_firms'  => (int) ($statsAgg->total_firms ?? 0),
+            'total_debt'   => (float) ($statsAgg->total_debt ?? 0),
+            'total_credit' => (float) ($statsAgg->total_credit ?? 0),
         ];
 
         $groups = FirmGroup::where('is_active', true)->withCount('firms')->orderBy('name')->get();

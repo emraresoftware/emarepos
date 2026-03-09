@@ -12,21 +12,22 @@ class TableService
 {
     public function openTable(int $tableId, int $userId, ?int $customerId = null, int $customerCount = 1): TableSession
     {
-        $table = RestaurantTable::findOrFail($tableId);
-        
-        if ($table->status !== 'empty') {
-            // Aktif session yoksa statüsü stale — otomatik sıfırla
-            $activeSession = TableSession::where('restaurant_table_id', $tableId)
-                ->where('status', 'open')
-                ->first();
-            if (!$activeSession) {
-                $table->update(['status' => 'empty']);
-            } else {
-                throw new \Exception('Bu masa şu an müsait değil.');
+        return DB::transaction(function () use ($tableId, $userId, $customerId, $customerCount) {
+            // Status kontrolü transaction içinde lockForUpdate ile (yarış koşulunu önler)
+            $table = RestaurantTable::where('id', $tableId)->lockForUpdate()->firstOrFail();
+
+            if ($table->status !== 'empty') {
+                // Aktif session yoksa statüsü stale — otomatik sıfırla
+                $activeSession = TableSession::where('restaurant_table_id', $tableId)
+                    ->where('status', 'open')
+                    ->exists();
+                if (!$activeSession) {
+                    $table->update(['status' => 'empty']);
+                } else {
+                    throw new \Exception('Bu masa şu an müsait değil.');
+                }
             }
-        }
-        
-        return DB::transaction(function () use ($table, $userId, $customerId, $customerCount) {
+
             $session = TableSession::create([
                 'tenant_id' => session('tenant_id'),
                 'restaurant_table_id' => $table->id,
@@ -36,9 +37,9 @@ class TableService
                 'status' => 'open',
                 'opened_at' => Carbon::now(),
             ]);
-            
+
             $table->update(['status' => 'occupied']);
-            
+
             return $session;
         });
     }
@@ -108,8 +109,12 @@ class TableService
                 'ordered_at' => Carbon::now(),
             ]);
             
+            // Ürünleri önceden toplu yükle (N+1 önleme)
+            $productIds = collect($items)->pluck('product_id')->filter()->unique()->values()->toArray();
+            $productMap = \App\Models\Product::whereIn('id', $productIds)->get()->keyBy('id');
+
             foreach ($items as $item) {
-                $product = \App\Models\Product::find($item['product_id'] ?? null);
+                $product = $productMap[$item['product_id'] ?? null] ?? null;
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $item['product_id'] ?? null,
