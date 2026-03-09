@@ -82,6 +82,9 @@ class CashRegisterController extends Controller
 
     public function report(CashRegister $register)
     {
+        if ($register->branch_id !== (int) session('branch_id')) {
+            return response()->json(['error' => 'Yetkiniz yok.'], 403);
+        }
         $register->load('user');
         
         // Get sales breakdown for this register period
@@ -124,7 +127,13 @@ class CashRegisterController extends Controller
 
         $type = $request->get('type', 'all');
         if ($type === 'credit') {
-            $query->where('payment_method', 'credit');
+            $query->where(function ($q) {
+                $q->where('payment_method', 'credit')
+                  ->orWhere(function ($q2) {
+                      $q2->where('payment_method', 'mixed')
+                         ->where('credit_amount', '>', 0);
+                  });
+            });
         } elseif ($type === 'cash') {
             $query->whereIn('payment_method', ['cash', 'mixed']);
         } elseif ($type === 'card') {
@@ -153,6 +162,9 @@ class CashRegisterController extends Controller
      */
     public function saleItems(\App\Models\Sale $sale)
     {
+        if ($sale->branch_id !== (int) session('branch_id')) {
+            return response()->json(['error' => 'Yetkiniz yok.'], 403);
+        }
         $sale->load('items', 'customer', 'user');
         return response()->json([
             'success' => true,

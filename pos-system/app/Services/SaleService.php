@@ -61,7 +61,14 @@ class SaleService
             // Create sale items and update stock (use calculated items for correct vat/totals)
             $calculatedItems = $calculated['items'];
             foreach ($calculatedItems as $item) {
-                $product = Product::find($item['product_id']);
+                $product = Product::where('id', $item['product_id'])->lockForUpdate()->first();
+
+                if ($product && !$product->is_service) {
+                    $qty = $item['quantity'] ?? 1;
+                    if ($product->stock_quantity < $qty) {
+                        throw new \Exception("'{$product->name}' için yeterli stok yok (Mevcut: {$product->stock_quantity}).");
+                    }
+                }
                 
                 $saleItem = SaleItem::create([
                     'sale_id' => $sale->id,
@@ -372,6 +379,10 @@ class SaleService
     {
         return DB::transaction(function () use ($saleId, $reason) {
             $sale = Sale::with('items')->findOrFail($saleId);
+
+            if (in_array($sale->status, ['cancelled', 'refunded'])) {
+                throw new \Exception('Bu satış zaten iptal edilmiş veya iade edilmiş.');
+            }
             
             $sale->update([
                 'status' => 'cancelled',

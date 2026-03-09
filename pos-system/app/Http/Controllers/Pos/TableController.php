@@ -51,6 +51,9 @@ class TableController extends Controller
      */
     public function open(Request $request, RestaurantTable $table)
     {
+        if ($table->branch_id !== (int) session('branch_id')) {
+            return response()->json(['success' => false, 'message' => 'Bu masaya erişim yetkiniz yok.'], 403);
+        }
         try {
             $session = $this->tableService->openTable(
                 $table->id,
@@ -69,6 +72,9 @@ class TableController extends Controller
      */
     public function detail(RestaurantTable $table)
     {
+        if ($table->branch_id !== (int) session('branch_id')) {
+            abort(403, 'Bu masaya erişim yetkiniz yok.');
+        }
         $session = $table->activeSession;
         if ($session) {
             $session->load('orders.items');
@@ -100,6 +106,9 @@ class TableController extends Controller
      */
     public function addOrder(Request $request, RestaurantTable $table)
     {
+        if ($table->branch_id !== (int) session('branch_id')) {
+            return response()->json(['success' => false, 'message' => 'Bu masaya erişim yetkiniz yok.'], 403);
+        }
         $session = $table->activeSession;
         if (!$session) {
             return response()->json(['success' => false, 'message' => 'Masa açık değil.'], 422);
@@ -124,6 +133,9 @@ class TableController extends Controller
      */
     public function pay(Request $request, RestaurantTable $table)
     {
+        if ($table->branch_id !== (int) session('branch_id')) {
+            return response()->json(['success' => false, 'message' => 'Bu masaya erişim yetkiniz yok.'], 403);
+        }
         $session = $table->activeSession;
         if (!$session) {
             return response()->json(['success' => false, 'message' => 'Masa açık değil.'], 422);
@@ -191,6 +203,9 @@ class TableController extends Controller
      */
     public function payPartial(Request $request, RestaurantTable $table)
     {
+        if ($table->branch_id !== (int) session('branch_id')) {
+            return response()->json(['success' => false, 'message' => 'Bu masaya erişim yetkiniz yok.'], 403);
+        }
         $session = $table->activeSession;
         if (!$session) {
             return response()->json(['success' => false, 'message' => 'Masa açık değil.'], 422);
@@ -244,8 +259,10 @@ class TableController extends Controller
                 'notes'          => "Masa: {$table->name} (Kısmi Ödeme)",
             ]);
 
-            // Ödenen kalemleri cancelled/paid olarak işaretle
-            \App\Models\OrderItem::whereIn('id', $selectedItemIds)->update(['status' => 'paid']);
+            // Ödenen kalemleri paid olarak işaretle (branch doğrulaması ile)
+            \App\Models\OrderItem::whereIn('id', $selectedItemIds)
+                ->whereHas('order', fn($q) => $q->where('branch_id', session('branch_id')))
+                ->update(['status' => 'paid']);
 
             // Kalan ödenmemiş kalem var mı kontrol et
             $session->load('orders.items');
@@ -279,7 +296,12 @@ class TableController extends Controller
      */
     public function transfer(Request $request, RestaurantTable $table)
     {
-        $targetTable = RestaurantTable::findOrFail($request->target_table_id);
+        if ($table->branch_id !== (int) session('branch_id')) {
+            return response()->json(['success' => false, 'message' => 'Bu masaya erişim yetkiniz yok.'], 403);
+        }
+        $targetTable = RestaurantTable::where('id', $request->target_table_id)
+            ->where('branch_id', session('branch_id'))
+            ->firstOrFail();
         
         if ($targetTable->status !== 'empty') {
             return response()->json(['success' => false, 'message' => 'Hedef masa müsait değil.'], 422);
@@ -329,6 +351,9 @@ class TableController extends Controller
     /** Mekan güncelle */
     public function updateRegion(Request $request, TableRegion $region)
     {
+        if ($region->branch_id !== (int) session('branch_id')) {
+            return response()->json(['success' => false, 'message' => 'Bu mekana erişim yetkiniz yok.'], 403);
+        }
         $request->validate([
             'name'     => 'required|string|max:100',
             'bg_color' => 'nullable|string|max:20',
@@ -343,6 +368,9 @@ class TableController extends Controller
     /** Mekan sil */
     public function destroyRegion(TableRegion $region)
     {
+        if ($region->branch_id !== (int) session('branch_id')) {
+            return response()->json(['success' => false, 'message' => 'Bu mekana erişim yetkiniz yok.'], 403);
+        }
         // Mekandaki masaları bölgesiz bırak
         RestaurantTable::where('table_region_id', $region->id)
             ->update(['table_region_id' => null]);
@@ -395,6 +423,9 @@ class TableController extends Controller
     /** Masa güncelle (bilgi + konum) */
     public function updateTable(Request $request, RestaurantTable $table)
     {
+        if ($table->branch_id !== (int) session('branch_id')) {
+            return response()->json(['success' => false, 'message' => 'Bu masaya erişim yetkiniz yok.'], 403);
+        }
         $request->validate([
             'name'            => 'sometimes|string|max:100',
             'table_no'        => 'sometimes|string|max:20',
@@ -416,6 +447,9 @@ class TableController extends Controller
     /** Masa sil */
     public function destroyTable(RestaurantTable $table)
     {
+        if ($table->branch_id !== (int) session('branch_id')) {
+            return response()->json(['success' => false, 'message' => 'Bu masaya erişim yetkiniz yok.'], 403);
+        }
         if ($table->status === 'occupied') {
             return response()->json(['success' => false, 'message' => 'Dolu masa silinemez.'], 422);
         }

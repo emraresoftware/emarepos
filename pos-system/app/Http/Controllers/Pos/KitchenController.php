@@ -41,6 +41,9 @@ class KitchenController extends Controller
         if ($order->tenant_id !== (int) session('tenant_id')) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
+        if ($order->branch_id !== (int) session('branch_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
         
         $order->update(['status' => $request->status]);
         
@@ -62,6 +65,9 @@ class KitchenController extends Controller
         // Kiracı doğrulaması (Order parent üzerinden)
         $order = $item->order;
         if (!$order || $order->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+        if ($order->branch_id !== (int) session('branch_id')) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
         

@@ -99,7 +99,8 @@ class StockTransferController extends Controller
             return response()->json(['success' => false, 'message' => 'Bu transfer zaten işlenmiş.'], 422);
         }
 
-        foreach ($transfer->items as $item) {
+        return DB::transaction(function () use ($transfer) {
+            foreach ($transfer->items as $item) {
             $product = Product::find($item->product_id);
             if (!$product) continue;
 
@@ -157,13 +158,14 @@ class StockTransferController extends Controller
             ]);
         }
 
-        $transfer->update([
-            'status' => 'completed',
-            'approved_by' => auth()->id(),
-            'approved_at' => Carbon::now(),
-        ]);
+            $transfer->update([
+                'status' => 'completed',
+                'approved_by' => auth()->id(),
+                'approved_at' => Carbon::now(),
+            ]);
 
-        return response()->json(['success' => true, 'message' => 'Transfer onaylandı, stoklar güncellendi.']);
+            return response()->json(['success' => true, 'message' => 'Transfer onaylandı, stoklar güncellendi.']);
+        }); // end DB::transaction
     }
 
     public function reject(StockTransfer $transfer)

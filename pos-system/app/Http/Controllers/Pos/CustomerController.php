@@ -94,19 +94,23 @@ class CustomerController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        $customer->increment('balance', $request->amount);
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($customer, $request) {
+            $customer = Customer::where('id', $customer->id)->lockForUpdate()->first();
+            $customer->increment('balance', $request->amount);
+            $customer->refresh();
 
-        AccountTransaction::create([
-            'tenant_id' => session('tenant_id'),
-            'customer_id' => $customer->id,
-            'type' => 'payment',
-            'amount' => $request->amount,
-            'balance_after' => $customer->balance,
-            'description' => $request->description ?? 'Tahsilat',
-            'transaction_date' => Carbon::now(),
-        ]);
+            AccountTransaction::create([
+                'tenant_id' => session('tenant_id'),
+                'customer_id' => $customer->id,
+                'type' => 'payment',
+                'amount' => $request->amount,
+                'balance_after' => $customer->balance,
+                'description' => $request->description ?? 'Tahsilat',
+                'transaction_date' => \Carbon\Carbon::now(),
+            ]);
 
-        return response()->json(['success' => true, 'customer' => $customer->fresh()]);
+            return response()->json(['success' => true, 'customer' => $customer->fresh()]);
+        });
     }
 
     public function destroy(Customer $customer)

@@ -22,9 +22,13 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
+        $allowedSorts = ['name', 'sale_price', 'stock_quantity', 'purchase_price', 'created_at', 'barcode', 'stock_code'];
+        $sortBy  = in_array($request->get('sort_by'), $allowedSorts) ? $request->get('sort_by') : 'name';
+        $sortDir = $request->get('sort_dir') === 'desc' ? 'desc' : 'asc';
+
         $query = Product::where('is_active', true)
             ->with(['category', 'firm'])
-            ->orderBy($request->get('sort_by', 'name'), $request->get('sort_dir', 'asc'));
+            ->orderBy($sortBy, $sortDir);
         
         if ($request->filled('search')) {
             $s = $request->search;

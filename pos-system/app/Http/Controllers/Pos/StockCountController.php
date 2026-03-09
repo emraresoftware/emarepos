@@ -104,41 +104,43 @@ class StockCountController extends Controller
             return response()->json(['success' => false, 'message' => 'Bu sayım zaten uygulanmış.'], 422);
         }
 
-        foreach ($stockCount->items as $item) {
-            $product = Product::find($item->product_id);
-            if (!$product) continue;
+        return DB::transaction(function () use ($stockCount) {
+            foreach ($stockCount->items as $item) {
+                $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
+                if (!$product) continue;
 
-            $diff = $item->difference;
-            if ($diff == 0) continue;
+                $diff = $item->difference;
+                if ($diff == 0) continue;
 
-            // Stoku güncelle
-            $product->stock_quantity = $item->counted_quantity;
-            $product->save();
+                // Stoku güncelle
+                $product->stock_quantity = $item->counted_quantity;
+                $product->save();
 
-            // Stok hareketi kaydet
-            StockMovement::create([
-                'tenant_id' => $stockCount->tenant_id,
-                'branch_id' => session('branch_id'),
-                'type' => 'adjustment',
-                'barcode' => $product->barcode,
-                'product_id' => $product->id,
-                'product_name' => $product->name,
-                'transaction_code' => $stockCount->code,
-                'note' => 'Stok sayımı düzeltme: ' . ($item->note ?: $stockCount->title),
-                'quantity' => $diff,
-                'remaining' => $item->counted_quantity,
-                'unit_price' => $product->purchase_price ?? 0,
-                'total' => abs($diff) * ($product->purchase_price ?? 0),
-                'movement_date' => Carbon::now(),
+                // Stok hareketi kaydet
+                StockMovement::create([
+                    'tenant_id' => $stockCount->tenant_id,
+                    'branch_id' => session('branch_id'),
+                    'type' => 'adjustment',
+                    'barcode' => $product->barcode,
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'transaction_code' => $stockCount->code,
+                    'note' => 'Stok sayımı düzeltme: ' . ($item->note ?: $stockCount->title),
+                    'quantity' => $diff,
+                    'remaining' => $item->counted_quantity,
+                    'unit_price' => $product->purchase_price ?? 0,
+                    'total' => abs($diff) * ($product->purchase_price ?? 0),
+                    'movement_date' => Carbon::now(),
+                ]);
+            }
+
+            $stockCount->update([
+                'status' => 'applied',
+                'applied_at' => Carbon::now(),
             ]);
-        }
 
-        $stockCount->update([
-            'status' => 'applied',
-            'applied_at' => Carbon::now(),
-        ]);
-
-        return response()->json(['success' => true, 'message' => 'Sayım uygulandı, stoklar güncellendi.']);
+            return response()->json(['success' => true, 'message' => 'Sayım uygulandı, stoklar güncellendi.']);
+        });
     }
 
     public function destroy(StockCount $stockCount)

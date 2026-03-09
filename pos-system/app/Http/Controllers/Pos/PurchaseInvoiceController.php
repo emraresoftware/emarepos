@@ -142,11 +142,17 @@ class PurchaseInvoiceController extends Controller
 
     public function show(PurchaseInvoice $invoice)
     {
+        if ($invoice->branch_id !== (int) session('branch_id')) {
+            return response()->json(['error' => 'Yetkiniz yok.'], 403);
+        }
         return response()->json($invoice->load('items', 'firm'));
     }
 
     public function update(Request $request, PurchaseInvoice $invoice)
     {
+        if ($invoice->branch_id !== (int) session('branch_id')) {
+            return response()->json(['error' => 'Yetkiniz yok.'], 403);
+        }
         $request->validate([
             'invoice_no' => 'nullable|string|max:100',
             'invoice_date' => 'required|date',
@@ -158,43 +164,50 @@ class PurchaseInvoiceController extends Controller
         $oldStatus = $invoice->status;
         $newStatus = $request->input('status', $oldStatus);
 
-        // Status 'received' → 'cancelled'/'returned' geçişinde stok/bakiye geri al
-        if ($oldStatus === 'received' && in_array($newStatus, ['cancelled', 'returned'])) {
-            foreach ($invoice->items as $item) {
-                $product = Product::find($item->product_id);
-                if ($product) {
-                    $product->decrement('stock_quantity', $item->quantity);
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($invoice, $request, $oldStatus, $newStatus) {
+            // Status 'received' → 'cancelled'/'returned' geçişinde stok/bakiye geri al
+            if ($oldStatus === 'received' && in_array($newStatus, ['cancelled', 'returned'])) {
+                foreach ($invoice->items as $item) {
+                    $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
+                    if ($product) {
+                        $product->decrement('stock_quantity', $item->quantity);
+                    }
+                }
+                $firm = Firm::where('id', $invoice->firm_id)->lockForUpdate()->first();
+                if ($firm) {
+                    $firm->increment('balance', $invoice->grand_total);
                 }
             }
-            $firm = Firm::find($invoice->firm_id);
-            if ($firm) {
-                $firm->increment('balance', $invoice->grand_total);
-            }
-        }
 
-        $invoice->update($request->only('invoice_no', 'invoice_date', 'notes', 'payment_status', 'status'));
+            $invoice->update($request->only('invoice_no', 'invoice_date', 'notes', 'payment_status', 'status'));
 
-        return response()->json(['success' => true, 'invoice' => $invoice->fresh()->load('items', 'firm')]);
+            return response()->json(['success' => true, 'invoice' => $invoice->fresh()->load('items', 'firm')]);
+        });
     }
 
     public function destroy(PurchaseInvoice $invoice)
     {
-        if ($invoice->status === 'received') {
-            // Stokları geri al
-            foreach ($invoice->items as $item) {
-                $product = Product::find($item->product_id);
-                if ($product) {
-                    $product->decrement('stock_quantity', $item->quantity);
+        if ($invoice->branch_id !== (int) session('branch_id')) {
+            return response()->json(['error' => 'Yetkiniz yok.'], 403);
+        }
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($invoice) {
+            if ($invoice->status === 'received') {
+                // Stokları geri al
+                foreach ($invoice->items as $item) {
+                    $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
+                    if ($product) {
+                        $product->decrement('stock_quantity', $item->quantity);
+                    }
+                }
+                // Cari bakiyeyi geri al
+                $firm = Firm::where('id', $invoice->firm_id)->lockForUpdate()->first();
+                if ($firm) {
+                    $firm->increment('balance', $invoice->grand_total);
                 }
             }
-            // Cari bakiyeyi geri al
-            $firm = Firm::find($invoice->firm_id);
-            if ($firm) {
-                $firm->increment('balance', $invoice->grand_total);
-            }
-        }
 
-        $invoice->delete();
-        return response()->json(['success' => true, 'message' => 'Fatura silindi.']);
+            $invoice->delete();
+            return response()->json(['success' => true, 'message' => 'Fatura silindi.']);
+        });
     }
 }

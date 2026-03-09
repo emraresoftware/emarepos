@@ -12,24 +12,27 @@ class CashRegisterService
 {
     public function openRegister(int $branchId, int $userId, float $openingAmount = 0, ?string $notes = null): CashRegister
     {
-        // Check if there's already an open register for this branch
-        $existing = CashRegister::where('branch_id', $branchId)
-            ->where('status', 'open')
-            ->first();
-            
-        if ($existing) {
-            throw new \Exception('Bu şube için zaten açık bir kasa var.');
-        }
-        
-        return CashRegister::create([
-            'tenant_id' => session('tenant_id'),
-            'branch_id' => $branchId,
-            'user_id' => $userId,
-            'opening_amount' => $openingAmount,
-            'status' => 'open',
-            'opened_at' => Carbon::now(),
-            'notes' => $notes,
-        ]);
+        return DB::transaction(function () use ($branchId, $userId, $openingAmount, $notes) {
+            // Check if there's already an open register for this branch
+            $existing = CashRegister::where('branch_id', $branchId)
+                ->where('status', 'open')
+                ->lockForUpdate()
+                ->first();
+
+            if ($existing) {
+                throw new \Exception('Bu şube için zaten açık bir kasa var.');
+            }
+
+            return CashRegister::create([
+                'tenant_id' => session('tenant_id'),
+                'branch_id' => $branchId,
+                'user_id' => $userId,
+                'opening_amount' => $openingAmount,
+                'status' => 'open',
+                'opened_at' => Carbon::now(),
+                'notes' => $notes,
+            ]);
+        });
     }
     
     public function closeRegister(int $registerId, float $closingAmount, ?string $notes = null): CashRegister
@@ -61,15 +64,15 @@ class CashRegisterService
             
             $expectedAmount = $register->opening_amount + ($salesData->total_cash ?? 0) - ($refundsData->cash_refunds ?? 0);
             
-            // Nakit gelir/giderleri dahil et
+            // Nakit gelir/giderleri dahil et (kasa açıldıktan sonra kaydedilenler)
             $cashIncomes = Income::where('branch_id', $register->branch_id)
                 ->where('payment_type', 'cash')
-                ->where('date', '>=', $register->opened_at->toDateString())
+                ->where('created_at', '>=', $register->opened_at)
                 ->sum('amount');
-            
+
             $cashExpenses = Expense::where('branch_id', $register->branch_id)
                 ->where('payment_type', 'cash')
-                ->where('date', '>=', $register->opened_at->toDateString())
+                ->where('created_at', '>=', $register->opened_at)
                 ->sum('amount');
             
             $expectedAmount += $cashIncomes - $cashExpenses;

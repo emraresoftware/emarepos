@@ -55,12 +55,18 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
+        if ($order->branch_id !== (int) session('branch_id')) {
+            return response()->json(['error' => 'Yetkiniz yok.'], 403);
+        }
         $order->load(['user', 'customer', 'tableSession.table', 'items.product']);
         return response()->json(['order' => $order]);
     }
 
     public function updateStatus(Request $request, Order $order)
     {
+        if ($order->branch_id !== (int) session('branch_id')) {
+            return response()->json(['error' => 'Yetkiniz yok.'], 403);
+        }
         $request->validate(['status' => 'required|in:pending,preparing,ready,served,completed,cancelled']);
         $order->update(['status' => $request->status]);
         return response()->json(['success' => true, 'order' => $order->fresh()]);

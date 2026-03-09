@@ -114,20 +114,23 @@ class FirmController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        $firm->increment('balance', $request->amount);
-        $firm->refresh();
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($firm, $request) {
+            $firm = Firm::where('id', $firm->id)->lockForUpdate()->first();
+            $firm->increment('balance', $request->amount);
+            $firm->refresh();
 
-        AccountTransaction::create([
-            'tenant_id' => session('tenant_id'),
-            'firm_id' => $firm->id,
-            'type' => 'payment',
-            'amount' => $request->amount,
-            'balance_after' => $firm->balance,
-            'description' => $request->description ?: ('Ödeme: ' . $firm->name),
-            'transaction_date' => Carbon::now(),
-        ]);
+            AccountTransaction::create([
+                'tenant_id' => session('tenant_id'),
+                'firm_id' => $firm->id,
+                'type' => 'payment',
+                'amount' => $request->amount,
+                'balance_after' => $firm->balance,
+                'description' => $request->description ?: ('Ödeme: ' . $firm->name),
+                'transaction_date' => \Carbon\Carbon::now(),
+            ]);
 
-        return response()->json(['success' => true, 'firm' => $firm]);
+            return response()->json(['success' => true, 'firm' => $firm]);
+        });
     }
 
     // ─── Cari Grupları ────────────────────────────────────────
