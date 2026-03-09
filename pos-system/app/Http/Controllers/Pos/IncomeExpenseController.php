@@ -93,12 +93,20 @@ class IncomeExpenseController extends Controller
 
     public function destroyIncome(Income $income)
     {
+        if ($income->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $income->delete();
         return response()->json(['success' => true]);
     }
 
     public function updateIncome(Request $request, Income $income)
     {
+        if ($income->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $data = $request->validate([
             'income_expense_type_id' => ['required', Rule::exists('income_expense_types', 'id')->where('tenant_id', session('tenant_id'))],
             'amount'       => 'required|numeric|min:0.01',
@@ -136,12 +144,20 @@ class IncomeExpenseController extends Controller
 
     public function destroyExpense(Expense $expense)
     {
+        if ($expense->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $expense->delete();
         return response()->json(['success' => true]);
     }
 
     public function updateExpense(Request $request, Expense $expense)
     {
+        if ($expense->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $data = $request->validate([
             'income_expense_type_id' => ['required', Rule::exists('income_expense_types', 'id')->where('tenant_id', session('tenant_id'))],
             'amount'       => 'required|numeric|min:0.01',
@@ -172,6 +188,10 @@ class IncomeExpenseController extends Controller
 
     public function destroyType(IncomeExpenseType $type)
     {
+        if ($type->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         // Bağlı kayıt varsa sil
         $type->delete();
         return response()->json(['success' => true]);

@@ -49,6 +49,10 @@ class CategoryController extends Controller
 
     public function update(Request $request, Category $category)
     {
+        if ($category->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'parent_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('tenant_id', session('tenant_id'))],
@@ -90,6 +94,10 @@ class CategoryController extends Controller
 
     public function destroy(Category $category)
     {
+        if ($category->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         if ($category->products()->exists()) {
             return response()->json(['success' => false, 'message' => 'Bu kategoride ürünler var, silinemez.'], 422);
         }

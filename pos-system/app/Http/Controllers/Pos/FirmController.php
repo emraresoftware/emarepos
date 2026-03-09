@@ -48,6 +48,10 @@ class FirmController extends Controller
 
     public function show(Firm $firm)
     {
+        if ($firm->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $transactions = AccountTransaction::where('firm_id', $firm->id)
             ->orderBy('created_at', 'desc')
             ->limit(50)
@@ -83,6 +87,10 @@ class FirmController extends Controller
 
     public function update(Request $request, Firm $firm)
     {
+        if ($firm->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'firm_group_id' => ['nullable', 'integer', Rule::exists('firm_groups', 'id')->where('tenant_id', session('tenant_id'))],
@@ -102,6 +110,10 @@ class FirmController extends Controller
 
     public function destroy(Firm $firm)
     {
+        if ($firm->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         if (abs($firm->balance) > 0.01) {
             return response()->json([
                 'success' => false,
@@ -116,6 +128,10 @@ class FirmController extends Controller
 
     public function addPayment(Request $request, Firm $firm)
     {
+        if ($firm->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'description' => 'nullable|string',
@@ -154,6 +170,10 @@ class FirmController extends Controller
 
     public function updateGroup(Request $request, FirmGroup $group)
     {
+        if ($group->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
         ]);
@@ -163,6 +183,10 @@ class FirmController extends Controller
 
     public function destroyGroup(FirmGroup $group)
     {
+        if ($group->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         if ($group->firms()->exists()) {
             // Grubu silmeden önce carilerin group_id'sini null yap
             $group->firms()->update(['firm_group_id' => null]);

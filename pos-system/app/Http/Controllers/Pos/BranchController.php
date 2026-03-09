@@ -38,6 +38,10 @@ class BranchController extends Controller
 
     public function update(Request $request, Branch $branch)
     {
+        if ($branch->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50',
@@ -54,6 +58,10 @@ class BranchController extends Controller
 
     public function destroy(Branch $branch)
     {
+        if ($branch->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         // Aktif şubeyi silmeye çalışıyorsa
         if ((int) session('branch_id') === $branch->id) {
             return response()->json(['success' => false, 'message' => 'Aktif şubenizi silemezsiniz.'], 422);

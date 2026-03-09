@@ -67,6 +67,10 @@ class StaffController extends Controller
 
     public function update(Request $request, Staff $staff)
     {
+        if ($staff->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $data = $request->validate([
             'name'      => 'required|string|max:255',
             'role'      => 'nullable|string|max:100',
@@ -82,6 +86,10 @@ class StaffController extends Controller
 
     public function destroy(Staff $staff)
     {
+        if ($staff->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $staff->delete();
         return response()->json(['success' => true]);
     }
@@ -91,6 +99,10 @@ class StaffController extends Controller
      */
     public function performance(Request $request, Staff $staff)
     {
+        if ($staff->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $branchId = session('branch_id');
         $days = (int) $request->input('days', 30);
         $startDate = Carbon::now()->subDays($days)->startOfDay();

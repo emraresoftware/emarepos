@@ -38,6 +38,10 @@ class PaymentTypeController extends Controller
 
     public function update(Request $request, PaymentType $paymentType)
     {
+        if ($paymentType->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50',
@@ -52,6 +56,10 @@ class PaymentTypeController extends Controller
 
     public function destroy(PaymentType $paymentType)
     {
+        if ($paymentType->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $paymentType->delete();
         return response()->json(['success' => true]);
     }

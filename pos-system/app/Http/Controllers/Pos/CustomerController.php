@@ -53,6 +53,9 @@ class CustomerController extends Controller
 
     public function show(Customer $customer)
     {
+        if ($customer->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
         $transactions = AccountTransaction::where('customer_id', $customer->id)
             ->orderBy('created_at', 'desc')
             ->limit(50)
@@ -69,6 +72,9 @@ class CustomerController extends Controller
 
     public function update(Request $request, Customer $customer)
     {
+        if ($customer->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:255',
@@ -89,6 +95,9 @@ class CustomerController extends Controller
 
     public function addPayment(Request $request, Customer $customer)
     {
+        if ($customer->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
         $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'description' => 'nullable|string',
@@ -115,6 +124,9 @@ class CustomerController extends Controller
 
     public function destroy(Customer $customer)
     {
+        if ($customer->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
         if (abs($customer->balance) > 0.01) {
             return response()->json([
                 'success' => false,

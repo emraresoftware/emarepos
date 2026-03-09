@@ -111,6 +111,10 @@ class HardwareController extends Controller
      */
     public function update(Request $request, HardwareDevice $device): JsonResponse
     {
+        if ($device->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $validated = $request->validate([
             'name'         => 'required|string|max:100',
             'connection'   => 'required|in:usb,serial,ethernet,wifi,bluetooth,rj11_via_printer',
@@ -144,6 +148,10 @@ class HardwareController extends Controller
      */
     public function destroy(HardwareDevice $device): JsonResponse
     {
+        if ($device->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $device->delete();
         return response()->json(['success' => true]);
     }
