@@ -119,7 +119,7 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'barcode' => 'nullable|string|max:255',
             'category_id' => 'nullable|integer',
-            'firm_id' => 'nullable|integer|exists:firms,id',
+            'firm_id' => ['nullable', 'integer', Rule::exists('firms', 'id')->where('tenant_id', session('tenant_id'))],
             'sale_price' => 'required|numeric|min:0',
             'purchase_price' => 'nullable|numeric|min:0',
             'vat_rate' => 'required|integer',
@@ -155,7 +155,7 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'barcode' => 'nullable|string|max:255',
             'category_id' => 'nullable|integer',
-            'firm_id' => 'nullable|integer|exists:firms,id',
+            'firm_id' => ['nullable', 'integer', Rule::exists('firms', 'id')->where('tenant_id', session('tenant_id'))],
             'sale_price' => 'required|numeric|min:0',
             'purchase_price' => 'nullable|numeric|min:0',
             'vat_rate' => 'required|integer',
@@ -220,7 +220,7 @@ class ProductController extends Controller
     {
         $request->validate([
             'branches' => 'required|array',
-            'branches.*.branch_id' => 'required|integer|exists:branches,id',
+            'branches.*.branch_id' => ['required', 'integer', Rule::exists('branches', 'id')->where('tenant_id', session('tenant_id'))],
             'branches.*.enabled' => 'required|boolean',
             'branches.*.sale_price' => 'nullable|numeric|min:0',
             'branches.*.stock_quantity' => 'nullable|numeric|min:0',
@@ -462,12 +462,14 @@ class ProductController extends Controller
      */
     public function bulkAssignCategory(Request $request)
     {
+        $tenantId = session('tenant_id');
         $request->validate([
             'ids' => 'required|array',
             'ids.*' => 'integer',
-            'category_id' => 'required|integer|exists:categories,id',
+            'category_id' => ['required', 'integer', Rule::exists('categories', 'id')->where('tenant_id', $tenantId)],
         ]);
-        Product::whereIn('id', $request->ids)->update(['category_id' => $request->category_id]);
+        // Sadece bu tenant'ın ürünleri güncellensin
+        Product::whereIn('id', $request->ids)->where('tenant_id', $tenantId)->update(['category_id' => $request->category_id]);
         return response()->json(['success' => true, 'message' => count($request->ids) . ' ürüne kategori atandı.']);
     }
 
@@ -484,7 +486,8 @@ class ProductController extends Controller
             'field' => 'required|in:sale_price,purchase_price',
         ]);
 
-        $products = Product::whereIn('id', $request->ids)->get();
+        // Sadece bu tenant'ın ürünleri güncellensin
+        $products = Product::whereIn('id', $request->ids)->where('tenant_id', session('tenant_id'))->get();
         foreach ($products as $product) {
             if ($request->type === 'percent') {
                 $newPrice = $product->{$request->field} * (1 + $request->value / 100);
