@@ -111,6 +111,7 @@ class ProductController extends Controller
         $request->merge([
             'purchase_price' => ($request->purchase_price !== '' && $request->purchase_price !== null) ? $request->purchase_price : 0,
             'stock_quantity'  => ($request->stock_quantity  !== '' && $request->stock_quantity  !== null) ? $request->stock_quantity  : 0,
+            'critical_stock'  => ($request->critical_stock  !== '' && $request->critical_stock  !== null) ? $request->critical_stock  : 0,
             'category_id'    => ($request->category_id     !== '' && $request->category_id    !== null) ? $request->category_id    : null,
             'firm_id'        => ($request->firm_id         !== '' && $request->firm_id        !== null) ? $request->firm_id        : null,
         ]);
@@ -134,6 +135,8 @@ class ProductController extends Controller
         
         $data['tenant_id'] = session('tenant_id');
         $data['show_on_pos'] = $data['show_on_pos'] ?? true;
+        $data['critical_stock'] = $data['critical_stock'] ?? 0;
+        $data['stock_quantity'] = $data['stock_quantity'] ?? 0;
         $product = Product::create($data);
         
         return response()->json(['success' => true, 'product' => $product->load('category')]);
@@ -144,6 +147,7 @@ class ProductController extends Controller
         $request->merge([
             'purchase_price' => ($request->purchase_price !== '' && $request->purchase_price !== null) ? $request->purchase_price : 0,
             'stock_quantity'  => ($request->stock_quantity  !== '' && $request->stock_quantity  !== null) ? $request->stock_quantity  : 0,
+            'critical_stock'  => ($request->critical_stock  !== '' && $request->critical_stock  !== null) ? $request->critical_stock  : 0,
             'category_id'    => ($request->category_id     !== '' && $request->category_id    !== null) ? $request->category_id    : null,
             'firm_id'        => ($request->firm_id         !== '' && $request->firm_id        !== null) ? $request->firm_id        : null,
         ]);
@@ -165,6 +169,8 @@ class ProductController extends Controller
             'description' => 'nullable|string|max:2000',
         ]);
         
+        $data['critical_stock'] = $data['critical_stock'] ?? 0;
+        $data['stock_quantity']  = $data['stock_quantity']  ?? 0;
         $product->update($data);
         return response()->json(['success' => true, 'product' => $product->load('category')]);
     }
