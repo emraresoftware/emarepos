@@ -165,8 +165,22 @@ class ProductController extends Controller
         });
     }
 
+    private function hydrateSubProductStocks($definitions, int $branchId): void
+    {
+        if ($branchId <= 0) {
+            return;
+        }
+
+        $definitions->each(function ($definition) use ($branchId) {
+            if ($definition->subProduct) {
+                $definition->subProduct->stock_quantity = $definition->subProduct->stockForBranch($branchId);
+            }
+        });
+    }
+
     public function store(Request $request)
     {
+        $branchId = (int) session('branch_id');
         $request->merge([
             'purchase_price' => ($request->purchase_price !== '' && $request->purchase_price !== null) ? $request->purchase_price : 0,
             'stock_quantity'  => ($request->stock_quantity  !== '' && $request->stock_quantity  !== null) ? $request->stock_quantity  : 0,
@@ -195,14 +209,21 @@ class ProductController extends Controller
         $data['tenant_id'] = session('tenant_id');
         $data['show_on_pos'] = $data['show_on_pos'] ?? true;
         $data['critical_stock'] = $data['critical_stock'] ?? 0;
-        $data['stock_quantity'] = $data['stock_quantity'] ?? 0;
+        $stockQuantity = (float) ($data['stock_quantity'] ?? 0);
+        $data['stock_quantity'] = $stockQuantity;
         $product = Product::create($data);
+
+        if ($branchId > 0) {
+            $product->setStockForBranch($branchId, $stockQuantity);
+            $product->refresh();
+        }
         
         return response()->json(['success' => true, 'product' => $product->load('category')]);
     }
 
     public function update(Request $request, Product $product)
     {
+        $branchId = (int) session('branch_id');
         $request->merge([
             'purchase_price' => ($request->purchase_price !== '' && $request->purchase_price !== null) ? $request->purchase_price : 0,
             'stock_quantity'  => ($request->stock_quantity  !== '' && $request->stock_quantity  !== null) ? $request->stock_quantity  : 0,
@@ -229,8 +250,21 @@ class ProductController extends Controller
         ]);
         
         $data['critical_stock'] = $data['critical_stock'] ?? 0;
-        $data['stock_quantity']  = $data['stock_quantity']  ?? 0;
+        $stockQuantity = (float) ($data['stock_quantity'] ?? 0);
+
+        if ($branchId > 0) {
+            unset($data['stock_quantity']);
+        } else {
+            $data['stock_quantity'] = $stockQuantity;
+        }
+
         $product->update($data);
+
+        if ($branchId > 0) {
+            $product->setStockForBranch($branchId, $stockQuantity);
+            $product->refresh();
+        }
+
         return response()->json(['success' => true, 'product' => $product->load('category')]);
     }
 
@@ -478,6 +512,8 @@ class ProductController extends Controller
     public function getSubDefinitions(Product $product)
     {
         $defs = $product->subDefinitions()->with('subProduct:id,name,barcode,unit,stock_quantity')->get();
+        $this->hydrateSubProductStocks($defs, (int) session('branch_id'));
+
         return response()->json(['success' => true, 'definitions' => $defs]);
     }
 
@@ -500,7 +536,10 @@ class ProductController extends Controller
             'apply_to_branches' => $data['apply_to_branches'] ?? false,
         ]);
 
-        return response()->json(['success' => true, 'definition' => $def->load('subProduct:id,name,barcode,unit,stock_quantity')]);
+        $def->load('subProduct:id,name,barcode,unit,stock_quantity');
+        $this->hydrateSubProductStocks(collect([$def]), (int) session('branch_id'));
+
+        return response()->json(['success' => true, 'definition' => $def]);
     }
 
     /**
