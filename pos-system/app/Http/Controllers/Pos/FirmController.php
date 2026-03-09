@@ -6,6 +6,7 @@ use App\Models\Firm;
 use App\Models\FirmGroup;
 use App\Models\AccountTransaction;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use App\Models\ActivityLog;
 
@@ -58,7 +59,8 @@ class FirmController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'firm_group_id' => 'nullable|integer|exists:firm_groups,id',
+            'firm_group_id' => ['nullable', 'integer', Rule::exists('firm_groups', 'id')->where('tenant_id', session('tenant_id'))],
+
             'tax_number' => 'nullable|string|max:50',
             'tax_office' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
@@ -79,7 +81,8 @@ class FirmController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'firm_group_id' => 'nullable|integer|exists:firm_groups,id',
+            'firm_group_id' => ['nullable', 'integer', Rule::exists('firm_groups', 'id')->where('tenant_id', session('tenant_id'))],
+
             'tax_number' => 'nullable|string|max:50',
             'tax_office' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',

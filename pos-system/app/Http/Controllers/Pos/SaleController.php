@@ -32,10 +32,10 @@ class SaleController extends Controller
         // Fiş ayarlarını tenant meta'dan al
         $tenant = Tenant::find(session('tenant_id'));
         $receiptSettings = [
-            'receipt_header' => $tenant->meta['receipt_header'] ?? '',
-            'receipt_footer' => $tenant->meta['receipt_footer'] ?? '',
-            'auto_print_receipt' => $tenant->meta['auto_print_receipt'] ?? false,
-            'kitchen_print' => $tenant->meta['kitchen_print'] ?? false,
+            'receipt_header' => $tenant?->meta['receipt_header'] ?? '',
+            'receipt_footer' => $tenant?->meta['receipt_footer'] ?? '',
+            'auto_print_receipt' => $tenant?->meta['auto_print_receipt'] ?? false,
+            'kitchen_print' => $tenant?->meta['kitchen_print'] ?? false,
         ];
         
         return view('pos.sales.index', compact('categories', 'paymentTypes', 'receiptSettings'));

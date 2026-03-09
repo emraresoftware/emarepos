@@ -64,6 +64,8 @@ class PurchaseInvoiceController extends Controller
 
         $grandTotal = $subtotal + $vatTotal;
 
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($request, $branchId, $subtotal, $vatTotal, $discountTotal, $grandTotal) {
+
         $invoice = PurchaseInvoice::create([
             'tenant_id' => session('tenant_id'),
             'branch_id' => $branchId,
@@ -132,12 +134,14 @@ class PurchaseInvoiceController extends Controller
         }
 
         // Cari bakiyeyi güncelle (Tedarikçi borç artan → decrement)
-        $firm = Firm::find($request->firm_id);
+        $firm = Firm::where('id', $request->firm_id)->lockForUpdate()->first();
         if ($firm) {
             $firm->decrement('balance', $grandTotal);
         }
 
         return response()->json(['success' => true, 'invoice' => $invoice->load('items', 'firm')]);
+
+        }); // end DB::transaction
     }
 
     public function show(PurchaseInvoice $invoice)

@@ -305,7 +305,7 @@ class SaleService
     public function refundSale(int $saleId, ?string $reason = null): Sale
     {
         return DB::transaction(function () use ($saleId, $reason) {
-            $sale = Sale::with('items')->findOrFail($saleId);
+            $sale = Sale::with('items')->where('id', $saleId)->lockForUpdate()->firstOrFail();
             
             if ($sale->status !== 'completed') {
                 throw new \Exception('Sadece tamamlanmış satışlar iade edilebilir.');
@@ -378,7 +378,7 @@ class SaleService
     public function cancelSale(int $saleId, ?string $reason = null): Sale
     {
         return DB::transaction(function () use ($saleId, $reason) {
-            $sale = Sale::with('items')->findOrFail($saleId);
+            $sale = Sale::with('items')->where('id', $saleId)->lockForUpdate()->firstOrFail();
 
             if (in_array($sale->status, ['cancelled', 'refunded'])) {
                 throw new \Exception('Bu satış zaten iptal edilmiş veya iade edilmiş.');
