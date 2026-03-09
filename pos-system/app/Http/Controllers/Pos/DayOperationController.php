@@ -19,8 +19,8 @@ class DayOperationController extends Controller
         $stats = [
             'total_sales' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->where('status', 'completed')->sum('grand_total'),
             'sale_count' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->where('status', 'completed')->count(),
-            'cash_total' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->where('status', 'completed')->where('payment_method', 'cash')->sum('grand_total'),
-            'card_total' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->where('status', 'completed')->where('payment_method', 'card')->sum('grand_total'),
+            'cash_total' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->where('status', 'completed')->sum('cash_amount'),
+            'card_total' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->where('status', 'completed')->sum('card_amount'),
             'order_count' => Order::where('branch_id', $branchId)->whereDate('ordered_at', $today)->count(),
             'cancelled_orders' => Order::where('branch_id', $branchId)->whereDate('ordered_at', $today)->where('status', 'cancelled')->count(),
             'refund_total' => Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)->where('status', 'refunded')->sum('grand_total'),

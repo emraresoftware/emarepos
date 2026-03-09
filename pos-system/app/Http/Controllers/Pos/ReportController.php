@@ -73,9 +73,9 @@ class ReportController extends Controller
               ->whereBetween('sold_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
         })
         ->join('products', 'sale_items.product_id', '=', 'products.id')
-        ->join('categories', 'products.category_id', '=', 'categories.id')
-        ->select('categories.name', DB::raw('SUM(sale_items.total) as revenue'))
-        ->groupBy('categories.name')
+        ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+        ->select(DB::raw("COALESCE(categories.name, 'Kategorisiz') as name"), DB::raw('SUM(sale_items.total) as revenue'))
+        ->groupBy('name')
         ->orderByDesc('revenue')
         ->get();
 
@@ -97,9 +97,9 @@ class ReportController extends Controller
             'date' => $date,
             'total_sales' => $sales->count(),
             'grand_total' => $sales->sum('grand_total'),
-            'cash_total' => $sales->clone()->where('payment_method', 'cash')->sum('grand_total'),
-            'card_total' => $sales->clone()->where('payment_method', 'card')->sum('grand_total'),
-            'credit_total' => $sales->clone()->where('payment_method', 'credit')->sum('grand_total'),
+            'cash_total' => $sales->clone()->sum('cash_amount'),
+            'card_total' => $sales->clone()->sum('card_amount'),
+            'credit_total' => $sales->clone()->sum('credit_amount'),
             'discount_total' => $sales->sum('discount_total'),
             'vat_total' => $sales->sum('vat_total'),
         ];
@@ -196,12 +196,12 @@ class ReportController extends Controller
 
         // Giderler
         $expenses = Expense::where('branch_id', $branchId)
-            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->whereBetween('date', [$startDate, $endDate])
             ->sum('amount');
 
         // Gelirler (satış dışı)
         $otherIncome = Income::where('branch_id', $branchId)
-            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->whereBetween('date', [$startDate, $endDate])
             ->sum('amount');
 
         $grossProfit = $salesRevenue - $costOfGoods;

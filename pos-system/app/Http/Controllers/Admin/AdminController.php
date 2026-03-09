@@ -193,7 +193,7 @@ class AdminController extends Controller
      */
     public function feedbacks(Request $request)
     {
-        $query = Feedback::orderByDesc('created_at');
+        $query = Feedback::withoutGlobalScope('tenant')->orderByDesc('created_at');
 
         if ($s = $request->input('status')) {
             $query->where('status', $s);
@@ -213,7 +213,8 @@ class AdminController extends Controller
      */
     public function users(Request $request)
     {
-        $query = User::with(['tenant', 'role'])
+        $query = User::withoutGlobalScope('tenant')
+            ->with(['tenant', 'role'])
             ->orderByDesc('created_at');
 
         if ($search = $request->input('search')) {

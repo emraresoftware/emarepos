@@ -30,7 +30,7 @@ class CashRegisterController extends Controller
                 ->where('sold_at', '>=', $register->opened_at);
             $stats['cash_total']   = (clone $salesQuery)->whereIn('payment_method', ['cash', 'mixed'])->sum('cash_amount');
             $stats['card_total']   = (clone $salesQuery)->whereIn('payment_method', ['card', 'mixed'])->sum('card_amount');
-            $stats['credit_total'] = (clone $salesQuery)->where('payment_method', 'credit')->sum('grand_total');
+            $stats['credit_total'] = (clone $salesQuery)->sum('credit_amount');
             $stats['sale_count']   = $salesQuery->count();
         }
         

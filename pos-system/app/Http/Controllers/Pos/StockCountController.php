@@ -8,6 +8,7 @@ use App\Models\StockCountItem;
 use App\Models\Product;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class StockCountController extends Controller
@@ -38,16 +39,24 @@ class StockCountController extends Controller
         ]);
 
         $branchId = session('branch_id');
-        $code = 'SC-' . date('Ymd') . '-' . str_pad(StockCount::whereDate('created_at', today())->count() + 1, 3, '0', STR_PAD_LEFT);
 
-        $count = StockCount::create([
-            'tenant_id' => session('tenant_id'),
-            'branch_id' => $branchId,
-            'code' => $code,
-            'title' => $request->title ?: 'Sayım ' . date('d.m.Y'),
-            'status' => 'draft',
-            'user_id' => auth()->id(),
-        ]);
+        return DB::transaction(function () use ($request, $branchId) {
+            $prefix = 'SC-' . date('Ymd') . '-';
+            $lastCount = StockCount::where('code', 'like', $prefix . '%')
+                ->lockForUpdate()
+                ->orderByDesc('code')
+                ->first();
+            $nextNum = $lastCount ? ((int) substr($lastCount->code, -3)) + 1 : 1;
+            $code = $prefix . str_pad($nextNum, 3, '0', STR_PAD_LEFT);
+
+            $count = StockCount::create([
+                'tenant_id' => session('tenant_id'),
+                'branch_id' => $branchId,
+                'code' => $code,
+                'title' => $request->title ?: 'Sayım ' . date('d.m.Y'),
+                'status' => 'draft',
+                'user_id' => auth()->id(),
+            ]);
 
         foreach ($request->items as $item) {
             $product = Product::find($item['product_id']);
@@ -66,6 +75,7 @@ class StockCountController extends Controller
         }
 
         return response()->json(['success' => true, 'count' => $count->load('items')]);
+        }); // end DB::transaction
     }
 
     public function show(StockCount $stockCount)

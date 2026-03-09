@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\Branch;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class StockTransferController extends Controller
@@ -47,7 +48,14 @@ class StockTransferController extends Controller
             return response()->json(['success' => false, 'message' => 'Aynı şubeye transfer yapılamaz.'], 422);
         }
 
-        $code = 'ST-' . date('Ymd') . '-' . str_pad(StockTransfer::whereDate('created_at', today())->count() + 1, 3, '0', STR_PAD_LEFT);
+        return DB::transaction(function () use ($request, $fromBranchId) {
+            $prefix = 'ST-' . date('Ymd') . '-';
+            $lastTransfer = StockTransfer::where('code', 'like', $prefix . '%')
+                ->lockForUpdate()
+                ->orderByDesc('code')
+                ->first();
+            $nextNum = $lastTransfer ? ((int) substr($lastTransfer->code, -3)) + 1 : 1;
+            $code = $prefix . str_pad($nextNum, 3, '0', STR_PAD_LEFT);
 
         $transfer = StockTransfer::create([
             'tenant_id' => session('tenant_id'),
@@ -70,6 +78,7 @@ class StockTransferController extends Controller
         }
 
         return response()->json(['success' => true, 'transfer' => $transfer->load('items', 'fromBranch', 'toBranch')]);
+        }); // end DB::transaction
     }
 
     /**
@@ -95,6 +104,14 @@ class StockTransferController extends Controller
 
             // Gönderen şubeden düş
             $product->decrement('stock_quantity', $item->quantity);
+
+            // Gönderen şubenin pivot stoğunu da düş
+            $senderPivot = $product->branches()->where('branch_id', $transfer->from_branch_id)->first();
+            if ($senderPivot) {
+                $product->branches()->updateExistingPivot($transfer->from_branch_id, [
+                    'stock_quantity' => max(0, $senderPivot->pivot->stock_quantity - $item->quantity),
+                ]);
+            }
 
             StockMovement::create([
                 'tenant_id' => $transfer->tenant_id,

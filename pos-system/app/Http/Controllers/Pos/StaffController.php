@@ -96,7 +96,7 @@ class StaffController extends Controller
         $salesQuery = Sale::where('staff_name', $staff->name)
             ->where('branch_id', $branchId)
             ->where('status', 'completed')
-            ->where('created_at', '>=', $startDate);
+            ->where('sold_at', '>=', $startDate);
 
         $totalSales = (clone $salesQuery)->count();
         $totalRevenue = (clone $salesQuery)->sum('grand_total');
@@ -109,26 +109,26 @@ class StaffController extends Controller
         $refundCount = Sale::where('staff_name', $staff->name)
             ->where('branch_id', $branchId)
             ->where('status', 'refunded')
-            ->where('created_at', '>=', $startDate)
+            ->where('sold_at', '>=', $startDate)
             ->count();
 
         $cancelCount = Sale::where('staff_name', $staff->name)
             ->where('branch_id', $branchId)
             ->where('status', 'cancelled')
-            ->where('created_at', '>=', $startDate)
+            ->where('sold_at', '>=', $startDate)
             ->count();
 
         // Günlük satış grafiği
         if ($driver === 'sqlite') {
-            $dateExpr = "date(created_at)";
+            $dateExpr = "date(sold_at)";
         } else {
-            $dateExpr = "DATE(created_at)";
+            $dateExpr = "DATE(sold_at)";
         }
 
         $dailySales = Sale::where('staff_name', $staff->name)
             ->where('branch_id', $branchId)
             ->where('status', 'completed')
-            ->where('created_at', '>=', $startDate)
+            ->where('sold_at', '>=', $startDate)
             ->selectRaw("{$dateExpr} as date, COUNT(*) as count, SUM(grand_total) as total")
             ->groupByRaw($dateExpr)
             ->orderBy('date')
@@ -136,15 +136,15 @@ class StaffController extends Controller
 
         // Saatlik dağılım
         if ($driver === 'sqlite') {
-            $hourExpr = "cast(strftime('%H', created_at) as integer)";
+            $hourExpr = "cast(strftime('%H', sold_at) as integer)";
         } else {
-            $hourExpr = "HOUR(created_at)";
+            $hourExpr = "HOUR(sold_at)";
         }
 
         $hourlyDistribution = Sale::where('staff_name', $staff->name)
             ->where('branch_id', $branchId)
             ->where('status', 'completed')
-            ->where('created_at', '>=', $startDate)
+            ->where('sold_at', '>=', $startDate)
             ->selectRaw("{$hourExpr} as hour, COUNT(*) as count, SUM(grand_total) as total")
             ->groupByRaw($hourExpr)
             ->orderBy('hour')
@@ -156,7 +156,7 @@ class StaffController extends Controller
             ->where('sales.staff_name', $staff->name)
             ->where('sales.branch_id', $branchId)
             ->where('sales.status', 'completed')
-            ->where('sales.created_at', '>=', $startDate)
+            ->where('sales.sold_at', '>=', $startDate)
             ->select('sale_items.product_name')
             ->selectRaw('SUM(sale_items.quantity) as qty, SUM(sale_items.total) as total')
             ->groupBy('sale_items.product_name')

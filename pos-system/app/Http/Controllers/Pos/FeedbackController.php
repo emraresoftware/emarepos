@@ -25,7 +25,7 @@ class FeedbackController extends Controller
         $feedback = Feedback::create([
             'tenant_id'   => session('tenant_id'),
             'session_key' => session()->getId(),
-            'user_name'   => session('user_name') ?? session('user_email'),
+            'user_name'   => auth()->user()?->name ?? session('user_name'),
             'category'    => $validated['category'] ?? 'other',
             'priority'    => $validated['priority'] ?? 'normal',
             'message'     => $validated['message'],
