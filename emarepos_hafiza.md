@@ -1199,3 +1199,27 @@ Tüm controller fonksiyonları migration şemalarıyla karşılaştırılarak an
 - **BUG-11:** AdminController — `Sale::whereDate('created_at')` → `sold_at` düzeltildi
 - **BUG-12:** AdminController — `withoutGlobalScope('tenant')` eklendi (süper admin tüm tenant verisini görsün)
 - **BUG-13:** ReportController suspiciousTransactions — 5 sorgunun tamamında `created_at` → `sold_at`
+
+### Derin Analiz Round 2 — 13 Bug Daha (commit 757dabd)
+
+Tüm controller fonksiyonları tekrar tarandı. 13 yeni bug tespit ve düzeltildi:
+
+**Schema Migration (2026_03_09_000004):**
+- `tenants.status` enum → string(20) ('trial' değerine izin vermek için)
+
+**Kritik:**
+- **BUG-1:** tenants.status enum'da 'trial' yoktu → yeni tenant oluşturulamıyordu, string'e çevrildi
+
+**Yüksek:**
+- **BUG-2+3:** AdminController users+feedbacks → `withoutGlobalScope('tenant')` eklendi (süper admin tüm verileri görsün)
+- **BUG-4:** StaffController performance — 6 sorguda `created_at` → `sold_at` (personel istatistikleri yanlış geliyordu)
+- **BUG-5:** ReportController profitLoss — Income/Expense `created_at` → `date` (kâr-zarar raporu yanlış tarih kullanıyordu)
+
+**Orta:**
+- **BUG-6:** DayOperationController — cash/card mixed ödeme sorunu → `sum(cash_amount)` / `sum(card_amount)` kullanıldı
+- **BUG-7:** ReportController categoryStats — INNER JOIN → LEFT JOIN + COALESCE (kategorisiz ürünler kayboluyordu)
+- **BUG-8:** FeedbackController — `session('user_name')` → `auth()->user()?->name` (her zaman NULL geliyordu)
+- **BUG-9:** CashRegisterController — credit_total → `sum(credit_amount)` (mixed ödemeler kaçıyordu)
+- **BUG-10:** ReportController daily — cash/card/credit → sum(amount sütunları) (mixed ödemeler)
+- **BUG-11+12:** StockCount/StockTransfer kod üretimi — `DB::transaction` + `lockForUpdate` (race condition)
+- **BUG-13:** StockTransferController approve — gönderen şube pivot stoğu da düşürülüyor
