@@ -55,6 +55,11 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $tenantId = session('tenant_id');
+
+        if ($user->tenant_id !== (int) $tenantId) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $data = $request->validate([
             'name'      => 'required|string|max:255',
             'email'     => ['required', 'email', Rule::unique('users', 'email')->where('tenant_id', $tenantId)->ignore($user->id)],
@@ -75,6 +80,10 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        if ($user->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         if ($user->id === auth()->id()) {
             return response()->json(['success' => false, 'message' => 'Kendinizi silemezsiniz.'], 422);
         }
