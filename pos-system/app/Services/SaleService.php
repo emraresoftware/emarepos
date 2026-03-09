@@ -116,7 +116,8 @@ class SaleService
             }
 
             if ($creditAmount > 0 && !empty($data['customer_id'])) {
-                $customer = Customer::find($data['customer_id']);
+                // lockForUpdate: eş zamanlı credit satışlarda balance_after tutarlılığı
+                $customer = Customer::where('id', $data['customer_id'])->lockForUpdate()->first();
                 if ($customer) {
                     $customer->decrement('balance', $creditAmount);
                     
@@ -152,6 +153,7 @@ class SaleService
                         $lastPoint = LoyaltyPoint::where('customer_id', $data['customer_id'])
                             ->where('loyalty_program_id', $program->id)
                             ->latest()
+                            ->lockForUpdate()
                             ->first();
                         $currentBalance = $lastPoint ? $lastPoint->balance_after : 0;
                         
@@ -319,7 +321,7 @@ class SaleService
             // Restore stock
             foreach ($sale->items as $item) {
                 if ($item->product_id) {
-                    $product = Product::find($item->product_id);
+                    $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
                     if ($product && !$product->is_service) {
                         $product->increment('stock_quantity', $item->quantity);
                         
@@ -351,7 +353,7 @@ class SaleService
             }
 
             if ($creditRefundAmount > 0 && $sale->customer_id) {
-                $customer = Customer::find($sale->customer_id);
+                $customer = Customer::where('id', $sale->customer_id)->lockForUpdate()->first();
                 if ($customer) {
                     $customer->increment('balance', $creditRefundAmount);
                     
@@ -392,7 +394,7 @@ class SaleService
             // Stock restoration + movement kaydı
             foreach ($sale->items as $item) {
                 if ($item->product_id) {
-                    $product = Product::find($item->product_id);
+                    $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
                     if ($product && !$product->is_service) {
                         $product->increment('stock_quantity', $item->quantity);
                         
@@ -424,7 +426,7 @@ class SaleService
             }
 
             if ($creditCancelAmount > 0 && $sale->customer_id) {
-                $customer = Customer::find($sale->customer_id);
+                $customer = Customer::where('id', $sale->customer_id)->lockForUpdate()->first();
                 if ($customer) {
                     $customer->increment('balance', $creditCancelAmount);
                     AccountTransaction::create([

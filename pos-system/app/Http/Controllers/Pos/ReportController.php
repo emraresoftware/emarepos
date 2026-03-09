@@ -89,19 +89,21 @@ class ReportController extends Controller
         $date = $request->get('date', Carbon::today()->format('Y-m-d'));
         $branchId = session('branch_id');
         
-        $sales = Sale::where('branch_id', $branchId)
+        // 7 ayrı sorgu yerine tek selectRaw (N+1 önlemi)
+        $salesAgg = Sale::where('branch_id', $branchId)
             ->whereDate('sold_at', $date)
-            ->where('status', 'completed');
-        
+            ->where('status', 'completed')
+            ->selectRaw('COUNT(*) as total_sales, COALESCE(SUM(grand_total),0) as grand_total, COALESCE(SUM(cash_amount),0) as cash_total, COALESCE(SUM(card_amount),0) as card_total, COALESCE(SUM(credit_amount),0) as credit_total, COALESCE(SUM(discount_total),0) as discount_total, COALESCE(SUM(vat_total),0) as vat_total')
+            ->first();
         $summary = [
-            'date' => $date,
-            'total_sales' => $sales->count(),
-            'grand_total' => $sales->sum('grand_total'),
-            'cash_total' => $sales->clone()->sum('cash_amount'),
-            'card_total' => $sales->clone()->sum('card_amount'),
-            'credit_total' => $sales->clone()->sum('credit_amount'),
-            'discount_total' => $sales->sum('discount_total'),
-            'vat_total' => $sales->sum('vat_total'),
+            'date'          => $date,
+            'total_sales'   => (int)   ($salesAgg->total_sales ?? 0),
+            'grand_total'   => (float) ($salesAgg->grand_total ?? 0),
+            'cash_total'    => (float) ($salesAgg->cash_total ?? 0),
+            'card_total'    => (float) ($salesAgg->card_total ?? 0),
+            'credit_total'  => (float) ($salesAgg->credit_total ?? 0),
+            'discount_total'=> (float) ($salesAgg->discount_total ?? 0),
+            'vat_total'     => (float) ($salesAgg->vat_total ?? 0),
         ];
         
         // Top products

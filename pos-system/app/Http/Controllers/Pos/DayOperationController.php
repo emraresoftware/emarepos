@@ -32,7 +32,7 @@ class DayOperationController extends Controller
         $orderStats = DB::table('orders')
             ->where('branch_id', $branchId)
             ->whereDate('ordered_at', $today)
-            ->selectRaw('COUNT(*) as order_count, SUM(status = "cancelled") as cancelled_orders')
+            ->selectRaw("COUNT(*) as order_count, SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_orders")
             ->first();
 
         $stats = [

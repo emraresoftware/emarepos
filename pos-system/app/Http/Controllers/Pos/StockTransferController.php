@@ -95,13 +95,16 @@ class StockTransferController extends Controller
      */
     public function approve(StockTransfer $transfer)
     {
-        if ($transfer->status !== 'pending') {
-            return response()->json(['success' => false, 'message' => 'Bu transfer zaten işlenmiş.'], 422);
-        }
-
         return DB::transaction(function () use ($transfer) {
+            // Önce transfer kaydını kilitle — çift onay race condition önlemi
+            $transfer = StockTransfer::where('id', $transfer->id)->lockForUpdate()->firstOrFail();
+
+            if ($transfer->status !== 'pending') {
+                return response()->json(['success' => false, 'message' => 'Bu transfer zaten işlenmiş.'], 422);
+            }
+
             foreach ($transfer->items as $item) {
-            $product = Product::find($item->product_id);
+            $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
             if (!$product) continue;
 
             // Gönderen şubenin pivot stoğunu düş (ana stok değişmez, sadece şubeler arası hareket)

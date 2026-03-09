@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -35,12 +36,13 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        $tenantId = session('tenant_id');
         $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6',
-            'role_id' => 'nullable|integer|exists:roles,id',
-            'branch_id' => 'nullable|integer|exists:branches,id',
+            'name'      => 'required|string|max:255',
+            'email'     => ['required', 'email', Rule::unique('users', 'email')->where('tenant_id', $tenantId)],
+            'password'  => 'required|string|min:6',
+            'role_id'   => ['nullable', 'integer', Rule::exists('roles', 'id')->where('tenant_id', $tenantId)],
+            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('tenant_id', $tenantId)],
         ]);
 
         $data['tenant_id'] = session('tenant_id');
@@ -52,12 +54,13 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
+        $tenantId = session('tenant_id');
         $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'password' => 'nullable|string|min:6',
-            'role_id' => 'nullable|integer|exists:roles,id',
-            'branch_id' => 'nullable|integer|exists:branches,id',
+            'name'      => 'required|string|max:255',
+            'email'     => ['required', 'email', Rule::unique('users', 'email')->where('tenant_id', $tenantId)->ignore($user->id)],
+            'password'  => 'nullable|string|min:6',
+            'role_id'   => ['nullable', 'integer', Rule::exists('roles', 'id')->where('tenant_id', $tenantId)],
+            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('tenant_id', $tenantId)],
         ]);
 
         if (!empty($data['password'])) {
@@ -75,6 +78,12 @@ class UserController extends Controller
         if ($user->id === auth()->id()) {
             return response()->json(['success' => false, 'message' => 'Kendinizi silemezsiniz.'], 422);
         }
+
+        // Açık kasası olan kullanıcı silinemez (Z raporu / kasa geçmişini korur)
+        if ($user->cashRegisters()->where('status', 'open')->exists()) {
+            return response()->json(['success' => false, 'message' => 'Açık kasası olan kullanıcı silinemez.'], 422);
+        }
+
         $user->delete();
         return response()->json(['success' => true]);
     }
