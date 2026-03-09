@@ -60,8 +60,12 @@ class SaleService
             
             // Create sale items and update stock (use calculated items for correct vat/totals)
             $calculatedItems = $calculated['items'];
+            $productMap = []; // Ürünleri önbelleğe al — alttaki mutfak blokları tekrar sorgu yapmasın
             foreach ($calculatedItems as $item) {
                 $product = Product::where('id', $item['product_id'])->lockForUpdate()->first();
+                if ($product) {
+                    $productMap[$product->id] = $product;
+                }
 
                 if ($product && !$product->is_service) {
                     $qty = $item['quantity'] ?? 1;
@@ -173,8 +177,8 @@ class SaleService
             // Mutfak siparişi oluştur — hata olursa satışı etkileme
             try {
                 if ($tenantId && $branchId) {
-                    $kitchenItems = array_filter($calculated['items'], function ($item) {
-                        $p = Product::find($item['product_id']);
+                    $kitchenItems = array_filter($calculated['items'], function ($item) use ($productMap) {
+                        $p = $productMap[$item['product_id']] ?? null;
                         return !$p || !$p->is_service;
                     });
                     if (count($kitchenItems) > 0) {
@@ -196,7 +200,7 @@ class SaleService
                             'ordered_at'     => Carbon::now(),
                         ]);
                         foreach ($kitchenItems as $item) {
-                            $kProduct = Product::find($item['product_id']);
+                            $kProduct = $productMap[$item['product_id']] ?? null;
                             \App\Models\OrderItem::create([
                                 'order_id'     => $order->id,
                                 'product_id'   => $item['product_id'],
@@ -225,11 +229,13 @@ class SaleService
                         'receipt_no' => $receiptNo,
                         'table_name' => $data['table_name'] ?? null,
                         'note' => $data['notes'] ?? null,
-                        'items' => array_map(fn($item) => [
-                            'product_name' => $item['product_name'] ?? Product::find($item['product_id'])?->name ?? '',
-                            'quantity' => $item['quantity'] ?? 1,
-                            'note' => $item['note'] ?? null,
-                        ], $items),
+                        'items' => array_map(function ($item) use ($productMap) {
+                            return [
+                                'product_name' => $item['product_name'] ?? ($productMap[$item['product_id']] ?? null)?->name ?? '',
+                                'quantity' => $item['quantity'] ?? 1,
+                                'note' => $item['note'] ?? null,
+                            ];
+                        }, $items),
                     ];
                     PrinterService::printKitchenTicket($kitchenData);
                 }

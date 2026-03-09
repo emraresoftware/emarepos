@@ -68,8 +68,13 @@ class StockTransferController extends Controller
             'created_by' => auth()->id(),
         ]);
 
+        // Ürünleri tek sorguda yükle (N+1 önleme)
+        $productIds = collect($request->items)->pluck('product_id')->filter()->unique()->toArray();
+        $productMap = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
         foreach ($request->items as $item) {
-            $product = Product::find($item['product_id']);
+            $product = $productMap[$item['product_id']] ?? null;
+            if (!$product) continue;
             $transfer->items()->create([
                 'product_id' => $product->id,
                 'product_name' => $product->name,

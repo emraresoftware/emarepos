@@ -59,9 +59,13 @@ class StockCountController extends Controller
                 'user_id' => auth()->id(),
             ]);
 
+        // Ürünleri tek sorguda yükle (N+1 önleme)
+        $productIds = collect($request->items)->pluck('product_id')->filter()->unique()->toArray();
+        $productMap = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
         foreach ($request->items as $item) {
-            $product = Product::find($item['product_id']);
-            $systemQty = $product->stock_quantity ?? 0;
+            $product = $productMap[$item['product_id']] ?? null;
+            $systemQty = $product?->stock_quantity ?? 0;
             $countedQty = $item['counted_quantity'];
 
             $count->items()->create([
