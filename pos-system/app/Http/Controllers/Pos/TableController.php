@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Services\TableService;
 use App\Services\SaleService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class TableController extends Controller
 {
@@ -390,7 +391,7 @@ class TableController extends Controller
             'table_no'        => 'required|string|max:20',
             'capacity'        => 'required|integer|min:1|max:100',
             'shape'           => 'nullable|in:square,circle,rectangle',
-            'table_region_id' => 'nullable|exists:table_regions,id',
+            'table_region_id' => ['nullable', Rule::exists('table_regions', 'id')->where('branch_id', session('branch_id'))],
         ]);
 
         $branchId = session('branch_id');
@@ -431,7 +432,7 @@ class TableController extends Controller
             'table_no'        => 'sometimes|string|max:20',
             'capacity'        => 'sometimes|integer|min:1|max:100',
             'shape'           => 'nullable|in:square,circle,rectangle',
-            'table_region_id' => 'nullable|exists:table_regions,id',
+            'table_region_id' => ['nullable', Rule::exists('table_regions', 'id')->where('branch_id', session('branch_id'))],
             'pos_x'           => 'sometimes|numeric|min:0|max:95',
             'pos_y'           => 'sometimes|numeric|min:0|max:90',
         ]);
@@ -467,7 +468,7 @@ class TableController extends Controller
             'positions.*.id'          => 'required|integer',
             'positions.*.pos_x'       => 'required|numeric|min:0|max:99',
             'positions.*.pos_y'       => 'required|numeric|min:0|max:99',
-            'positions.*.region_id'   => 'nullable|integer',
+            'positions.*.region_id'   => ['nullable', Rule::exists('table_regions', 'id')->where('branch_id', session('branch_id'))],
         ]);
 
         foreach ($request->positions as $pos) {

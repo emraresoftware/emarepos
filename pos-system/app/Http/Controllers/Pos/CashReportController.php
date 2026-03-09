@@ -62,6 +62,9 @@ class CashReportController extends Controller
 
     public function show(CashRegister $register)
     {
+        if ($register->branch_id !== (int) session('branch_id')) {
+            return response()->json(['error' => 'Yetkiniz yok.'], 403);
+        }
         $register->load('user');
 
         // Bu kasanın satışları

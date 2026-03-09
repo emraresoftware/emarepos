@@ -87,6 +87,7 @@ class StockController extends Controller
 
         $movement = DB::transaction(function () use ($data, $product) {
             // Stok güncelle
+            $product = Product::where('id', $product->id)->lockForUpdate()->first();
             if (in_array($data['type'], ['purchase', 'return'])) {
                 $product->increment('stock_quantity', abs($data['quantity']));
             } elseif ($data['type'] === 'adjustment') {

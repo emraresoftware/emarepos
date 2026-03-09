@@ -65,10 +65,7 @@ class TableService
         return DB::transaction(function () use ($sessionId, $data) {
             $session = TableSession::findOrFail($sessionId);
             
-            $orderNumber = 'ORD-' . Carbon::now()->format('Ymd') . '-' . str_pad(
-                Order::whereDate('created_at', Carbon::today())->count() + 1,
-                4, '0', STR_PAD_LEFT
-            );
+            $orderNumber = 'ORD-' . Carbon::now()->format('Ymd') . '-' . Carbon::now()->format('His') . '-' . rand(10, 99);
             
             $items = $data['items'] ?? [];
             $subtotal = 0;

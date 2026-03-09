@@ -38,7 +38,7 @@ class CashRegisterService
     public function closeRegister(int $registerId, float $closingAmount, ?string $notes = null): CashRegister
     {
         return DB::transaction(function () use ($registerId, $closingAmount, $notes) {
-            $register = CashRegister::findOrFail($registerId);
+            $register = CashRegister::where('id', $registerId)->lockForUpdate()->firstOrFail();
             
             if ($register->status !== 'open') {
                 throw new \Exception('Bu kasa zaten kapalı.');
