@@ -118,6 +118,10 @@ class FeedbackController extends Controller
      */
     public function updateStatus(Request $request, Feedback $feedback): JsonResponse
     {
+        if ($feedback->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $request->validate([
             'status' => 'required|in:open,in_progress,resolved,closed',
         ]);
@@ -137,6 +141,10 @@ class FeedbackController extends Controller
      */
     public function reply(Request $request, Feedback $feedback): JsonResponse
     {
+        if ($feedback->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $request->validate([
             'admin_reply' => 'required|string|min:3|max:3000',
         ]);
@@ -159,6 +167,10 @@ class FeedbackController extends Controller
      */
     public function destroy(Feedback $feedback): JsonResponse
     {
+        if ($feedback->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         $feedback->delete();
 
         return response()->json(['success' => true]);

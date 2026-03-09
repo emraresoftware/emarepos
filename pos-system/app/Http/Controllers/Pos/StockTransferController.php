@@ -92,6 +92,10 @@ class StockTransferController extends Controller
      */
     public function show(StockTransfer $transfer)
     {
+        if ($transfer->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         return response()->json($transfer->load('items', 'fromBranch', 'toBranch'));
     }
 
@@ -100,6 +104,10 @@ class StockTransferController extends Controller
      */
     public function approve(StockTransfer $transfer)
     {
+        if ($transfer->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
         return DB::transaction(function () use ($transfer) {
             // Önce transfer kaydını kilitle — çift onay race condition önlemi
             $transfer = StockTransfer::where('id', $transfer->id)->lockForUpdate()->firstOrFail();
