@@ -15,6 +15,7 @@ use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use App\Models\ActivityLog;
 
 class ProductController extends Controller
@@ -266,6 +267,9 @@ class ProductController extends Controller
      */
     public function updatePrice(Request $request, Product $product, ProductPrice $price)
     {
+        if ($price->product_id !== $product->id) {
+            return response()->json(['success' => false, 'message' => 'Bu fiyat bu ürüne ait değil.'], 403);
+        }
         $data = $request->validate([
             'label' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
@@ -280,6 +284,9 @@ class ProductController extends Controller
      */
     public function destroyPrice(Product $product, ProductPrice $price)
     {
+        if ($price->product_id !== $product->id) {
+            return response()->json(['success' => false, 'message' => 'Bu fiyat bu ürüne ait değil.'], 403);
+        }
         $price->delete();
         return response()->json(['success' => true]);
     }
@@ -321,6 +328,9 @@ class ProductController extends Controller
      */
     public function deleteVariantType(ProductVariantType $variantType)
     {
+        if ($variantType->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
         $variantType->values()->delete();
         $variantType->delete();
         return response()->json(['success' => true]);
@@ -347,6 +357,10 @@ class ProductController extends Controller
      */
     public function deleteVariantValue(ProductVariantValue $variantValue)
     {
+        // Kiracı doğrulaması (parent type üzerinden)
+        if ($variantValue->type && $variantValue->type->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
         DB::table('product_variant_assignments')->where('variant_value_id', $variantValue->id)->delete();
         $variantValue->delete();
         return response()->json(['success' => true]);
@@ -393,7 +407,7 @@ class ProductController extends Controller
     public function createSubDefinition(Request $request, Product $product)
     {
         $data = $request->validate([
-            'sub_product_id' => 'required|integer|exists:products,id',
+            'sub_product_id' => ['required', 'integer', Rule::exists('products', 'id')->where('tenant_id', session('tenant_id'))],
             'multiplier' => 'required|numeric|min:0.01',
             'apply_to_branches' => 'nullable|boolean',
         ]);

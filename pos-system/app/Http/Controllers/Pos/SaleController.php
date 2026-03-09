@@ -51,6 +51,7 @@ class SaleController extends Controller
         $branchId = session('branch_id');
 
         $products = Product::where('is_active', true)
+            ->where('show_on_pos', true)
             ->when($query, function ($q) use ($query) {
                 $q->where(function ($inner) use ($query) {
                     $inner->where('name', 'like', "%{$query}%")
@@ -287,8 +288,8 @@ class SaleController extends Controller
 
         $summaryStats = [
             'total' => (clone $statsQuery)->sum('grand_total'),
-            'cash' => (clone $statsQuery)->where('payment_method', 'cash')->sum('grand_total'),
-            'card' => (clone $statsQuery)->where('payment_method', 'card')->sum('grand_total'),
+            'cash' => (clone $statsQuery)->sum('cash_amount'),
+            'card' => (clone $statsQuery)->sum('card_amount'),
             'refunded' => Sale::where('branch_id', $branchId)->where('status', 'refunded')
                 ->when($request->filled('start_date'), fn($q) => $q->whereDate('sold_at', '>=', $request->start_date))
                 ->when($request->filled('end_date'), fn($q) => $q->whereDate('sold_at', '<=', $request->end_date))

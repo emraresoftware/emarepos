@@ -6,6 +6,7 @@ use App\Models\StockMovement;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use App\Models\ActivityLog;
 
@@ -66,7 +67,7 @@ class StockController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'product_id' => 'required|exists:products,id',
+            'product_id' => ['required', Rule::exists('products', 'id')->where('tenant_id', session('tenant_id'))],
             'type' => 'required|string|in:purchase,sale,return,adjustment,transfer,waste',
             'quantity' => 'required|numeric',
             'unit_price' => 'nullable|numeric|min:0',

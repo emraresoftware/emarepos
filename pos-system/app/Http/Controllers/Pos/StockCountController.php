@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 
 class StockCountController extends Controller
@@ -33,7 +34,7 @@ class StockCountController extends Controller
         $request->validate([
             'title' => 'nullable|string|max:255',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|integer|exists:products,id',
+            'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->where('tenant_id', session('tenant_id'))],
             'items.*.counted_quantity' => 'required|numeric|min:0',
             'items.*.note' => 'nullable|string',
         ]);

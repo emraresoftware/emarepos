@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\Firm;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 
 class PurchaseInvoiceController extends Controller
@@ -32,12 +33,12 @@ class PurchaseInvoiceController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'firm_id' => 'required|integer|exists:firms,id',
+            'firm_id' => ['required', 'integer', Rule::exists('firms', 'id')->where('tenant_id', session('tenant_id'))],
             'invoice_no' => 'nullable|string|max:100',
             'invoice_date' => 'required|date',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|integer|exists:products,id',
+            'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->where('tenant_id', session('tenant_id'))],
             'items.*.quantity' => 'required|numeric|min:0.01',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.vat_rate' => 'nullable|numeric|min:0|max:100',
@@ -153,6 +154,23 @@ class PurchaseInvoiceController extends Controller
             'payment_status' => 'nullable|in:unpaid,partial,paid',
             'status' => 'nullable|in:draft,received,approved,returned,cancelled',
         ]);
+
+        $oldStatus = $invoice->status;
+        $newStatus = $request->input('status', $oldStatus);
+
+        // Status 'received' → 'cancelled'/'returned' geçişinde stok/bakiye geri al
+        if ($oldStatus === 'received' && in_array($newStatus, ['cancelled', 'returned'])) {
+            foreach ($invoice->items as $item) {
+                $product = Product::find($item->product_id);
+                if ($product) {
+                    $product->decrement('stock_quantity', $item->quantity);
+                }
+            }
+            $firm = Firm::find($invoice->firm_id);
+            if ($firm) {
+                $firm->increment('balance', $invoice->grand_total);
+            }
+        }
 
         $invoice->update($request->only('invoice_no', 'invoice_date', 'notes', 'payment_status', 'status'));
 

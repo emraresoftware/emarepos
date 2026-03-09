@@ -10,6 +10,7 @@ use App\Models\Branch;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 
 class StockTransferController extends Controller
@@ -36,10 +37,10 @@ class StockTransferController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'to_branch_id' => 'required|integer|exists:branches,id',
+            'to_branch_id' => ['required', 'integer', Rule::exists('branches', 'id')->where('tenant_id', session('tenant_id'))],
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|integer|exists:products,id',
+            'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->where('tenant_id', session('tenant_id'))],
             'items.*.quantity' => 'required|numeric|min:0.01',
         ]);
 
@@ -102,10 +103,7 @@ class StockTransferController extends Controller
             $product = Product::find($item->product_id);
             if (!$product) continue;
 
-            // Gönderen şubeden düş
-            $product->decrement('stock_quantity', $item->quantity);
-
-            // Gönderen şubenin pivot stoğunu da düş
+            // Gönderen şubenin pivot stoğunu düş (ana stok değişmez, sadece şubeler arası hareket)
             $senderPivot = $product->branches()->where('branch_id', $transfer->from_branch_id)->first();
             if ($senderPivot) {
                 $product->branches()->updateExistingPivot($transfer->from_branch_id, [
@@ -123,7 +121,7 @@ class StockTransferController extends Controller
                 'transaction_code' => $transfer->code,
                 'note' => 'Şube transferi (çıkış): → ' . $transfer->toBranch->name,
                 'quantity' => -$item->quantity,
-                'remaining' => $product->fresh()->stock_quantity,
+                'remaining' => $senderPivot ? max(0, $senderPivot->pivot->stock_quantity - $item->quantity) : 0,
                 'unit_price' => $product->purchase_price ?? 0,
                 'total' => $item->quantity * ($product->purchase_price ?? 0),
                 'movement_date' => Carbon::now(),

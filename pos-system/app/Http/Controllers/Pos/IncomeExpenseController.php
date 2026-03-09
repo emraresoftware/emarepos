@@ -6,6 +6,7 @@ use App\Models\Income;
 use App\Models\Expense;
 use App\Models\IncomeExpenseType;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use App\Models\ActivityLog;
 
@@ -73,7 +74,7 @@ class IncomeExpenseController extends Controller
     public function storeIncome(Request $request)
     {
         $data = $request->validate([
-            'income_expense_type_id' => 'required|exists:income_expense_types,id',
+            'income_expense_type_id' => ['required', Rule::exists('income_expense_types', 'id')->where('tenant_id', session('tenant_id'))],
             'amount'       => 'required|numeric|min:0.01',
             'note'         => 'nullable|string|max:500',
             'payment_type' => 'nullable|string',
@@ -99,7 +100,7 @@ class IncomeExpenseController extends Controller
     public function updateIncome(Request $request, Income $income)
     {
         $data = $request->validate([
-            'income_expense_type_id' => 'required|exists:income_expense_types,id',
+            'income_expense_type_id' => ['required', Rule::exists('income_expense_types', 'id')->where('tenant_id', session('tenant_id'))],
             'amount'       => 'required|numeric|min:0.01',
             'note'         => 'nullable|string|max:500',
             'payment_type' => 'nullable|string',
@@ -116,7 +117,7 @@ class IncomeExpenseController extends Controller
     public function storeExpense(Request $request)
     {
         $data = $request->validate([
-            'income_expense_type_id' => 'required|exists:income_expense_types,id',
+            'income_expense_type_id' => ['required', Rule::exists('income_expense_types', 'id')->where('tenant_id', session('tenant_id'))],
             'amount'       => 'required|numeric|min:0.01',
             'note'         => 'nullable|string|max:500',
             'payment_type' => 'nullable|string',
@@ -142,7 +143,7 @@ class IncomeExpenseController extends Controller
     public function updateExpense(Request $request, Expense $expense)
     {
         $data = $request->validate([
-            'income_expense_type_id' => 'required|exists:income_expense_types,id',
+            'income_expense_type_id' => ['required', Rule::exists('income_expense_types', 'id')->where('tenant_id', session('tenant_id'))],
             'amount'       => 'required|numeric|min:0.01',
             'note'         => 'nullable|string|max:500',
             'payment_type' => 'nullable|string',

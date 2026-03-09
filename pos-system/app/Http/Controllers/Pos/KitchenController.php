@@ -38,6 +38,10 @@ class KitchenController extends Controller
     {
         $request->validate(['status' => 'required|in:preparing,ready,served,completed,cancelled']);
         
+        if ($order->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+        
         $order->update(['status' => $request->status]);
         
         // If order is ready or served, update all pending items too
@@ -55,10 +59,15 @@ class KitchenController extends Controller
     {
         $request->validate(['status' => 'required|in:preparing,ready,served,cancelled']);
         
+        // Kiracı doğrulaması (Order parent üzerinden)
+        $order = $item->order;
+        if (!$order || $order->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+        
         $item->update(['status' => $request->status]);
         
         // Check if all items of order are ready
-        $order = $item->order;
         $allReady = $order->items()->where('status', '!=', 'cancelled')->where('status', '!=', 'ready')->doesntExist();
         if ($allReady) {
             $order->update(['status' => 'ready']);

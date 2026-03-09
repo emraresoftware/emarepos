@@ -3,6 +3,8 @@ namespace App\Services;
 
 use App\Models\CashRegister;
 use App\Models\Sale;
+use App\Models\Income;
+use App\Models\Expense;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -58,6 +60,19 @@ class CashRegisterService
                 ->first();
             
             $expectedAmount = $register->opening_amount + ($salesData->total_cash ?? 0) - ($refundsData->cash_refunds ?? 0);
+            
+            // Nakit gelir/giderleri dahil et
+            $cashIncomes = Income::where('branch_id', $register->branch_id)
+                ->where('payment_type', 'cash')
+                ->where('date', '>=', $register->opened_at->toDateString())
+                ->sum('amount');
+            
+            $cashExpenses = Expense::where('branch_id', $register->branch_id)
+                ->where('payment_type', 'cash')
+                ->where('date', '>=', $register->opened_at->toDateString())
+                ->sum('amount');
+            
+            $expectedAmount += $cashIncomes - $cashExpenses;
             
             $register->update([
                 'closing_amount' => $closingAmount,

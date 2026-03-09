@@ -28,6 +28,7 @@ class DashboardController extends Controller
         
         // Low stock products
         $lowStockCount = Product::whereColumn('stock_quantity', '<=', 'critical_stock')
+            ->where('critical_stock', '>', 0)
             ->where('is_active', true)
             ->where('is_service', false)
             ->count();

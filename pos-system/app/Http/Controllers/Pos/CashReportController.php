@@ -39,10 +39,10 @@ class CashReportController extends Controller
             // Veresiye: Sales tablosundan hesapla (cash_register'da sütun yok)
             'total_credit_all' => Sale::where('branch_id', $branchId)
                 ->where('status', 'completed')
-                ->where('payment_method', 'credit')
+                ->where('credit_amount', '>', 0)
                 ->when($request->filled('start_date'), fn($q) => $q->whereDate('sold_at', '>=', $request->start_date))
                 ->when($request->filled('end_date'),   fn($q) => $q->whereDate('sold_at', '<=', $request->end_date))
-                ->sum('grand_total'),
+                ->sum('credit_amount'),
         ];
 
         // Her kayıt için veresiye toplamını hesapla
@@ -51,10 +51,10 @@ class CashReportController extends Controller
         foreach ($registers as $reg) {
             $q = Sale::where('branch_id', $reg->branch_id)
                 ->where('status', 'completed')
-                ->where('payment_method', 'credit')
+                ->where('credit_amount', '>', 0)
                 ->where('sold_at', '>=', $reg->opened_at);
             if ($reg->closed_at) $q->where('sold_at', '<=', $reg->closed_at);
-            $creditByRegister[$reg->id] = $q->sum('grand_total');
+            $creditByRegister[$reg->id] = $q->sum('credit_amount');
         }
 
         return view('pos.cash-report.index', compact('registers', 'stats', 'creditByRegister'));

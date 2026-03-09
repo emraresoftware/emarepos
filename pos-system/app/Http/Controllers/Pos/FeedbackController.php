@@ -17,8 +17,8 @@ class FeedbackController extends Controller
     {
         $validated = $request->validate([
             'message'  => 'required|string|min:3|max:2000',
-            'category' => 'nullable|in:bug,suggestion,question,other',
-            'priority' => 'nullable|in:low,normal,high,critical',
+            'category' => 'sometimes|in:bug,suggestion,question,other',
+            'priority' => 'sometimes|in:low,normal,high,critical',
             'page_url' => 'nullable|string|max:500',
         ]);
 
