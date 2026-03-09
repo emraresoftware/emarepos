@@ -170,6 +170,13 @@ class AdminController extends Controller
      */
     public function tenantDestroy(Tenant $tenant)
     {
+        // Bağlı şube veya kullanıcı varsa silmeyi reddet
+        if ($tenant->branches()->exists() || $tenant->users()->exists()) {
+            return back()->withErrors([
+                'delete' => "'{$tenant->name}' silinemez: önce tüm şube ve kullanıcıları silin.",
+            ]);
+        }
+
         $name = $tenant->name;
         $tenant->delete();
         return back()->with('success', "'{$name}' silindi.");

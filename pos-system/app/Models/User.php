@@ -6,6 +6,7 @@ use App\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 
 class User extends Authenticatable
 {
@@ -79,9 +80,15 @@ class User extends Authenticatable
             return true;
         }
 
-        // Check additional role permissions
-        foreach ($this->additionalRoles as $role) {
-            if ($role->permissions()->where('code', $code)->exists()) {
+        // Check additional role permissions — tek sorguda (N+1 önlemi)
+        $additionalRoleIds = $this->additionalRoles->pluck('id');
+        if ($additionalRoleIds->isNotEmpty()) {
+            $hasViaExtra = DB::table('role_permissions')
+                ->join('permissions', 'permissions.id', '=', 'role_permissions.permission_id')
+                ->whereIn('role_permissions.role_id', $additionalRoleIds)
+                ->where('permissions.code', $code)
+                ->exists();
+            if ($hasViaExtra) {
                 return true;
             }
         }

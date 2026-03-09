@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\CashRegister;
 use App\Models\Order;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -50,18 +51,25 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
         
-        // Weekly chart data (last 7 days)
+        // Weekly chart data (last 7 days) — tek sorguda çek (N+1 önlemi)
+        $driver = DB::getDriverName();
+        $dateExpr = $driver === 'sqlite' ? "date(sold_at)" : "DATE(sold_at)";
+        $weeklyRaw = Sale::where('branch_id', $branchId)
+            ->where('status', 'completed')
+            ->where('sold_at', '>=', Carbon::today()->subDays(6)->startOfDay())
+            ->selectRaw("{$dateExpr} as day_date, COALESCE(SUM(grand_total), 0) as total")
+            ->groupBy('day_date')
+            ->pluck('total', 'day_date')
+            ->toArray();
+
         $weeklyData = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
-            $dayTotal = Sale::where('branch_id', $branchId)
-                ->where('status', 'completed')
-                ->whereDate('sold_at', $date)
-                ->sum('grand_total');
+            $key  = $date->format('Y-m-d');
             $weeklyData[] = [
-                'date' => $date->format('d.m'),
-                'day' => $date->locale('tr')->dayName,
-                'total' => (float)$dayTotal,
+                'date'  => $date->format('d.m'),
+                'day'   => $date->locale('tr')->dayName,
+                'total' => (float) ($weeklyRaw[$key] ?? 0),
             ];
         }
         
