@@ -32,11 +32,16 @@ class StaffController extends Controller
 
         $staff = $query->paginate(30)->withQueryString();
 
+        // 4 sorgu yerine 2 sorgu ile stats hesapla
+        $agg = Staff::where('branch_id', $branchId)
+            ->selectRaw("COUNT(*) as total, SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active, COALESCE(SUM(total_sales), 0) as total_sales_sum")
+            ->first();
+        $topSeller = Staff::where('branch_id', $branchId)->orderBy('total_sales', 'desc')->value('name');
         $stats = [
-            'total'        => Staff::where('branch_id', $branchId)->count(),
-            'active'       => Staff::where('branch_id', $branchId)->where('is_active', true)->count(),
-            'total_sales'  => Staff::where('branch_id', $branchId)->sum('total_sales'),
-            'top_seller'   => Staff::where('branch_id', $branchId)->orderBy('total_sales', 'desc')->first()?->name ?? '—',
+            'total'        => (int) ($agg->total ?? 0),
+            'active'       => (int) ($agg->active ?? 0),
+            'total_sales'  => (float) ($agg->total_sales_sum ?? 0),
+            'top_seller'   => $topSeller ?? '—',
         ];
 
         return view('pos.staff.index', compact('staff', 'stats'));

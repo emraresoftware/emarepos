@@ -40,14 +40,25 @@ class OrderController extends Controller
 
         $orders = $query->paginate(50)->withQueryString();
 
-        $statsBase = Order::where('branch_id', $branchId)->whereDate('ordered_at', Carbon::today());
+        // 6 ayrı sorgu yerine tek aggregate sorgu
+        $agg = Order::where('branch_id', $branchId)
+            ->whereDate('ordered_at', Carbon::today())
+            ->selectRaw("
+                COUNT(*) as total_today,
+                SUM(CASE WHEN status = 'pending'   THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 'preparing' THEN 1 ELSE 0 END) as preparing,
+                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+                SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
+                COALESCE(SUM(CASE WHEN status != 'cancelled' THEN grand_total ELSE 0 END), 0) as total_revenue
+            ")
+            ->first();
         $stats = [
-            'total_today' => (clone $statsBase)->count(),
-            'pending' => (clone $statsBase)->where('status', 'pending')->count(),
-            'preparing' => (clone $statsBase)->where('status', 'preparing')->count(),
-            'completed' => (clone $statsBase)->where('status', 'completed')->count(),
-            'cancelled' => (clone $statsBase)->where('status', 'cancelled')->count(),
-            'total_revenue' => (clone $statsBase)->whereNotIn('status', ['cancelled'])->sum('grand_total'),
+            'total_today'   => (int) ($agg->total_today ?? 0),
+            'pending'       => (int) ($agg->pending ?? 0),
+            'preparing'     => (int) ($agg->preparing ?? 0),
+            'completed'     => (int) ($agg->completed ?? 0),
+            'cancelled'     => (int) ($agg->cancelled ?? 0),
+            'total_revenue' => (float) ($agg->total_revenue ?? 0),
         ];
 
         return view('pos.orders.index', compact('orders', 'stats'));

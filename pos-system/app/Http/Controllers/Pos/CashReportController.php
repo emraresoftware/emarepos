@@ -45,16 +45,25 @@ class CashReportController extends Controller
                 ->sum('credit_amount'),
         ];
 
-        // Her kayıt için veresiye toplamını hesapla
-        $registerIds = $registers->pluck('id');
+        // Her kayıt için veresiye toplamını tek JOIN sorgusu ile hesapla (N+1 yok)
+        $registerIds = $registers->pluck('id')->toArray();
         $creditByRegister = [];
-        foreach ($registers as $reg) {
-            $q = Sale::where('branch_id', $reg->branch_id)
-                ->where('status', 'completed')
-                ->where('credit_amount', '>', 0)
-                ->where('sold_at', '>=', $reg->opened_at);
-            if ($reg->closed_at) $q->where('sold_at', '<=', $reg->closed_at);
-            $creditByRegister[$reg->id] = $q->sum('credit_amount');
+        if (!empty($registerIds)) {
+            $placeholders = implode(',', array_fill(0, count($registerIds), '?'));
+            $rows = \DB::select("
+                SELECT r.id, COALESCE(SUM(s.credit_amount), 0) as credit_total
+                FROM cash_registers r
+                LEFT JOIN sales s ON s.branch_id = r.branch_id
+                    AND s.status = 'completed'
+                    AND s.credit_amount > 0
+                    AND s.sold_at >= r.opened_at
+                    AND (r.closed_at IS NULL OR s.sold_at <= r.closed_at)
+                WHERE r.id IN ({$placeholders})
+                GROUP BY r.id
+            ", $registerIds);
+            foreach ($rows as $row) {
+                $creditByRegister[$row->id] = (float) $row->credit_total;
+            }
         }
 
         return view('pos.cash-report.index', compact('registers', 'stats', 'creditByRegister'));

@@ -100,11 +100,13 @@ class StockCountController extends Controller
             return response()->json(['success' => false, 'message' => 'Bu sayıma erişim yetkiniz yok.'], 403);
         }
 
-        if ($stockCount->status !== 'draft') {
-            return response()->json(['success' => false, 'message' => 'Bu sayım zaten uygulanmış.'], 422);
-        }
-
         return DB::transaction(function () use ($stockCount) {
+            // Status kontrolü transaction içinde lockForUpdate ile (yarış koşulunu önler)
+            $stockCount = StockCount::where('id', $stockCount->id)->lockForUpdate()->firstOrFail();
+
+            if ($stockCount->status !== 'draft') {
+                return response()->json(['success' => false, 'message' => 'Bu sayım zaten uygulanmış.'], 422);
+            }
             foreach ($stockCount->items as $item) {
                 $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
                 if (!$product) continue;
