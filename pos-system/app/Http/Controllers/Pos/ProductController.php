@@ -118,7 +118,7 @@ class ProductController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'barcode' => 'nullable|string|max:255',
-            'category_id' => 'nullable|integer',
+            'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('tenant_id', session('tenant_id'))],
             'firm_id' => ['nullable', 'integer', Rule::exists('firms', 'id')->where('tenant_id', session('tenant_id'))],
             'sale_price' => 'required|numeric|min:0',
             'purchase_price' => 'nullable|numeric|min:0',
@@ -154,7 +154,7 @@ class ProductController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'barcode' => 'nullable|string|max:255',
-            'category_id' => 'nullable|integer',
+            'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('tenant_id', session('tenant_id'))],
             'firm_id' => ['nullable', 'integer', Rule::exists('firms', 'id')->where('tenant_id', session('tenant_id'))],
             'sale_price' => 'required|numeric|min:0',
             'purchase_price' => 'nullable|numeric|min:0',
@@ -383,8 +383,18 @@ class ProductController extends Controller
     {
         $request->validate([
             'variant_value_ids' => 'required|array',
-            'variant_value_ids.*' => 'integer|exists:product_variant_values,id',
+            'variant_value_ids.*' => 'integer',
         ]);
+
+        $variantIds = collect($request->variant_value_ids)->filter()->unique()->values();
+        $gecerliAdet = ProductVariantValue::whereIn('id', $variantIds)
+            ->whereHas('type', fn ($query) => $query->where('tenant_id', session('tenant_id')))
+            ->count();
+
+        if ($gecerliAdet !== $variantIds->count()) {
+            return response()->json(['success' => false, 'message' => 'Geçersiz varyant seçimi.'], 422);
+        }
+
         $product->variantAssignments()->sync($request->variant_value_ids);
         return response()->json(['success' => true, 'variants' => $product->variantAssignments()->with('type')->get()]);
     }
@@ -438,6 +448,10 @@ class ProductController extends Controller
      */
     public function deleteSubDefinition(Product $product, ProductSubDefinition $subDefinition)
     {
+        if ($subDefinition->tenant_id !== (int) session('tenant_id') || $subDefinition->parent_product_id !== $product->id) {
+            return response()->json(['success' => false, 'message' => 'Bu alt ürün tanımı bu ürüne ait değil.'], 403);
+        }
+
         $subDefinition->delete();
         return response()->json(['success' => true]);
     }

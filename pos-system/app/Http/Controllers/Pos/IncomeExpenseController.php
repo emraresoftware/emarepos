@@ -93,7 +93,7 @@ class IncomeExpenseController extends Controller
 
     public function destroyIncome(Income $income)
     {
-        if ($income->tenant_id !== (int) session('tenant_id')) {
+        if ($income->tenant_id !== (int) session('tenant_id') || $income->branch_id !== (int) session('branch_id')) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
 
@@ -103,7 +103,7 @@ class IncomeExpenseController extends Controller
 
     public function updateIncome(Request $request, Income $income)
     {
-        if ($income->tenant_id !== (int) session('tenant_id')) {
+        if ($income->tenant_id !== (int) session('tenant_id') || $income->branch_id !== (int) session('branch_id')) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
 
@@ -144,7 +144,7 @@ class IncomeExpenseController extends Controller
 
     public function destroyExpense(Expense $expense)
     {
-        if ($expense->tenant_id !== (int) session('tenant_id')) {
+        if ($expense->tenant_id !== (int) session('tenant_id') || $expense->branch_id !== (int) session('branch_id')) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
 
@@ -154,7 +154,7 @@ class IncomeExpenseController extends Controller
 
     public function updateExpense(Request $request, Expense $expense)
     {
-        if ($expense->tenant_id !== (int) session('tenant_id')) {
+        if ($expense->tenant_id !== (int) session('tenant_id') || $expense->branch_id !== (int) session('branch_id')) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
 

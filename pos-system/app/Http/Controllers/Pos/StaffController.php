@@ -67,7 +67,7 @@ class StaffController extends Controller
 
     public function update(Request $request, Staff $staff)
     {
-        if ($staff->tenant_id !== (int) session('tenant_id')) {
+        if ($staff->tenant_id !== (int) session('tenant_id') || $staff->branch_id !== (int) session('branch_id')) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
 
@@ -86,7 +86,7 @@ class StaffController extends Controller
 
     public function destroy(Staff $staff)
     {
-        if ($staff->tenant_id !== (int) session('tenant_id')) {
+        if ($staff->tenant_id !== (int) session('tenant_id') || $staff->branch_id !== (int) session('branch_id')) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
 
@@ -99,7 +99,7 @@ class StaffController extends Controller
      */
     public function performance(Request $request, Staff $staff)
     {
-        if ($staff->tenant_id !== (int) session('tenant_id')) {
+        if ($staff->tenant_id !== (int) session('tenant_id') || $staff->branch_id !== (int) session('branch_id')) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
 

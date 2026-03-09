@@ -7,10 +7,12 @@ use PHPUnit\Framework\TestCase;
 class ExampleTest extends TestCase
 {
     /**
-     * A basic test example.
+     * Para format helper Türk Lirası formatı üretir.
      */
-    public function test_that_true_is_true(): void
+    public function test_format_currency_returns_turkish_lira_string(): void
     {
-        $this->assertTrue(true);
+        require_once __DIR__ . '/../../app/helpers.php';
+
+        $this->assertSame('1.234,50 ₺', formatCurrency(1234.5));
     }
 }

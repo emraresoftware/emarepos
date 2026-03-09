@@ -15,6 +15,17 @@ use Carbon\Carbon;
 
 class StockTransferController extends Controller
 {
+    private function kullaniciTransfereErisebilir(StockTransfer $transfer): bool
+    {
+        if ($transfer->tenant_id !== (int) session('tenant_id')) {
+            return false;
+        }
+
+        $branchId = (int) session('branch_id');
+
+        return $transfer->from_branch_id === $branchId || $transfer->to_branch_id === $branchId;
+    }
+
     public function index(Request $request)
     {
         $branchId = session('branch_id');
@@ -92,7 +103,7 @@ class StockTransferController extends Controller
      */
     public function show(StockTransfer $transfer)
     {
-        if ($transfer->tenant_id !== (int) session('tenant_id')) {
+        if (! $this->kullaniciTransfereErisebilir($transfer)) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
 
@@ -104,7 +115,7 @@ class StockTransferController extends Controller
      */
     public function approve(StockTransfer $transfer)
     {
-        if ($transfer->tenant_id !== (int) session('tenant_id')) {
+        if (! $this->kullaniciTransfereErisebilir($transfer)) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
 
@@ -116,63 +127,93 @@ class StockTransferController extends Controller
                 return response()->json(['success' => false, 'message' => 'Bu transfer zaten işlenmiş.'], 422);
             }
 
+            $urunHareketleri = [];
+
             foreach ($transfer->items as $item) {
-            $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
-            if (!$product) continue;
+                $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
+                if (! $product) {
+                    continue;
+                }
 
-            // Gönderen şubenin pivot stoğunu düş (ana stok değişmez, sadece şubeler arası hareket)
-            $senderPivot = $product->branches()->where('branch_id', $transfer->from_branch_id)->first();
-            if ($senderPivot) {
+                // Gönderen şubenin pivot stoğunu düş (ana stok değişmez, sadece şubeler arası hareket)
+                $senderPivot = $product->branches()->where('branch_id', $transfer->from_branch_id)->first();
+                $mevcutStok = (float) ($senderPivot?->pivot->stock_quantity ?? 0);
+
+                if ($mevcutStok < (float) $item->quantity) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Transfer onaylanamadı. ' . $product->name . ' için gönderen şubede yeterli stok yok.',
+                    ], 422);
+                }
+
+                $kalanStok = $mevcutStok - (float) $item->quantity;
+
+                $pivotData = $product->branches()->where('branch_id', $transfer->to_branch_id)->first();
+                $hedefStok = (float) ($pivotData?->pivot->stock_quantity ?? 0) + (float) $item->quantity;
+
+                $urunHareketleri[] = [
+                    'product' => $product,
+                    'item' => $item,
+                    'kalan_stok' => $kalanStok,
+                    'pivot_data' => $pivotData,
+                    'hedef_stok' => $hedefStok,
+                ];
+            }
+
+            foreach ($urunHareketleri as $hareket) {
+                $product = $hareket['product'];
+                $item = $hareket['item'];
+                $kalanStok = $hareket['kalan_stok'];
+                $pivotData = $hareket['pivot_data'];
+                $hedefStok = $hareket['hedef_stok'];
+
                 $product->branches()->updateExistingPivot($transfer->from_branch_id, [
-                    'stock_quantity' => max(0, $senderPivot->pivot->stock_quantity - $item->quantity),
+                    'stock_quantity' => $kalanStok,
+                ]);
+
+                StockMovement::create([
+                    'tenant_id' => $transfer->tenant_id,
+                    'branch_id' => $transfer->from_branch_id,
+                    'type' => 'transfer',
+                    'barcode' => $product->barcode,
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'transaction_code' => $transfer->code,
+                    'note' => 'Şube transferi (çıkış): → ' . $transfer->toBranch->name,
+                    'quantity' => -$item->quantity,
+                    'remaining' => $kalanStok,
+                    'unit_price' => $product->purchase_price ?? 0,
+                    'total' => $item->quantity * ($product->purchase_price ?? 0),
+                    'movement_date' => Carbon::now(),
+                ]);
+
+                if ($pivotData) {
+                    $product->branches()->updateExistingPivot($transfer->to_branch_id, [
+                        'stock_quantity' => $hedefStok,
+                    ]);
+                } else {
+                    $product->branches()->attach($transfer->to_branch_id, [
+                        'stock_quantity' => $item->quantity,
+                        'sale_price' => $product->sale_price,
+                    ]);
+                }
+
+                StockMovement::create([
+                    'tenant_id' => $transfer->tenant_id,
+                    'branch_id' => $transfer->to_branch_id,
+                    'type' => 'transfer',
+                    'barcode' => $product->barcode,
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'transaction_code' => $transfer->code,
+                    'note' => 'Şube transferi (giriş): ← ' . $transfer->fromBranch->name,
+                    'quantity' => $item->quantity,
+                    'remaining' => $hedefStok,
+                    'unit_price' => $product->purchase_price ?? 0,
+                    'total' => $item->quantity * ($product->purchase_price ?? 0),
+                    'movement_date' => Carbon::now(),
                 ]);
             }
-
-            StockMovement::create([
-                'tenant_id' => $transfer->tenant_id,
-                'branch_id' => $transfer->from_branch_id,
-                'type' => 'transfer',
-                'barcode' => $product->barcode,
-                'product_id' => $product->id,
-                'product_name' => $product->name,
-                'transaction_code' => $transfer->code,
-                'note' => 'Şube transferi (çıkış): → ' . $transfer->toBranch->name,
-                'quantity' => -$item->quantity,
-                'remaining' => $senderPivot ? max(0, $senderPivot->pivot->stock_quantity - $item->quantity) : 0,
-                'unit_price' => $product->purchase_price ?? 0,
-                'total' => $item->quantity * ($product->purchase_price ?? 0),
-                'movement_date' => Carbon::now(),
-            ]);
-
-            // Alan şubeye ekle (branch_product pivot eğer varsa update, yoksa create)
-            $pivotData = $product->branches()->where('branch_id', $transfer->to_branch_id)->first();
-            if ($pivotData) {
-                $product->branches()->updateExistingPivot($transfer->to_branch_id, [
-                    'stock_quantity' => $pivotData->pivot->stock_quantity + $item->quantity,
-                ]);
-            } else {
-                $product->branches()->attach($transfer->to_branch_id, [
-                    'stock_quantity' => $item->quantity,
-                    'sale_price' => $product->sale_price,
-                ]);
-            }
-
-            StockMovement::create([
-                'tenant_id' => $transfer->tenant_id,
-                'branch_id' => $transfer->to_branch_id,
-                'type' => 'transfer',
-                'barcode' => $product->barcode,
-                'product_id' => $product->id,
-                'product_name' => $product->name,
-                'transaction_code' => $transfer->code,
-                'note' => 'Şube transferi (giriş): ← ' . $transfer->fromBranch->name,
-                'quantity' => $item->quantity,
-                'remaining' => ($pivotData ? $pivotData->pivot->stock_quantity + $item->quantity : $item->quantity),
-                'unit_price' => $product->purchase_price ?? 0,
-                'total' => $item->quantity * ($product->purchase_price ?? 0),
-                'movement_date' => Carbon::now(),
-            ]);
-        }
 
             $transfer->update([
                 'status' => 'completed',
@@ -186,11 +227,19 @@ class StockTransferController extends Controller
 
     public function reject(StockTransfer $transfer)
     {
-        if ($transfer->status !== 'pending') {
-            return response()->json(['success' => false, 'message' => 'Bu transfer zaten işlenmiş.'], 422);
+        if (! $this->kullaniciTransfereErisebilir($transfer)) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
 
-        $transfer->update(['status' => 'rejected']);
-        return response()->json(['success' => true, 'message' => 'Transfer reddedildi.']);
+        return DB::transaction(function () use ($transfer) {
+            $transfer = StockTransfer::where('id', $transfer->id)->lockForUpdate()->firstOrFail();
+
+            if ($transfer->status !== 'pending') {
+                return response()->json(['success' => false, 'message' => 'Bu transfer zaten işlenmiş.'], 422);
+            }
+
+            $transfer->update(['status' => 'rejected']);
+            return response()->json(['success' => true, 'message' => 'Transfer reddedildi.']);
+        });
     }
 }
