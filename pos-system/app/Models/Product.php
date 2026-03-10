@@ -11,6 +11,41 @@ class Product extends Model
 {
     use HasFactory, BelongsToTenant, SoftDeletes;
 
+    protected static function booted(): void
+    {
+        static::saving(function (Product $product) {
+            $numericDefaults = [
+                'purchase_price' => 0,
+                'sale_price' => 0,
+                'stock_quantity' => 0,
+                'critical_stock' => 0,
+                'vat_rate' => 0,
+            ];
+
+            foreach ($numericDefaults as $field => $default) {
+                if ($product->{$field} === null || $product->{$field} === '') {
+                    $product->{$field} = $default;
+                }
+            }
+
+            if ($product->unit === null || $product->unit === '') {
+                $product->unit = 'Adet';
+            }
+
+            if ($product->show_on_pos === null) {
+                $product->show_on_pos = true;
+            }
+
+            if ($product->is_active === null) {
+                $product->is_active = true;
+            }
+
+            if ($product->is_service === null) {
+                $product->is_service = false;
+            }
+        });
+    }
+
     protected $fillable = [
         'tenant_id',
         'external_id',

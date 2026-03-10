@@ -45,6 +45,30 @@ class ProductBranchStockFeatureTest extends TestCase
         ]);
     }
 
+    public function test_product_store_defaults_critical_stock_to_zero_when_missing(): void
+    {
+        [$tenant, $branch, $user] = $this->hazirKullaniciOrtami();
+
+        $response = $this->actingAs($user)
+            ->postJson(route('pos.products.store'), [
+                'name' => 'Kritik Stoksuz Ürün',
+                'sale_price' => 99,
+                'purchase_price' => 45,
+                'vat_rate' => 10,
+                'stock_quantity' => 2,
+                'unit' => 'Adet',
+            ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $product = Product::where('name', 'Kritik Stoksuz Ürün')->firstOrFail();
+
+        $this->assertSame('0.00', $product->critical_stock);
+        $this->assertSame(2.0, $product->stockForBranch($branch->id));
+    }
+
     public function test_product_update_changes_only_current_branch_stock_and_keeps_total_synced(): void
     {
         [$tenant, $branchA, $user] = $this->hazirKullaniciOrtami();
