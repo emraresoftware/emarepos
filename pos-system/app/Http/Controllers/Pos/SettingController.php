@@ -31,9 +31,17 @@ class SettingController extends Controller
             'phone' => 'nullable|string|max:50',
             'city' => 'nullable|string|max:100',
             'district' => 'nullable|string|max:100',
+            'timezone' => 'nullable|string|max:100',
         ]);
 
         $branch = Branch::findOrFail(session('branch_id'));
+        $settings = $branch->settings ?? [];
+        if (!empty($data['timezone'])) {
+            $settings['timezone'] = $data['timezone'];
+        }
+
+        unset($data['timezone']);
+        $data['settings'] = $settings;
         $branch->update($data);
 
         return redirect()->route('pos.settings')->with('success', 'Şube bilgileri güncellendi.');

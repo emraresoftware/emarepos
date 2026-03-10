@@ -49,6 +49,26 @@
                     <label class="block text-sm text-gray-500 mb-1">İlçe</label>
                     <input type="text" name="district" value="{{ $branch->district ?? '' }}" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
                 </div>
+                <div>
+                    <label class="block text-sm text-gray-500 mb-1">Saat Dilimi</label>
+                    @php
+                        $selectedTimezone = $branch->settings['timezone'] ?? 'Europe/Istanbul';
+                        $timezoneOptions = [
+                            'Europe/Istanbul' => 'Türkiye (Europe/Istanbul)',
+                            'Europe/Berlin' => 'Avrupa (Europe/Berlin)',
+                            'Europe/London' => 'İngiltere (Europe/London)',
+                            'America/New_York' => 'ABD (America/New_York)',
+                            'Asia/Dubai' => 'Dubai (Asia/Dubai)',
+                            'Asia/Baku' => 'Bakü (Asia/Baku)',
+                        ];
+                    @endphp
+                    <select name="timezone" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
+                        @foreach($timezoneOptions as $tzValue => $tzLabel)
+                            <option value="{{ $tzValue }}" {{ $selectedTimezone === $tzValue ? 'selected' : '' }}>{{ $tzLabel }}</option>
+                        @endforeach
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Rapor ve kasa saatleri bu zaman dilimine göre hesaplanır.</p>
+                </div>
             </div>
             <div class="flex justify-end pt-2">
                 <button type="submit" class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
