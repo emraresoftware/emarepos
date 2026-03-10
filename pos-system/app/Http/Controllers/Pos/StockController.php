@@ -65,7 +65,7 @@ class StockController extends Controller
             'movements_today' => StockMovement::where('branch_id', $branchId)->whereDate('movement_date', Carbon::today())->count(),
         ];
 
-        return view('pos.stock.index', compact('movements', 'criticalStock', 'stats'));
+        return view('pos.stock.index', compact('movements', 'criticalStock', 'stats', 'products'));
     }
 
     public function store(Request $request)

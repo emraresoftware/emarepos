@@ -143,7 +143,12 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Ürün ID <span class="text-red-500">*</span></label>
-                    <input type="number" x-model="movForm.product_id" required class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5" placeholder="Ürün ID girin">
+                    <select x-model="movForm.product_id" required class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5">
+                        <option value="">Ürün seçin</option>
+                        @foreach($products as $product)
+                            <option value="{{ $product->id }}">{{ $product->name }} (ID: {{ $product->id }})</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
