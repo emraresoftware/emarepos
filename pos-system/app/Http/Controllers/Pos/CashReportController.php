@@ -30,19 +30,46 @@ class CashReportController extends Controller
 
         $registers = $query->paginate(30)->withQueryString();
 
+        $registerSalesTotals = [];
+        if ($registers->count() > 0) {
+            $registerIds = $registers->pluck('id')->toArray();
+            $placeholders = implode(',', array_fill(0, count($registerIds), '?'));
+            $rows = \DB::select("
+                SELECT r.id,
+                       COALESCE(SUM(s.grand_total), 0) as total_sales,
+                       COALESCE(SUM(s.cash_amount), 0) as total_cash,
+                       COALESCE(SUM(s.card_amount), 0) as total_card
+                FROM cash_registers r
+                LEFT JOIN sales s ON s.branch_id = r.branch_id
+                    AND s.status = 'completed'
+                    AND s.sold_at >= r.opened_at
+                    AND (r.closed_at IS NULL OR s.sold_at <= r.closed_at)
+                WHERE r.id IN ({$placeholders})
+                GROUP BY r.id
+            ", $registerIds);
+
+            foreach ($rows as $row) {
+                $registerSalesTotals[$row->id] = [
+                    'total_sales' => (float) $row->total_sales,
+                    'total_cash' => (float) $row->total_cash,
+                    'total_card' => (float) $row->total_card,
+                ];
+            }
+        }
+
+        $salesStatsQuery = Sale::where('branch_id', $branchId)
+            ->where('status', 'completed')
+            ->when($request->filled('start_date'), fn($q) => $q->whereDate('sold_at', '>=', $request->start_date))
+            ->when($request->filled('end_date'), fn($q) => $q->whereDate('sold_at', '<=', $request->end_date));
+
         $stats = [
             'total_registers' => CashRegister::where('branch_id', $branchId)->count(),
-            'total_sales_all' => CashRegister::where('branch_id', $branchId)->where('status', 'closed')->sum('total_sales'),
-            'total_cash_all'  => CashRegister::where('branch_id', $branchId)->where('status', 'closed')->sum('total_cash'),
-            'total_card_all'  => CashRegister::where('branch_id', $branchId)->where('status', 'closed')->sum('total_card'),
+            'total_sales_all' => (clone $salesStatsQuery)->sum('grand_total'),
+            'total_cash_all'  => (clone $salesStatsQuery)->sum('cash_amount'),
+            'total_card_all'  => (clone $salesStatsQuery)->sum('card_amount'),
             'avg_difference'  => CashRegister::where('branch_id', $branchId)->where('status', 'closed')->avg('difference') ?? 0,
             // Veresiye: Sales tablosundan hesapla (cash_register'da sütun yok)
-            'total_credit_all' => Sale::where('branch_id', $branchId)
-                ->where('status', 'completed')
-                ->where('credit_amount', '>', 0)
-                ->when($request->filled('start_date'), fn($q) => $q->whereDate('sold_at', '>=', $request->start_date))
-                ->when($request->filled('end_date'),   fn($q) => $q->whereDate('sold_at', '<=', $request->end_date))
-                ->sum('credit_amount'),
+            'total_credit_all' => (clone $salesStatsQuery)->where('credit_amount', '>', 0)->sum('credit_amount'),
         ];
 
         // Her kayıt için veresiye toplamını tek JOIN sorgusu ile hesapla (N+1 yok)
@@ -66,7 +93,7 @@ class CashReportController extends Controller
             }
         }
 
-        return view('pos.cash-report.index', compact('registers', 'stats', 'creditByRegister'));
+        return view('pos.cash-report.index', compact('registers', 'stats', 'creditByRegister', 'registerSalesTotals'));
     }
 
     public function show(CashRegister $register)

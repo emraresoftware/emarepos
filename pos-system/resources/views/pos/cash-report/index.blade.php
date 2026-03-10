@@ -67,14 +67,20 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse($registers as $reg)
+                        @php
+                            $liveTotals = $registerSalesTotals[$reg->id] ?? ['total_sales' => 0, 'total_cash' => 0, 'total_card' => 0];
+                            $displaySales = $reg->status === 'open' ? $liveTotals['total_sales'] : ($reg->total_sales ?? 0);
+                            $displayCash = $reg->status === 'open' ? $liveTotals['total_cash'] : ($reg->total_cash ?? 0);
+                            $displayCard = $reg->status === 'open' ? $liveTotals['total_card'] : ($reg->total_card ?? 0);
+                        @endphp
                         <tr class="hover:bg-gray-50 transition-colors">
                             <td class="px-4 py-3 text-xs">{{ $reg->opened_at ? \Carbon\Carbon::parse($reg->opened_at)->format('d.m.Y H:i') : '-' }}</td>
                             <td class="px-4 py-3 text-xs hidden md:table-cell">{{ $reg->closed_at ? \Carbon\Carbon::parse($reg->closed_at)->format('d.m.Y H:i') : '-' }}</td>
                             <td class="px-4 py-3">{{ $reg->user->name ?? '-' }}</td>
                             <td class="px-4 py-3 text-right font-mono hidden lg:table-cell">{{ formatCurrency($reg->opening_amount) }}</td>
-                            <td class="px-4 py-3 text-right font-mono font-medium text-gray-900">{{ formatCurrency($reg->total_sales) }}</td>
-                            <td class="px-4 py-3 text-right font-mono text-emerald-600 hidden md:table-cell">{{ formatCurrency($reg->total_cash) }}</td>
-                            <td class="px-4 py-3 text-right font-mono text-brand-500 hidden md:table-cell">{{ formatCurrency($reg->total_card) }}</td>
+                            <td class="px-4 py-3 text-right font-mono font-medium text-gray-900">{{ formatCurrency($displaySales) }}</td>
+                            <td class="px-4 py-3 text-right font-mono text-emerald-600 hidden md:table-cell">{{ formatCurrency($displayCash) }}</td>
+                            <td class="px-4 py-3 text-right font-mono text-brand-500 hidden md:table-cell">{{ formatCurrency($displayCard) }}</td>
                             <td class="px-4 py-3 text-right font-mono text-amber-500 hidden lg:table-cell">{{ formatCurrency($creditByRegister[$reg->id] ?? 0) }}</td>
                             <td class="px-4 py-3 text-right font-mono hidden lg:table-cell {{ ($reg->difference ?? 0) >= 0 ? 'text-emerald-600' : 'text-red-500' }}">
                                 {{ formatCurrency($reg->difference ?? 0) }}
