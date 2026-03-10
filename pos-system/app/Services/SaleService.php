@@ -5,6 +5,8 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Product;
 use App\Models\Customer;
+use App\Models\Income;
+use App\Models\IncomeExpenseType;
 use App\Models\AccountTransaction;
 use App\Models\StockMovement;
 use App\Models\CampaignUsage;
@@ -297,8 +299,94 @@ class SaleService
                 \Illuminate\Support\Facades\Log::warning('Mutfak fişi yazdırılamadı: ' . $e->getMessage(), ['sale_id' => $sale->id]);
             }
 
+            $this->satisGeliriOlustur($sale, $paymentBreakdown);
+
             return $sale->load('items');
         });
+    }
+
+    private function satisGeliriOlustur(Sale $sale, array $paymentBreakdown): void
+    {
+        $odemeSatirlari = [];
+
+        foreach (['cash', 'card', 'transfer', 'credit'] as $tur) {
+            $tutar = (float) ($paymentBreakdown[$tur . '_amount'] ?? 0);
+            if ($tutar > 0) {
+                $odemeSatirlari[] = ['payment_type' => $tur, 'amount' => $tutar];
+            }
+        }
+
+        if (empty($odemeSatirlari)) {
+            return;
+        }
+
+        $gelirTuru = $this->satisGelirTuru($sale->tenant_id);
+
+        foreach ($odemeSatirlari as $satir) {
+            Income::create([
+                'tenant_id' => $sale->tenant_id,
+                'branch_id' => $sale->branch_id,
+                'external_id' => 'sale:' . $sale->id,
+                'income_expense_type_id' => $gelirTuru->id,
+                'type_name' => $gelirTuru->name,
+                'note' => "Satış Geliri - {$sale->receipt_no}",
+                'amount' => $satir['amount'],
+                'payment_type' => $satir['payment_type'],
+                'date' => $sale->sold_at?->format('Y-m-d') ?? Carbon::now()->format('Y-m-d'),
+                'time' => $sale->sold_at?->format('H:i:s') ?? Carbon::now()->format('H:i:s'),
+            ]);
+        }
+    }
+
+    private function satisGeliriTersle(Sale $sale, string $neden): void
+    {
+        $odemeSatirlari = [];
+
+        foreach (['cash', 'card', 'transfer', 'credit'] as $tur) {
+            $tutar = (float) ($sale->{$tur . '_amount'} ?? 0);
+            if ($tutar > 0) {
+                $odemeSatirlari[] = ['payment_type' => $tur, 'amount' => $tutar];
+            }
+        }
+
+        if (empty($odemeSatirlari)) {
+            return;
+        }
+
+        $gelirTuru = $this->satisGelirTuru($sale->tenant_id);
+
+        foreach ($odemeSatirlari as $satir) {
+            Income::firstOrCreate(
+                [
+                    'tenant_id' => $sale->tenant_id,
+                    'branch_id' => $sale->branch_id,
+                    'external_id' => $neden . ':' . $sale->id . ':' . $satir['payment_type'],
+                    'payment_type' => $satir['payment_type'],
+                ],
+                [
+                    'income_expense_type_id' => $gelirTuru->id,
+                    'type_name' => $gelirTuru->name,
+                    'note' => "Satış {$neden} - {$sale->receipt_no}",
+                    'amount' => -abs((float) $satir['amount']),
+                    'date' => $sale->sold_at?->format('Y-m-d') ?? Carbon::now()->format('Y-m-d'),
+                    'time' => $sale->sold_at?->format('H:i:s') ?? Carbon::now()->format('H:i:s'),
+                ]
+            );
+        }
+    }
+
+    private function satisGelirTuru(int $tenantId): IncomeExpenseType
+    {
+        return IncomeExpenseType::firstOrCreate(
+            [
+                'tenant_id' => $tenantId,
+                'name' => 'Satış Geliri',
+                'direction' => 'income',
+            ],
+            [
+                'is_active' => true,
+            ]
+        );
     }
     
     /**
@@ -429,6 +517,8 @@ class SaleService
                     ]);
                 }
             }
+
+            $this->satisGeliriTersle($sale, 'iade');
             
             return $sale;
         });
@@ -501,6 +591,8 @@ class SaleService
                     ]);
                 }
             }
+
+            $this->satisGeliriTersle($sale, 'iptal');
             
             return $sale;
         });

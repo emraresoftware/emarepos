@@ -48,6 +48,10 @@
             class="px-4 py-2 rounded-lg text-sm font-medium transition-all">
             <i class="fas fa-layer-group mr-1.5"></i>Kategori Raporu
         </button>
+        <button @click="loadProductReport()" :class="activeTab === 'product' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25' : 'bg-white text-gray-600 hover:bg-brand-50'"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-all">
+            <i class="fas fa-boxes-stacked mr-1.5"></i>Ürün Raporu
+        </button>
         <button @click="loadComparison()" :class="activeTab === 'comparison' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25' : 'bg-white text-gray-600 hover:bg-brand-50'"
             class="px-4 py-2 rounded-lg text-sm font-medium transition-all">
             <i class="fas fa-balance-scale mr-1.5"></i>Dönem Karşılaştırma
@@ -206,6 +210,87 @@
         </div>
     </div>
 
+    {{-- Detailed Category List --}}
+    <div class="bg-white rounded-xl p-4 border border-gray-100">
+        <h3 class="text-sm font-medium text-gray-700 mb-3">
+            <i class="fas fa-tags text-indigo-600 mr-1"></i> Kategori Bazlı Liste
+        </h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-100">
+                        <th class="text-left text-gray-500 font-medium py-2 px-3">Kategori</th>
+                        <th class="text-right text-gray-500 font-medium py-2 px-3">Ürün Sayısı</th>
+                        <th class="text-right text-gray-500 font-medium py-2 px-3">Fiş Sayısı</th>
+                        <th class="text-right text-gray-500 font-medium py-2 px-3">Adet</th>
+                        <th class="text-right text-gray-500 font-medium py-2 px-3">Toplam Tutar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($categoryStats as $category)
+                        <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                            <td class="py-2.5 px-3 text-gray-900 font-medium">{{ $category->name }}</td>
+                            <td class="py-2.5 px-3 text-right text-gray-700">{{ number_format($category->product_count ?? 0) }}</td>
+                            <td class="py-2.5 px-3 text-right text-gray-700">{{ number_format($category->sale_count ?? 0) }}</td>
+                            <td class="py-2.5 px-3 text-right text-gray-700">{{ number_format($category->total_qty ?? 0) }}</td>
+                            <td class="py-2.5 px-3 text-right text-emerald-600 font-medium">{{ number_format($category->revenue ?? 0, 2, ',', '.') }} ₺</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="py-8 text-center text-gray-500">
+                                <i class="fas fa-folder-open text-2xl mb-2"></i>
+                                <p>Kategori verisi bulunamadı</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {{-- Detailed Sold Products --}}
+    <div class="bg-white rounded-xl p-4 border border-gray-100">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-medium text-gray-700">
+                <i class="fas fa-list text-blue-600 mr-1"></i> Satılan Ürünler Detaylı
+            </h3>
+            <span class="text-xs text-gray-400">İlk 200 ürün (tutar sıralı)</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-100">
+                        <th class="text-left text-gray-500 font-medium py-2 px-3">Ürün</th>
+                        <th class="text-left text-gray-500 font-medium py-2 px-3">Kategori</th>
+                        <th class="text-right text-gray-500 font-medium py-2 px-3">Adet</th>
+                        <th class="text-right text-gray-500 font-medium py-2 px-3">Ortalama Fiyat</th>
+                        <th class="text-right text-gray-500 font-medium py-2 px-3">Toplam Tutar</th>
+                        <th class="text-right text-gray-500 font-medium py-2 px-3">Fiş Sayısı</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($satilanUrunler as $urun)
+                        <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                            <td class="py-2.5 px-3 text-gray-900 font-medium">{{ $urun->product_name }}</td>
+                            <td class="py-2.5 px-3 text-gray-600">{{ $urun->category_name }}</td>
+                            <td class="py-2.5 px-3 text-right text-gray-700">{{ number_format($urun->total_qty) }}</td>
+                            <td class="py-2.5 px-3 text-right text-gray-700">{{ number_format($urun->avg_unit_price, 2, ',', '.') }} ₺</td>
+                            <td class="py-2.5 px-3 text-right text-emerald-600 font-medium">{{ number_format($urun->total_amount, 2, ',', '.') }} ₺</td>
+                            <td class="py-2.5 px-3 text-right text-gray-700">{{ number_format($urun->sale_count) }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="py-8 text-center text-gray-500">
+                                <i class="fas fa-box-open text-2xl mb-2"></i>
+                                <p>Bu dönemde ürün satışı bulunamadı</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     </div>{{-- /overview tab --}}
 
     {{-- PROFIT/LOSS TAB --}}
@@ -333,6 +418,39 @@
         </div>
         </template>
         <div x-show="!categoryData" class="text-center py-20 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>
+    </div>
+
+    {{-- PRODUCT REPORT TAB --}}
+    <div x-show="activeTab === 'product'" x-cloak>
+        <template x-if="productData">
+        <div class="space-y-4">
+            <div class="bg-white rounded-xl border border-gray-100 overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead><tr class="bg-gray-50/50 border-b border-gray-100">
+                        <th class="text-left py-3 px-4 text-gray-500 font-medium">Ürün</th>
+                        <th class="text-left py-3 px-4 text-gray-500 font-medium">Kategori</th>
+                        <th class="text-right py-3 px-4 text-gray-500 font-medium">Adet</th>
+                        <th class="text-right py-3 px-4 text-gray-500 font-medium">Ort. Fiyat</th>
+                        <th class="text-right py-3 px-4 text-gray-500 font-medium">Toplam Tutar</th>
+                        <th class="text-right py-3 px-4 text-gray-500 font-medium">Fiş Sayısı</th>
+                    </tr></thead>
+                    <tbody>
+                        <template x-for="p in productData.products" :key="p.product_name + '-' + p.category_name">
+                            <tr class="border-b border-gray-50 hover:bg-gray-50/50">
+                                <td class="py-3 px-4 text-gray-900 font-medium" x-text="p.product_name"></td>
+                                <td class="py-3 px-4 text-gray-600" x-text="p.category_name || 'Kategorisiz'"></td>
+                                <td class="py-3 px-4 text-right text-gray-700" x-text="Number(p.total_qty || 0).toLocaleString('tr-TR')"></td>
+                                <td class="py-3 px-4 text-right text-gray-700" x-text="fmt(p.avg_unit_price)"></td>
+                                <td class="py-3 px-4 text-right text-emerald-600 font-semibold" x-text="fmt(p.total_amount)"></td>
+                                <td class="py-3 px-4 text-right text-gray-700" x-text="p.sale_count"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        </template>
+        <div x-show="!productData" class="text-center py-20 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>
     </div>
 
     {{-- COMPARISON TAB --}}
@@ -553,6 +671,7 @@
             profitData: null,
             staffData: null,
             categoryData: null,
+            productData: null,
             comparisonData: null,
             suspiciousData: null,
 
@@ -600,6 +719,12 @@
                 this.activeTab = 'category';
                 if (this.categoryData) return;
                 try { this.categoryData = await posAjax('/reports/categories', {}, 'GET'); } catch (e) { console.error(e); }
+            },
+
+            async loadProductReport() {
+                this.activeTab = 'product';
+                if (this.productData) return;
+                try { this.productData = await posAjax('/reports/products', {}, 'GET'); } catch (e) { console.error(e); }
             },
 
             async loadComparison() {

@@ -66,6 +66,26 @@ class ReportController extends Controller
         ->limit(10)
         ->get();
 
+                $satilanUrunler = SaleItem::whereHas('sale', function ($q) use ($branchId, $startDate, $endDate) {
+                        $q->where('branch_id', $branchId)
+                            ->where('status', 'completed')
+                            ->whereBetween('sold_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+                })
+                ->leftJoin('products', 'sale_items.product_id', '=', 'products.id')
+                ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+                ->select(
+                        'sale_items.product_name',
+                        DB::raw("COALESCE(categories.name, 'Kategorisiz') as category_name"),
+                        DB::raw('SUM(sale_items.quantity) as total_qty'),
+                        DB::raw('SUM(sale_items.total) as total_amount'),
+                        DB::raw('COUNT(DISTINCT sale_items.sale_id) as sale_count'),
+                        DB::raw('CASE WHEN SUM(sale_items.quantity) > 0 THEN SUM(sale_items.total) / SUM(sale_items.quantity) ELSE 0 END as avg_unit_price')
+                )
+                ->groupBy('sale_items.product_name', DB::raw("COALESCE(categories.name, 'Kategorisiz')"))
+                ->orderByDesc('total_amount')
+                ->limit(200)
+                ->get();
+
         // Category breakdown
         $categoryStats = SaleItem::whereHas('sale', function ($q) use ($branchId, $startDate, $endDate) {
             $q->where('branch_id', $branchId)
@@ -74,13 +94,26 @@ class ReportController extends Controller
         })
         ->join('products', 'sale_items.product_id', '=', 'products.id')
         ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
-                ->select(DB::raw("COALESCE(categories.name, 'Kategorisiz') as category_name"), DB::raw('SUM(sale_items.total) as revenue'))
+                ->select(
+                    DB::raw("COALESCE(categories.name, 'Kategorisiz') as name"),
+                    DB::raw('SUM(sale_items.total) as revenue'),
+                    DB::raw('COUNT(DISTINCT sale_items.sale_id) as sale_count'),
+                    DB::raw('SUM(sale_items.quantity) as total_qty'),
+                    DB::raw('COUNT(DISTINCT sale_items.product_id) as product_count')
+                )
                 ->groupBy(DB::raw("COALESCE(categories.name, 'Kategorisiz')"))
         ->orderByDesc('revenue')
         ->get();
 
         return view('pos.reports.index', compact(
-            'stats', 'dailySales', 'paymentStats', 'topProducts', 'categoryStats', 'startDate', 'endDate'
+            'stats',
+            'dailySales',
+            'paymentStats',
+            'topProducts',
+            'satilanUrunler',
+            'categoryStats',
+            'startDate',
+            'endDate'
         ));
     }
 
@@ -349,6 +382,40 @@ class ReportController extends Controller
         return response()->json([
             'categories' => $categoryStats,
             'total_revenue' => $totalRevenue,
+        ]);
+    }
+
+    /**
+     * Urun Bazli Detayli Rapor
+     */
+    public function productReport(Request $request)
+    {
+        $branchId = session('branch_id');
+        $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->get('end_date', Carbon::today()->format('Y-m-d'));
+
+        $products = SaleItem::whereHas('sale', function ($q) use ($branchId, $startDate, $endDate) {
+            $q->where('branch_id', $branchId)
+              ->where('status', 'completed')
+              ->whereBetween('sold_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+        })
+        ->leftJoin('products', 'sale_items.product_id', '=', 'products.id')
+        ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+        ->select(
+            'sale_items.product_name',
+            DB::raw("COALESCE(categories.name, 'Kategorisiz') as category_name"),
+            DB::raw('SUM(sale_items.quantity) as total_qty'),
+            DB::raw('SUM(sale_items.total) as total_amount'),
+            DB::raw('COUNT(DISTINCT sale_items.sale_id) as sale_count'),
+            DB::raw('CASE WHEN SUM(sale_items.quantity) > 0 THEN SUM(sale_items.total) / SUM(sale_items.quantity) ELSE 0 END as avg_unit_price')
+        )
+        ->groupBy('sale_items.product_name', DB::raw("COALESCE(categories.name, 'Kategorisiz')"))
+        ->orderByDesc('total_amount')
+        ->limit(500)
+        ->get();
+
+        return response()->json([
+            'products' => $products,
         ]);
     }
 

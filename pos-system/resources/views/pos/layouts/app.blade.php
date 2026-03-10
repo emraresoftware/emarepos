@@ -214,7 +214,7 @@
 
     <script>
         // CSRF token for AJAX
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
         function posAjax(url, body = {}, method = 'POST') {
             // body bir fetch options objesi ise eski imzayı destekle
@@ -225,15 +225,20 @@
             };
             return fetch(url, {
                 ...fetchOpts,
+                credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
                     ...(fetchOpts.headers || {}),
                 },
             }).then(async r => {
                 const data = await r.json();
                 if (!r.ok) {
+                    if (r.status === 419) {
+                        throw { status: r.status, message: 'Oturum süresi doldu. Sayfayı yenileyin ve tekrar deneyin.' };
+                    }
                     // Validation error detaylarını parse et
                     if (r.status === 422 && data.errors) {
                         const messages = Object.values(data.errors).flat().join('\n');

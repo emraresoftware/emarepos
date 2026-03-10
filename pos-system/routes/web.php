@@ -150,6 +150,7 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class, 'throttle:
     Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss'])->name('pos.reports.profit-loss');
     Route::get('/reports/staff', [ReportController::class, 'staffReport'])->name('pos.reports.staff');
     Route::get('/reports/categories', [ReportController::class, 'categoryReport'])->name('pos.reports.categories');
+    Route::get('/reports/products', [ReportController::class, 'productReport'])->name('pos.reports.products');
     Route::get('/reports/comparison', [ReportController::class, 'periodComparison'])->name('pos.reports.comparison');
     Route::get('/reports/suspicious', [ReportController::class, 'suspiciousTransactions'])->name('pos.reports.suspicious');
     
