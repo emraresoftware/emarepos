@@ -64,7 +64,8 @@
                             <td class="px-4 py-3 text-xs text-gray-500">{{ $user->created_at->format('d.m.Y') }}</td>
                             <td class="px-4 py-3 text-center">
                                 <div class="flex items-center justify-center gap-1">
-                                    <button @click="openEdit({{ json_encode(['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'role_id' => $user->role_id, 'branch_id' => $user->branch_id]) }})"
+                                        @php $branchRole = $user->additionalRoles->firstWhere('pivot.branch_id', $user->branch_id); @endphp
+                                        <button @click="openEdit({{ json_encode(['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'role_id' => $user->role_id, 'branch_id' => $user->branch_id, 'branch_role_id' => $branchRole?->id]) }})"
                                             class="p-2 text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors" title="Düzenle">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
@@ -137,6 +138,16 @@
                         </select>
                     </div>
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Ek Şube Rolü (opsiyonel)</label>
+                    <select x-model="form.branch_role_id" class="w-full bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-4 py-2.5">
+                        <option value="">Seçiniz</option>
+                        @foreach($branchRoles as $role)
+                            <option value="{{ $role->id }}">{{ $role->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="text-xs text-gray-400 mt-1">Sadece seçilen şubede geçerli olur.</p>
+                </div>
                 <div class="flex gap-3 pt-4 border-t border-gray-100">
                     <button type="button" @click="showModal = false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg">İptal</button>
                     <button type="submit" :disabled="saving" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-900 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 rounded-lg disabled:opacity-50">
@@ -155,9 +166,9 @@ function userManager() {
     return {
         showModal: false, editingId: null, saving: false,
         searchQuery: new URLSearchParams(window.location.search).get('search') || '',
-        form: { name: '', email: '', password: '', role_id: '', branch_id: '' },
-        openCreate() { this.editingId = null; this.form = { name: '', email: '', password: '', role_id: '', branch_id: '' }; this.showModal = true; },
-        openEdit(u) { this.editingId = u.id; this.form = { name: u.name, email: u.email, password: '', role_id: u.role_id || '', branch_id: u.branch_id || '' }; this.showModal = true; },
+        form: { name: '', email: '', password: '', role_id: '', branch_id: '', branch_role_id: '' },
+        openCreate() { this.editingId = null; this.form = { name: '', email: '', password: '', role_id: '', branch_id: '', branch_role_id: '' }; this.showModal = true; },
+        openEdit(u) { this.editingId = u.id; this.form = { name: u.name, email: u.email, password: '', role_id: u.role_id || '', branch_id: u.branch_id || '', branch_role_id: u.branch_role_id || '' }; this.showModal = true; },
         applySearch() {
             const params = new URLSearchParams();
             if (this.searchQuery) params.set('search', this.searchQuery);

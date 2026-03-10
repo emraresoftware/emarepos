@@ -4,10 +4,22 @@ namespace App\Http\Controllers\Pos;
 
 use App\Http\Controllers\Controller;
 use App\Models\PaymentType;
+use App\Models\Branch;
 use Illuminate\Http\Request;
 
 class PaymentTypeController extends Controller
 {
+    private function ensureCenterAccess()
+    {
+        $branch = Branch::find(session('branch_id'));
+        $isCenter = (bool) ($branch?->settings['is_center'] ?? false);
+        $canManage = auth()->user()->is_super_admin || auth()->user()->hasPermission('payment_types.manage');
+
+        if (!$isCenter || !$canManage) {
+            abort(403, 'Bu işlem için merkez şube yetkisi gerekir.');
+        }
+    }
+
     public function index()
     {
         $paymentTypes = PaymentType::orderBy('sort_order')->get();
@@ -16,6 +28,7 @@ class PaymentTypeController extends Controller
 
     public function store(Request $request)
     {
+        $this->ensureCenterAccess();
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50',
@@ -38,6 +51,7 @@ class PaymentTypeController extends Controller
 
     public function update(Request $request, PaymentType $paymentType)
     {
+        $this->ensureCenterAccess();
         if ($paymentType->tenant_id !== (int) session('tenant_id')) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
@@ -56,6 +70,7 @@ class PaymentTypeController extends Controller
 
     public function destroy(PaymentType $paymentType)
     {
+        $this->ensureCenterAccess();
         if ($paymentType->tenant_id !== (int) session('tenant_id')) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }

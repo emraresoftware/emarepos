@@ -11,6 +11,19 @@
                 <i class="fas fa-fire-burner text-orange-400 mr-2"></i>Mutfak
             </h1>
 
+            <div class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg p-1">
+                <button @click="nameSource = 'order_user'"
+                        class="px-2.5 py-1 text-xs font-medium rounded-md transition-colors"
+                        :class="nameSource === 'order_user' ? 'bg-brand-500 text-white' : 'text-gray-500 hover:text-gray-700'">
+                    Siparisi Alan
+                </button>
+                <button @click="nameSource = 'table_opened_by'"
+                        class="px-2.5 py-1 text-xs font-medium rounded-md transition-colors"
+                        :class="nameSource === 'table_opened_by' ? 'bg-brand-500 text-white' : 'text-gray-500 hover:text-gray-700'">
+                    Masa Acan
+                </button>
+            </div>
+
             {{-- Durum Filtreleri --}}
             <div class="flex gap-1.5 flex-wrap">
                 <button @click="statusFilter = 'all'"
@@ -90,6 +103,11 @@
                             <i class="fas fa-utensils mr-1 text-gray-300"></i>{{ ($order->tableSession->table->region->name ?? '') ? ($order->tableSession->table->region->name . ' ') : '' }}{{ $order->tableSession->table->name ?? ('Masa ' . $order->tableSession->table->table_no) }}
                         </span>
                         @endif
+                        <span class="px-2 py-0.5 bg-slate-100 rounded text-xs text-gray-600">
+                            <i class="fas fa-user mr-1 text-gray-400"></i>
+                            <span x-show="nameSource === 'order_user'">{{ $order->user?->name ?? 'Bilinmiyor' }}</span>
+                            <span x-show="nameSource === 'table_opened_by'">{{ $order->tableSession?->openedBy?->name ?? 'Bilinmiyor' }}</span>
+                        </span>
                     </div>
                     <div class="flex items-center gap-2">
                         {{-- Durum Rozeti --}}
@@ -182,6 +200,7 @@
 function kitchenScreen() {
     return {
         statusFilter: 'all',
+        nameSource: 'order_user',
         countdown: 15,
         soundEnabled: false,
         refreshInterval: null,

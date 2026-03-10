@@ -13,7 +13,7 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::with(['role', 'branch'])->orderBy('name');
+        $query = User::with(['role', 'branch', 'additionalRoles'])->orderBy('name');
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -29,9 +29,10 @@ class UserController extends Controller
 
         $users = $query->paginate(50)->withQueryString();
         $roles = Role::orderBy('name')->get();
+        $branchRoles = Role::whereIn('scope', ['branch', 'both'])->orderBy('name')->get();
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
 
-        return view('pos.users.index', compact('users', 'roles', 'branches'));
+        return view('pos.users.index', compact('users', 'roles', 'branchRoles', 'branches'));
     }
 
     public function store(Request $request)
@@ -43,11 +44,26 @@ class UserController extends Controller
             'password'  => 'required|string|min:6',
             'role_id'   => ['nullable', 'integer', Rule::exists('roles', 'id')->where('tenant_id', $tenantId)],
             'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('tenant_id', $tenantId)],
+            'branch_role_id' => ['nullable', 'integer', Rule::exists('roles', 'id')->where('tenant_id', $tenantId)],
         ]);
+
+        if (!empty($data['branch_role_id']) && empty($data['branch_id'])) {
+            return response()->json(['success' => false, 'message' => 'Şube rolü için şube seçilmelidir.'], 422);
+        }
 
         $data['tenant_id'] = session('tenant_id');
         $data['password'] = Hash::make($data['password']);
+        $branchRoleId = $data['branch_role_id'] ?? null;
+        unset($data['branch_role_id']);
         $user = User::create($data);
+
+        if (!empty($branchRoleId) && !empty($data['branch_id'])) {
+            $user->additionalRoles()->attach($branchRoleId, [
+                'tenant_id' => $tenantId,
+                'branch_id' => $data['branch_id'],
+                'created_at' => now(),
+            ]);
+        }
 
         return response()->json(['success' => true, 'user' => $user->load(['role', 'branch'])]);
     }
@@ -66,7 +82,12 @@ class UserController extends Controller
             'password'  => 'nullable|string|min:6',
             'role_id'   => ['nullable', 'integer', Rule::exists('roles', 'id')->where('tenant_id', $tenantId)],
             'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('tenant_id', $tenantId)],
+            'branch_role_id' => ['nullable', 'integer', Rule::exists('roles', 'id')->where('tenant_id', $tenantId)],
         ]);
+
+        if (!empty($data['branch_role_id']) && empty($data['branch_id'])) {
+            return response()->json(['success' => false, 'message' => 'Şube rolü için şube seçilmelidir.'], 422);
+        }
 
         if (!empty($data['password'])) {
             $data['password'] = Hash::make($data['password']);
@@ -74,7 +95,23 @@ class UserController extends Controller
             unset($data['password']);
         }
 
+        $branchRoleId = $data['branch_role_id'] ?? null;
+        $branchId = $data['branch_id'] ?? null;
+        unset($data['branch_role_id']);
+
         $user->update($data);
+
+        if (!empty($branchId)) {
+            $user->additionalRoles()->wherePivot('branch_id', $branchId)->detach();
+            if (!empty($branchRoleId)) {
+                $user->additionalRoles()->attach($branchRoleId, [
+                    'tenant_id' => $tenantId,
+                    'branch_id' => $branchId,
+                    'created_at' => now(),
+                ]);
+            }
+        }
+
         return response()->json(['success' => true, 'user' => $user->fresh()->load(['role', 'branch'])]);
     }
 

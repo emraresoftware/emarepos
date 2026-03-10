@@ -129,6 +129,7 @@ class DatabaseSeeder extends Seeder
             ['code' => 'products.create', 'name' => 'Ürün Ekle',          'module_code' => 'core_pos', 'group' => 'Ürün'],
             ['code' => 'products.edit',   'name' => 'Ürün Düzenle',       'module_code' => 'core_pos', 'group' => 'Ürün'],
             ['code' => 'products.delete', 'name' => 'Ürün Sil',           'module_code' => 'core_pos', 'group' => 'Ürün'],
+            ['code' => 'products.price_edit', 'name' => 'Fiyat Düzenleme', 'module_code' => 'core_pos', 'group' => 'Ürün'],
             // Müşteri (4)
             ['code' => 'customers.view',   'name' => 'Müşterileri Görüntüle', 'module_code' => 'core_pos', 'group' => 'Müşteri'],
             ['code' => 'customers.create', 'name' => 'Müşteri Ekle',          'module_code' => 'core_pos', 'group' => 'Müşteri'],
@@ -170,6 +171,7 @@ class DatabaseSeeder extends Seeder
             ['code' => 'users.view',      'name' => 'Kullanıcıları Görüntüle',  'module_code' => 'core_pos', 'group' => 'Yönetim'],
             ['code' => 'users.create',    'name' => 'Kullanıcı Ekle',           'module_code' => 'core_pos', 'group' => 'Yönetim'],
             ['code' => 'users.edit',      'name' => 'Kullanıcı Düzenle',        'module_code' => 'core_pos', 'group' => 'Yönetim'],
+            ['code' => 'payment_types.manage', 'name' => 'Ödeme Türleri Yönetimi', 'module_code' => 'core_pos', 'group' => 'Yönetim'],
         ];
 
         $permissions = [];

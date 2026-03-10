@@ -114,6 +114,7 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class, 'throttle:
     Route::post('/products/bulk-delete', [ProductController::class, 'bulkDelete'])->name('pos.products.bulk-delete');
     Route::post('/products/bulk-assign-category', [ProductController::class, 'bulkAssignCategory'])->name('pos.products.bulk-assign');
     Route::post('/products/bulk-price-update', [ProductController::class, 'bulkPriceUpdate'])->name('pos.products.bulk-price');
+    Route::post('/products/bulk-assign-branches', [ProductController::class, 'bulkAssignBranches'])->name('pos.products.bulk-branches');
 
     // Görsel Yükleme
     Route::post('/products/{product}/image', [ProductController::class, 'uploadImage'])->name('pos.products.image');
@@ -168,6 +169,11 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class, 'throttle:
     Route::get('/branches', [BranchController::class, 'index'])->name('pos.branches');
     Route::post('/branches', [BranchController::class, 'store'])->name('pos.branches.store');
     Route::put('/branches/{branch}', [BranchController::class, 'update'])->name('pos.branches.update');
+    Route::get('/branches/{branch}/modules', [BranchController::class, 'modules'])->name('pos.branches.modules');
+    Route::post('/branches/{branch}/modules', [BranchController::class, 'updateModules'])->name('pos.branches.modules.update');
+    Route::get('/branches/{branch}/devices', [BranchController::class, 'devices'])->name('pos.branches.devices');
+    Route::post('/branches/{branch}/device-settings', [BranchController::class, 'updateDeviceSettings'])->name('pos.branches.device-settings');
+    Route::get('/branches/{branch}/stats', [BranchController::class, 'stats'])->name('pos.branches.stats');
     Route::delete('/branches/{branch}', [BranchController::class, 'destroy'])->name('pos.branches.destroy');
     
     // Kullanıcılar (Users)

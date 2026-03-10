@@ -17,7 +17,10 @@ class SettingController extends Controller
         $paymentTypes = PaymentType::orderBy('sort_order')->get();
         $taxRates = TaxRate::orderBy('rate')->get();
 
-        return view('pos.settings.index', compact('tenant', 'branch', 'paymentTypes', 'taxRates'));
+        $isCenter = (bool) ($branch?->settings['is_center'] ?? false);
+        $canManagePaymentTypes = $isCenter && (auth()->user()->is_super_admin || auth()->user()->hasPermission('payment_types.manage'));
+
+        return view('pos.settings.index', compact('tenant', 'branch', 'paymentTypes', 'taxRates', 'isCenter', 'canManagePaymentTypes'));
     }
 
     public function updateBranch(Request $request)

@@ -172,11 +172,26 @@
             <div class="px-3 pt-2 pb-1">
                 <div class="relative">
                           <input type="text" x-model="barcodeQuery"
-                              @keydown.enter="addByBarcode()"
+                              @input.debounce.200ms="searchBarcode()"
+                              @keydown.enter.prevent="handleBarcodeEnter()"
+                              @keydown.arrow-down.prevent="moveBarcodeSelection(1)"
+                              @keydown.arrow-up.prevent="moveBarcodeSelection(-1)"
                            placeholder="Barkod Okutunuz"
                            class="w-full pl-3 pr-10 py-2.5 bg-white border-2 border-blue-400 rounded text-gray-900 text-sm font-medium placeholder-gray-400 focus:outline-none focus:border-blue-500"
                            x-ref="searchInput">
                     <i class="fas fa-barcode absolute right-3 top-3 text-gray-400 text-lg"></i>
+                    <div x-show="showBarcodeDropdown" x-transition @click.away="showBarcodeDropdown = false"
+                         class="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-40 max-h-56 overflow-y-auto">
+                        <template x-for="(p, idx) in barcodeResults" :key="p.id">
+                            <button @click="selectBarcodeResult(p)" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between"
+                                    :class="barcodeSelectedIndex === idx ? 'bg-brand-50 text-brand-700' : 'text-gray-700'">
+                                <span class="truncate" x-text="p.name"></span>
+                                <span class="text-xs text-gray-400 ml-2" x-text="p.barcode || ''"></span>
+                            </button>
+                        </template>
+                        <div x-show="barcodeSearching" class="px-3 py-2 text-xs text-gray-400">Araniyor...</div>
+                        <div x-show="!barcodeSearching && barcodeResults.length === 0" class="px-3 py-2 text-xs text-gray-400">Urun bulunamadi</div>
+                    </div>
                 </div>
             </div>
             {{-- Toplam --}}
@@ -707,7 +722,7 @@
             <div class="flex-1 overflow-y-auto p-2 sm:p-3">
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 sm:gap-2">
                     <template x-for="product in filteredProducts" :key="product.id">
-                        <button @click="addToCart(product)"
+                        <button @click="handleProductClick(product)"
                                 class="bg-white border border-gray-100 rounded-xl p-2 sm:p-3 text-left hover:border-blue-300 hover:shadow-md hover:shadow-blue-100/50 transition-all group active:scale-95">
                             <div class="text-xs sm:text-sm font-medium text-gray-800 group-hover:text-blue-600 truncate" x-text="product.name"></div>
                             <div class="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 truncate" x-text="product.category || ''"></div>
@@ -904,6 +919,10 @@ function posScreen() {
         selectedCategory: null,
         searchQuery: '',
         barcodeQuery: '',
+        barcodeResults: [],
+        showBarcodeDropdown: false,
+        barcodeSelectedIndex: -1,
+        barcodeSearching: false,
         selectedCustomer: null,
         customerResults: [],
         generalDiscount: 0,
@@ -1099,6 +1118,62 @@ function posScreen() {
 
             this.addToCart(product);
             this.barcodeQuery = '';
+            this.showBarcodeDropdown = false;
+            this.barcodeResults = [];
+            this.barcodeSelectedIndex = -1;
+        },
+
+        async searchBarcode() {
+            const query = this.barcodeQuery.trim();
+            if (!query) {
+                this.barcodeResults = [];
+                this.showBarcodeDropdown = false;
+                this.barcodeSelectedIndex = -1;
+                return;
+            }
+
+            this.barcodeSearching = true;
+            try {
+                const data = await posAjax('{{ route("pos.products.search") }}?q=' + encodeURIComponent(query), {}, 'GET');
+                this.barcodeResults = Array.isArray(data) ? data : [];
+                this.showBarcodeDropdown = true;
+                this.barcodeSelectedIndex = this.barcodeResults.length > 0 ? 0 : -1;
+            } catch (e) {
+                this.barcodeResults = [];
+                this.showBarcodeDropdown = true;
+                this.barcodeSelectedIndex = -1;
+            } finally {
+                this.barcodeSearching = false;
+            }
+        },
+
+        handleBarcodeEnter() {
+            if (this.showBarcodeDropdown && this.barcodeSelectedIndex >= 0 && this.barcodeResults[this.barcodeSelectedIndex]) {
+                this.selectBarcodeResult(this.barcodeResults[this.barcodeSelectedIndex]);
+                return;
+            }
+            this.addByBarcode();
+        },
+
+        moveBarcodeSelection(delta) {
+            if (!this.showBarcodeDropdown || this.barcodeResults.length === 0) return;
+            const next = this.barcodeSelectedIndex + delta;
+            this.barcodeSelectedIndex = Math.max(0, Math.min(this.barcodeResults.length - 1, next));
+        },
+
+        selectBarcodeResult(product) {
+            if (!product) return;
+            // Çoklu fiyat varsa modal aç
+            if (product.alternative_prices && product.alternative_prices.length > 0) {
+                this.pendingProduct = product;
+                this.showPriceSelectModal = true;
+            } else {
+                this.addToCart(product);
+            }
+            this.barcodeQuery = '';
+            this.showBarcodeDropdown = false;
+            this.barcodeResults = [];
+            this.barcodeSelectedIndex = -1;
         },
 
         addToCart(product) {
@@ -1127,6 +1202,15 @@ function posScreen() {
             this.recalcTotals();
             // Mobilde sepete geçiş
             if (window.innerWidth < 1024) this.mobileTab = 'cart';
+        },
+
+        handleProductClick(product) {
+            if (product.alternative_prices && product.alternative_prices.length > 0) {
+                this.pendingProduct = product;
+                this.showPriceSelectModal = true;
+                return;
+            }
+            this.addToCart(product);
         },
 
         updateQty(index, delta) {

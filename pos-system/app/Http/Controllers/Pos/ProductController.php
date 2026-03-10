@@ -20,6 +20,21 @@ use App\Models\ActivityLog;
 
 class ProductController extends Controller
 {
+    private function currentBranch(): ?Branch
+    {
+        return Branch::find(session('branch_id'));
+    }
+
+    private function canEditPrices(?Branch $branch = null): bool
+    {
+        $branch = $branch ?? $this->currentBranch();
+        $isCenter = (bool) ($branch?->settings['is_center'] ?? false);
+        $locked = (bool) ($branch?->settings['price_edit_locked'] ?? false);
+        $hasPerm = auth()->user()->is_super_admin || auth()->user()->hasPermission('products.price_edit');
+
+        return $hasPerm && ($isCenter || !$locked);
+    }
+
     public function index(Request $request)
     {
         $branchId = (int) session('branch_id');
@@ -117,8 +132,13 @@ class ProductController extends Controller
         $variantTypes = ProductVariantType::where('tenant_id', session('tenant_id'))->with('values')->orderBy('sort_order')->get();
         $firms = Firm::where('is_active', true)->orderBy('name')->get();
         $filterTemplates = FilterTemplate::where('user_id', auth()->id())->where('page', 'products')->orderBy('sort_order')->get();
+
+        $currentBranch = $this->currentBranch();
+        $priceEditAllowed = $this->canEditPrices($currentBranch);
+        $priceEditLocked = (bool) ($currentBranch?->settings['price_edit_locked'] ?? false);
+        $isCenter = (bool) ($currentBranch?->settings['is_center'] ?? false);
         
-        return view('pos.products.index', compact('products', 'categories', 'branches', 'variantTypes', 'firms', 'filterTemplates'));
+        return view('pos.products.index', compact('products', 'categories', 'branches', 'variantTypes', 'firms', 'filterTemplates', 'priceEditAllowed', 'priceEditLocked', 'isCenter'));
     }
 
     /**
@@ -145,7 +165,7 @@ class ProductController extends Controller
                 WHERE bp_current.product_id = products.id
                   AND bp_current.branch_id = ?
                 LIMIT 1
-            ), 0)
+            ), NULL)
             ELSE products.stock_quantity
         END";
     }
@@ -181,6 +201,11 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $branchId = (int) session('branch_id');
+        $canEditPrices = $this->canEditPrices();
+        if (!$canEditPrices) {
+            return response()->json(['success' => false, 'message' => 'Fiyat düzenleme yetkiniz yok.'], 403);
+        }
+
         $request->merge([
             'purchase_price' => ($request->purchase_price !== '' && $request->purchase_price !== null) ? $request->purchase_price : 0,
             'stock_quantity'  => ($request->stock_quantity  !== '' && $request->stock_quantity  !== null) ? $request->stock_quantity  : 0,
@@ -224,19 +249,27 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $branchId = (int) session('branch_id');
+        $canEditPrices = $this->canEditPrices();
+
         $request->merge([
-            'purchase_price' => ($request->purchase_price !== '' && $request->purchase_price !== null) ? $request->purchase_price : 0,
             'stock_quantity'  => ($request->stock_quantity  !== '' && $request->stock_quantity  !== null) ? $request->stock_quantity  : 0,
             'critical_stock'  => ($request->critical_stock  !== '' && $request->critical_stock  !== null) ? $request->critical_stock  : 0,
             'category_id'    => ($request->category_id     !== '' && $request->category_id    !== null) ? $request->category_id    : null,
             'firm_id'        => ($request->firm_id         !== '' && $request->firm_id        !== null) ? $request->firm_id        : null,
         ]);
-        $data = $request->validate([
+        if ($canEditPrices) {
+            $request->merge([
+                'purchase_price' => ($request->purchase_price !== '' && $request->purchase_price !== null) ? $request->purchase_price : 0,
+                'sale_price' => ($request->sale_price !== '' && $request->sale_price !== null) ? $request->sale_price : 0,
+            ]);
+        }
+
+        $rules = [
             'name' => 'required|string|max:255',
             'barcode' => 'nullable|string|max:255',
             'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('tenant_id', session('tenant_id'))],
             'firm_id' => ['nullable', 'integer', Rule::exists('firms', 'id')->where('tenant_id', session('tenant_id'))],
-            'sale_price' => 'required|numeric|min:0',
+            'sale_price' => $canEditPrices ? 'required|numeric|min:0' : 'nullable|numeric|min:0',
             'purchase_price' => 'nullable|numeric|min:0',
             'vat_rate' => 'required|integer',
             'stock_quantity' => 'nullable|numeric|min:0',
@@ -247,10 +280,16 @@ class ProductController extends Controller
             'show_on_pos' => 'nullable|boolean',
             'is_service' => 'nullable|boolean',
             'description' => 'nullable|string|max:2000',
-        ]);
+        ];
+
+        $data = $request->validate($rules);
         
         $data['critical_stock'] = $data['critical_stock'] ?? 0;
         $stockQuantity = (float) ($data['stock_quantity'] ?? 0);
+
+        if (!$canEditPrices) {
+            unset($data['sale_price'], $data['purchase_price']);
+        }
 
         if ($branchId > 0) {
             unset($data['stock_quantity']);
@@ -311,6 +350,7 @@ class ProductController extends Controller
      */
     public function syncBranches(Request $request, Product $product)
     {
+        $canEditPrices = $this->canEditPrices();
         $request->validate([
             'branches' => 'required|array',
             'branches.*.branch_id' => ['required', 'integer', Rule::exists('branches', 'id')->where('tenant_id', session('tenant_id'))],
@@ -320,10 +360,15 @@ class ProductController extends Controller
         ]);
 
         $syncData = [];
+        $existing = $product->branches()->get()->keyBy('id');
         foreach ($request->branches as $b) {
             if ($b['enabled']) {
+                $existingPivot = $existing->get($b['branch_id']);
+                $salePrice = $canEditPrices
+                    ? ($b['sale_price'] ?? 0)
+                    : ($existingPivot ? $existingPivot->pivot->sale_price : $product->sale_price);
                 $syncData[$b['branch_id']] = [
-                    'sale_price' => $b['sale_price'] ?? 0,
+                    'sale_price' => $salePrice,
                     'stock_quantity' => $b['stock_quantity'] ?? 0,
                 ];
             }
@@ -333,6 +378,76 @@ class ProductController extends Controller
         $product->syncStockQuantityFromBranches();
 
         return response()->json(['success' => true, 'message' => 'Şube bilgileri güncellendi.']);
+    }
+
+    /**
+     * Toplu şube atama (seçili ürünler için)
+     */
+    public function bulkAssignBranches(Request $request)
+    {
+        if (!$this->canEditPrices()) {
+            return response()->json(['success' => false, 'message' => 'Fiyat düzenleme yetkiniz yok.'], 403);
+        }
+        $data = $request->validate([
+            'product_ids' => 'required|array|min:1',
+            'product_ids.*' => ['integer', Rule::exists('products', 'id')->where('tenant_id', session('tenant_id'))],
+            'branches' => 'required|array|min:1',
+            'branches.*.branch_id' => ['required', 'integer', Rule::exists('branches', 'id')->where('tenant_id', session('tenant_id'))],
+            'branches.*.enabled' => 'required|boolean',
+            'default_sale_price' => 'nullable|numeric|min:0',
+            'default_stock_quantity' => 'nullable|numeric|min:0',
+            'apply_to_existing' => 'nullable|boolean',
+        ]);
+
+        $productIds = collect($data['product_ids'])->unique()->values();
+        $branchIds = collect($data['branches'])->filter(fn ($b) => $b['enabled'])->pluck('branch_id')->unique()->values();
+        $applyToExisting = (bool) ($data['apply_to_existing'] ?? false);
+        $defaultSale = $data['default_sale_price'] ?? null;
+        $defaultStock = $data['default_stock_quantity'] ?? null;
+
+        if ($branchIds->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'En az bir şube seçiniz.'], 422);
+        }
+
+        foreach ($productIds as $productId) {
+            $existing = DB::table('branch_product')
+                ->where('product_id', $productId)
+                ->whereIn('branch_id', $branchIds)
+                ->get()
+                ->keyBy('branch_id');
+
+            foreach ($branchIds as $branchId) {
+                $current = $existing->get($branchId);
+                $salePrice = $defaultSale;
+                $stockQty = $defaultStock;
+
+                if ($current) {
+                    if ($salePrice === null || !$applyToExisting) {
+                        $salePrice = $current->sale_price;
+                    }
+                    if ($stockQty === null || !$applyToExisting) {
+                        $stockQty = $current->stock_quantity;
+                    }
+                }
+
+                DB::table('branch_product')->updateOrInsert(
+                    ['branch_id' => $branchId, 'product_id' => $productId],
+                    [
+                        'sale_price' => $salePrice ?? 0,
+                        'stock_quantity' => $stockQty ?? 0,
+                        'updated_at' => now(),
+                        'created_at' => $current ? $current->created_at : now(),
+                    ]
+                );
+            }
+
+            $product = Product::find($productId);
+            if ($product) {
+                $product->syncStockQuantityFromBranches();
+            }
+        }
+
+        return response()->json(['success' => true, 'message' => 'Şubelere atama tamamlandı.']);
     }
 
     /**
@@ -591,6 +706,9 @@ class ProductController extends Controller
      */
     public function bulkPriceUpdate(Request $request)
     {
+        if (!$this->canEditPrices()) {
+            return response()->json(['success' => false, 'message' => 'Fiyat düzenleme yetkiniz yok.'], 403);
+        }
         $request->validate([
             'ids' => 'required|array',
             'ids.*' => 'integer',

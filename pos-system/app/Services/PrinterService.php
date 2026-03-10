@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Branch;
 use App\Models\HardwareDevice;
 use Mike42\Escpos\Printer;
 use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
@@ -17,6 +18,18 @@ class PrinterService
     {
         $branchId = $branchId ?: session('branch_id');
 
+        $branch = Branch::find($branchId);
+        $receiptPrinterId = $branch?->settings['receipt_printer_id'] ?? null;
+        if ($receiptPrinterId) {
+            $selected = HardwareDevice::where('id', $receiptPrinterId)
+                ->where('branch_id', $branchId)
+                ->where('is_active', true)
+                ->first();
+            if ($selected) {
+                return $selected;
+            }
+        }
+
         return HardwareDevice::where('type', 'printer')
             ->where('is_active', true)
             ->where('branch_id', $branchId)
@@ -30,6 +43,18 @@ class PrinterService
     public static function getKitchenPrinter(?int $branchId = null): ?HardwareDevice
     {
         $branchId = $branchId ?: session('branch_id');
+
+        $branch = Branch::find($branchId);
+        $kitchenPrinterId = $branch?->settings['kitchen_printer_id'] ?? null;
+        if ($kitchenPrinterId) {
+            $selected = HardwareDevice::where('id', $kitchenPrinterId)
+                ->where('branch_id', $branchId)
+                ->where('is_active', true)
+                ->first();
+            if ($selected) {
+                return $selected;
+            }
+        }
 
         return HardwareDevice::where('type', 'printer')
             ->where('is_active', true)
@@ -332,6 +357,17 @@ class PrinterService
     {
         // Çekmece tipi cihaz varsa onu, yoksa yazıcı üzerinden RJ11 ile aç
         $branchId = session('branch_id');
+
+        if (!$device) {
+            $branch = Branch::find($branchId);
+            $cashDrawerId = $branch?->settings['cash_drawer_device_id'] ?? null;
+            if ($cashDrawerId) {
+                $device = HardwareDevice::where('id', $cashDrawerId)
+                    ->where('branch_id', $branchId)
+                    ->where('is_active', true)
+                    ->first();
+            }
+        }
 
         $device = $device ?: HardwareDevice::where('type', 'cash_drawer')
             ->where('is_active', true)

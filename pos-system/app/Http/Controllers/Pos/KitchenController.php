@@ -14,7 +14,7 @@ class KitchenController extends Controller
         
         $orders = Order::where('branch_id', $branchId)
             ->whereIn('status', ['pending', 'preparing', 'ready'])
-            ->with(['items', 'tableSession.table.region', 'user'])
+            ->with(['items', 'tableSession.table.region', 'tableSession.openedBy', 'user'])
             ->orderBy('ordered_at', 'asc')
             ->get();
 
@@ -27,7 +27,7 @@ class KitchenController extends Controller
         
         $orders = Order::where('branch_id', $branchId)
             ->whereIn('status', ['pending', 'preparing', 'ready'])
-            ->with(['items', 'tableSession.table.region', 'user'])
+            ->with(['items', 'tableSession.table.region', 'tableSession.openedBy', 'user'])
             ->orderBy('ordered_at', 'asc')
             ->get();
 

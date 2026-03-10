@@ -74,8 +74,8 @@ class ReportController extends Controller
         })
         ->join('products', 'sale_items.product_id', '=', 'products.id')
         ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
-        ->select(DB::raw("COALESCE(categories.name, 'Kategorisiz') as name"), DB::raw('SUM(sale_items.total) as revenue'))
-        ->groupBy('name')
+                ->select(DB::raw("COALESCE(categories.name, 'Kategorisiz') as category_name"), DB::raw('SUM(sale_items.total) as revenue'))
+                ->groupBy(DB::raw("COALESCE(categories.name, 'Kategorisiz')"))
         ->orderByDesc('revenue')
         ->get();
 

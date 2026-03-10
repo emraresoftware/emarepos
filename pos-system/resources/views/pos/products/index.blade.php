@@ -79,6 +79,10 @@
         </div>
     </div>
 
+    <div x-show="!priceEditAllowed" class="bg-amber-50 border border-amber-200 text-amber-700 text-sm rounded-xl p-3 mb-3">
+        Bu şubede fiyat düzenleme kilidi aktif veya yetkiniz yok. Fiyat alanları kilitlendi.
+    </div>
+
     {{-- Detaylı Arama Çubuğu (BenimPOS Tarzı) --}}
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 mb-3">
         <div class="flex flex-wrap items-center gap-2">
@@ -166,8 +170,8 @@
             </div>
 
             {{-- Yeni Ürün --}}
-            <button @click="openCreate()"
-                    class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-white font-semibold rounded-xl text-sm px-4 py-2 transition-all flex items-center gap-1.5 whitespace-nowrap ml-auto">
+            <button @click="openCreate()" :disabled="!priceEditAllowed"
+                    class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-white font-semibold rounded-xl text-sm px-4 py-2 transition-all flex items-center gap-1.5 whitespace-nowrap ml-auto disabled:opacity-50 disabled:cursor-not-allowed">
                 <i class="fas fa-plus text-xs"></i> Yeni Ürün
             </button>
         </div>
@@ -220,8 +224,11 @@
         <button @click="showBulkCategoryModal = true" class="px-3 py-2 text-xs font-medium bg-blue-50 border border-blue-200 text-blue-600 rounded-xl hover:bg-blue-100 flex items-center gap-1.5">
             <i class="fas fa-folder text-[10px]"></i> Kategori Ata
         </button>
-        <button @click="showBulkPriceModal = true" class="px-3 py-2 text-xs font-medium bg-amber-50 border border-amber-200 text-amber-600 rounded-xl hover:bg-amber-100 flex items-center gap-1.5">
+        <button @click="showBulkPriceModal = true" :disabled="!priceEditAllowed" class="px-3 py-2 text-xs font-medium bg-amber-50 border border-amber-200 text-amber-600 rounded-xl hover:bg-amber-100 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
             <i class="fas fa-dollar-sign text-[10px]"></i> Fiyat Güncelle
+        </button>
+        <button @click="openBulkBranchModal()" class="px-3 py-2 text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-xl hover:bg-indigo-100 flex items-center gap-1.5">
+            <i class="fas fa-store text-[10px]"></i> Şubeye Ata
         </button>
         <button @click="openLabelModal()" class="px-3 py-2 text-xs font-medium bg-purple-50 border border-purple-200 text-purple-600 rounded-xl hover:bg-purple-100 flex items-center gap-1.5">
             <i class="fas fa-barcode text-[10px]"></i> Etiket Üret
@@ -307,9 +314,9 @@
                             </td>
                             <td class="px-3 py-3 text-center text-xs hidden lg:table-cell">%{{ $product->vat_rate ?? 0 }}</td>
                             <td class="px-3 py-3 text-center">
-                                @php $isCritical = !$product->is_service && $product->critical_stock && $product->stock_quantity <= $product->critical_stock; @endphp
+                                @php $isCritical = !$product->is_service && $product->critical_stock && $product->stock_quantity !== null && $product->stock_quantity <= $product->critical_stock; @endphp
                                 <span class="{{ $isCritical ? 'text-red-500 font-semibold' : '' }}">
-                                    {{ $product->is_service ? '-' : ($product->stock_quantity ?? '0') }}
+                                    {{ $product->is_service ? '-' : ($product->stock_quantity === null ? '-' : $product->stock_quantity) }}
                                 </span>
                                 @if($isCritical)
                                     <i class="fas fa-exclamation-triangle text-red-400 text-xs ml-0.5"></i>
@@ -344,8 +351,9 @@
                                                 'description' => $product->description,
                                                 'image_url' => $product->image_url,
                                                 'firm_id' => $product->firm_id,
-                                            ]) }})"  
-                                            class="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                                            ]) }})"
+                                            :disabled="!priceEditAllowed"
+                                            class="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                             title="Düzenle">
                                         <i class="fas fa-pen text-xs"></i>
                                     </button>
@@ -354,8 +362,8 @@
                                             title="İşlem Geçmişi">
                                         <i class="fas fa-history text-xs"></i>
                                     </button>
-                                    <button @click="openPrices({{ $product->id }}, '{{ addslashes($product->name) }}')"
-                                            class="p-1.5 text-gray-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"
+                                        <button @click="openPrices({{ $product->id }}, '{{ addslashes($product->name) }}')" :disabled="!priceEditAllowed"
+                                            class="p-1.5 text-gray-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                             title="Çoklu Fiyat">
                                         <i class="fas fa-tags text-xs"></i>
                                     </button>
@@ -385,7 +393,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                                     </svg>
                                     <p class="text-gray-400 text-sm">Henüz ürün eklenmemiş</p>
-                                    <button @click="openCreate()" class="text-brand-500 hover:text-brand-700 text-sm font-medium">+ İlk ürünü ekle</button>
+                                    <button @click="openCreate()" :disabled="!priceEditAllowed" class="text-brand-500 hover:text-brand-700 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed">+ İlk ürünü ekle</button>
                                 </div>
                             </td>
                         </tr>
@@ -630,8 +638,8 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Alış Fiyatı</label>
                         <div class="relative">
-                            <input type="number" x-model="form.purchase_price" @input="calcProfit()" step="0.01" min="0"
-                                   class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl pl-4 pr-8 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400"
+                            <input type="number" x-model="form.purchase_price" @input="calcProfit()" step="0.01" min="0" :disabled="!priceEditAllowed"
+                                   class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl pl-4 pr-8 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400 disabled:opacity-60"
                                    placeholder="0.00">
                             <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₺</span>
                         </div>
@@ -639,8 +647,8 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Satış Fiyatı <span class="text-red-500">*</span></label>
                         <div class="relative">
-                            <input type="number" x-model="form.sale_price" @input="calcProfit()" step="0.01" min="0" required
-                                   class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl pl-4 pr-8 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400"
+                            <input type="number" x-model="form.sale_price" @input="calcProfit()" step="0.01" min="0" required :disabled="!priceEditAllowed"
+                                   class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl pl-4 pr-8 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400 disabled:opacity-60"
                                    placeholder="0.00">
                             <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₺</span>
                         </div>
@@ -750,7 +758,7 @@
                                 <div x-show="b.enabled" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     <div>
                                         <label class="block text-[10px] text-gray-500 mb-0.5">Satış Fiyatı (₺)</label>
-                                        <input type="number" x-model="b.sale_price" step="0.01" min="0" class="w-full text-sm px-2.5 py-1.5 border border-gray-200 rounded-lg bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20">
+                                        <input type="number" x-model="b.sale_price" step="0.01" min="0" :disabled="!priceEditAllowed" class="w-full text-sm px-2.5 py-1.5 border border-gray-200 rounded-lg bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 disabled:opacity-60">
                                     </div>
                                     <div>
                                         <label class="block text-[10px] text-gray-500 mb-0.5">Stok Miktarı</label>
@@ -766,7 +774,7 @@
                 <div class="flex gap-3 pt-3 border-t border-gray-200">
                     <button type="button" @click="closePanel()"
                             class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl transition-colors">İptal</button>
-                    <button type="submit" :disabled="saving"
+                    <button type="submit" :disabled="saving || !priceEditAllowed"
                             class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2">
                         <svg x-show="saving" class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                         <span x-text="editingId ? 'Güncelle' : 'Kaydet'"></span>
@@ -855,15 +863,15 @@
                                 <div class="flex items-center gap-3 w-full">
                                     <div class="flex-1"><span class="text-sm font-medium text-gray-900" x-text="p.label"></span></div>
                                     <span class="text-sm font-bold text-blue-600" x-text="parseFloat(p.price).toFixed(2)+' ₺'"></span>
-                                    <button @click="editingPriceId=p.id; editPriceLabel=p.label; editPriceValue=p.price" class="p-1.5 text-gray-400 hover:text-brand-600 rounded-lg"><i class="fas fa-pen text-xs"></i></button>
-                                    <button @click="deletePrice(p.id, idx)" class="p-1.5 text-gray-400 hover:text-red-500 rounded-lg"><i class="fas fa-trash text-xs"></i></button>
+                                    <button @click="editingPriceId=p.id; editPriceLabel=p.label; editPriceValue=p.price" :disabled="!priceEditAllowed" class="p-1.5 text-gray-400 hover:text-brand-600 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"><i class="fas fa-pen text-xs"></i></button>
+                                    <button @click="deletePrice(p.id, idx)" :disabled="!priceEditAllowed" class="p-1.5 text-gray-400 hover:text-red-500 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"><i class="fas fa-trash text-xs"></i></button>
                                 </div>
                             </template>
                             <template x-if="editingPriceId === p.id">
                                 <div class="flex items-center gap-2 w-full">
                                     <input type="text" x-model="editPriceLabel" class="flex-1 text-sm px-2 py-1.5 border border-gray-200 rounded-lg focus:border-brand-500">
                                     <input type="number" x-model="editPriceValue" step="0.01" min="0" class="w-24 text-sm px-2 py-1.5 border border-gray-200 rounded-lg text-right">
-                                    <button @click="updatePrice(p.id, idx)" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"><i class="fas fa-check text-xs"></i></button>
+                                    <button @click="updatePrice(p.id, idx)" :disabled="!priceEditAllowed" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"><i class="fas fa-check text-xs"></i></button>
                                     <button @click="editingPriceId=null" class="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg"><i class="fas fa-times text-xs"></i></button>
                                 </div>
                             </template>
@@ -883,7 +891,7 @@
                             <label class="block text-xs text-gray-500 mb-1">Fiyat (₺)</label>
                             <input type="number" x-model="newPriceValue" step="0.01" min="0" placeholder="0.00" class="w-full text-sm px-3 py-2 border border-gray-200 rounded-xl text-right">
                         </div>
-                        <button @click="addPrice()" :disabled="!newPriceLabel.trim() || !newPriceValue" class="px-4 py-2 bg-gradient-to-r from-brand-500 to-purple-600 text-white text-sm font-medium rounded-xl hover:shadow-lg disabled:opacity-50 whitespace-nowrap">
+                        <button @click="addPrice()" :disabled="!priceEditAllowed || !newPriceLabel.trim() || !newPriceValue" class="px-4 py-2 bg-gradient-to-r from-brand-500 to-purple-600 text-white text-sm font-medium rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
                             <i class="fas fa-plus mr-1"></i>Ekle
                         </button>
                     </div>
@@ -1250,6 +1258,47 @@
         </div>
     </div>
 
+    {{-- ═══════════════════════════════════════════ --}}
+    {{-- MODAL: Toplu Şubeye Ata --}}
+    {{-- ═══════════════════════════════════════════ --}}
+    <div x-show="showBulkBranchModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showBulkBranchModal=false"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6">
+            <h3 class="text-lg font-bold text-gray-900 mb-4"><i class="fas fa-store text-indigo-500 mr-2"></i>Toplu Şubeye Ata</h3>
+            <p class="text-sm text-gray-500 mb-4"><span class="font-medium" x-text="selectedIds.length"></span> ürün için şube ataması yapılacak</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4 max-h-48 overflow-y-auto border border-gray-100 rounded-xl p-3">
+                <template x-for="b in bulkBranchList" :key="b.id">
+                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" x-model="bulkSelectedBranchIds" :value="String(b.id)" class="rounded text-brand-500 border-gray-300 w-4 h-4">
+                        <span x-text="b.name"></span>
+                    </label>
+                </template>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Varsayılan Satış Fiyatı (₺)</label>
+                    <input type="number" x-model="bulkBranchSalePrice" step="0.01" min="0" class="w-full text-sm px-3 py-2 border border-gray-200 rounded-xl" placeholder="Boş bırak = mevcut kalsın">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Varsayılan Stok Miktarı</label>
+                    <input type="number" x-model="bulkBranchStockQty" step="0.01" min="0" class="w-full text-sm px-3 py-2 border border-gray-200 rounded-xl" placeholder="Boş bırak = mevcut kalsın">
+                </div>
+            </div>
+
+            <label class="flex items-center gap-2 text-xs text-gray-600 mb-4">
+                <input type="checkbox" x-model="bulkBranchApplyExisting" class="rounded text-brand-500 border-gray-300 w-4 h-4">
+                Seçili şubelerde mevcut fiyat/stok değerlerini ez
+            </label>
+
+            <div class="flex gap-3">
+                <button @click="showBulkBranchModal=false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl">İptal</button>
+                <button @click="bulkAssignBranches()" :disabled="bulkSelectedBranchIds.length === 0" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 rounded-xl disabled:opacity-50">Uygula</button>
+            </div>
+        </div>
+    </div>
+
 </div>
 @endsection
 
@@ -1403,6 +1452,9 @@ function categoryPicker() {
 function productManager() {
     return {
         // Temel State
+        priceEditAllowed: @json($priceEditAllowed),
+        priceEditLocked: @json($priceEditLocked),
+        isCenter: @json($isCenter),
         showPanel: false,
         showDeleteModal: false,
         showHistoryModal: false,
@@ -1509,6 +1561,14 @@ function productManager() {
         bulkPriceType: 'percent',
         bulkPriceValue: '',
 
+        // Toplu Şube
+        showBulkBranchModal: false,
+        bulkBranchList: @json($branches ?? []),
+        bulkSelectedBranchIds: [],
+        bulkBranchSalePrice: '',
+        bulkBranchStockQty: '',
+        bulkBranchApplyExisting: false,
+
         form: {
             name: '', barcode: '', stock_code: '', category_id: '', firm_id: '',
             purchase_price: '', sale_price: '', vat_rate: '10',
@@ -1538,11 +1598,19 @@ function productManager() {
         },
 
         openCreate() {
+            if (!this.priceEditAllowed) {
+                showToast('Fiyat düzenleme yetkiniz yok.', 'error');
+                return;
+            }
             this.resetForm();
             this.showPanel = true;
         },
 
         openEdit(product) {
+            if (!this.priceEditAllowed) {
+                showToast('Fiyat düzenleme yetkiniz yok.', 'error');
+                return;
+            }
             this.editingId = product.id;
             this.form = {
                 name: product.name || '',
@@ -1689,6 +1757,32 @@ function productManager() {
             } catch(e) { showToast(e.message || 'Hata', 'error'); }
         },
 
+        openBulkBranchModal() {
+            this.bulkSelectedBranchIds = [];
+            this.bulkBranchSalePrice = '';
+            this.bulkBranchStockQty = '';
+            this.bulkBranchApplyExisting = false;
+            this.showBulkBranchModal = true;
+        },
+
+        async bulkAssignBranches() {
+            if (this.bulkSelectedBranchIds.length === 0) return;
+            try {
+                await posAjax('/products/bulk-assign-branches', {
+                    product_ids: this.selectedIds.map(id => Number(id)),
+                    branches: this.bulkSelectedBranchIds.map(id => ({ branch_id: Number(id), enabled: true })),
+                    default_sale_price: this.bulkBranchSalePrice !== '' ? Number(this.bulkBranchSalePrice) : null,
+                    default_stock_quantity: this.bulkBranchStockQty !== '' ? Number(this.bulkBranchStockQty) : null,
+                    apply_to_existing: this.bulkBranchApplyExisting ? 1 : 0,
+                }, 'POST');
+                showToast('Şubelere atama tamamlandı', 'success');
+                this.showBulkBranchModal = false;
+                window.location.reload();
+            } catch (e) {
+                showToast(e.message || 'Şubelere atama başarısız', 'error');
+            }
+        },
+
         toggleSelectAll(event) {
             if (event.target.checked) {
                 this.selectedIds = [...document.querySelectorAll('tbody input[type=checkbox]')].map(cb => cb.value);
@@ -1699,6 +1793,7 @@ function productManager() {
 
         // ── CRUD ─────────────────────────────────
         async submitForm() {
+            if (!this.priceEditAllowed) { showToast('Fiyat düzenleme yetkiniz yok.', 'error'); return; }
             if (!this.form.name || !this.form.sale_price) { showToast('Ürün adı ve satış fiyatı zorunludur.', 'error'); return; }
             this.saving = true;
             const url = this.editingId ? '/products/' + this.editingId : '/products';
@@ -1767,6 +1862,7 @@ function productManager() {
 
         // ── Çoklu Fiyat ──────────────────────────
         async openPrices(productId, productName) {
+            if (!this.priceEditAllowed) { showToast('Fiyat düzenleme yetkiniz yok.', 'error'); return; }
             this.pricesProductId = productId; this.pricesProductName = productName;
             this.pricesList = []; this.pricesLoading = true; this.showPricesModal = true;
             this.newPriceLabel = ''; this.newPriceValue = ''; this.editingPriceId = null;
@@ -1776,6 +1872,7 @@ function productManager() {
         },
 
         async addPrice() {
+            if (!this.priceEditAllowed) { showToast('Fiyat düzenleme yetkiniz yok.', 'error'); return; }
             if (!this.newPriceLabel.trim() || !this.newPriceValue) return;
             try {
                 const res = await posAjax('/products/' + this.pricesProductId + '/prices', { method: 'POST', body: JSON.stringify({ label: this.newPriceLabel, price: this.newPriceValue }) });
@@ -1784,6 +1881,7 @@ function productManager() {
         },
 
         async updatePrice(priceId, idx) {
+            if (!this.priceEditAllowed) { showToast('Fiyat düzenleme yetkiniz yok.', 'error'); return; }
             try {
                 const res = await posAjax('/products/' + this.pricesProductId + '/prices/' + priceId, { method: 'PUT', body: JSON.stringify({ label: this.editPriceLabel, price: this.editPriceValue }) });
                 if (res.success) { this.pricesList[idx] = res.price; this.editingPriceId = null; showToast('Fiyat güncellendi', 'success'); }
@@ -1791,6 +1889,7 @@ function productManager() {
         },
 
         async deletePrice(priceId, idx) {
+            if (!this.priceEditAllowed) { showToast('Fiyat düzenleme yetkiniz yok.', 'error'); return; }
             if (!confirm('Bu fiyatı silmek istediğinize emin misiniz?')) return;
             try {
                 const res = await posAjax('/products/' + this.pricesProductId + '/prices/' + priceId, { method: 'DELETE' });

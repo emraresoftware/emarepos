@@ -37,12 +37,32 @@
                             @endif
                         </div>
                     </div>
-                    <button @click="openEdit({{ json_encode(['id' => $branch->id, 'name' => $branch->name, 'code' => $branch->code, 'address' => $branch->address, 'phone' => $branch->phone, 'city' => $branch->city, 'district' => $branch->district, 'is_active' => $branch->is_active]) }})"
-                            class="p-2 text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors sm:opacity-0 sm:group-hover:opacity-100" title="Düzenle">
+                        <div class="flex items-center gap-1">
+                            <button @click="openModules({{ json_encode(['id' => $branch->id, 'name' => $branch->name]) }})"
+                                class="p-2 text-gray-500 hover:text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors sm:opacity-0 sm:group-hover:opacity-100" title="Moduller">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+                                </svg>
+                            </button>
+                            <button @click="openDeviceSettings({{ json_encode(['id' => $branch->id, 'name' => $branch->name]) }})"
+                                class="p-2 text-gray-500 hover:text-purple-500 hover:bg-purple-500/10 rounded-lg transition-colors sm:opacity-0 sm:group-hover:opacity-100" title="Cihazlar">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17h6m-6 0a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2m-6 0h6"/>
+                                </svg>
+                            </button>
+                            <button @click="openStats({{ json_encode(['id' => $branch->id, 'name' => $branch->name]) }})"
+                                class="p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors sm:opacity-0 sm:group-hover:opacity-100" title="Rapor">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 19h16M6 16V8m6 8V5m6 11v-6"/>
+                                </svg>
+                            </button>
+                            <button @click="openEdit({{ json_encode(['id' => $branch->id, 'name' => $branch->name, 'code' => $branch->code, 'address' => $branch->address, 'phone' => $branch->phone, 'city' => $branch->city, 'district' => $branch->district, 'is_active' => $branch->is_active, 'is_center' => (bool)($branch->settings['is_center'] ?? false), 'price_edit_locked' => (bool)($branch->settings['price_edit_locked'] ?? false)]) }})"
+                                class="p-2 text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors sm:opacity-0 sm:group-hover:opacity-100" title="Düzenle">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                         </svg>
                     </button>
+                        </div>
                 </div>
 
                 @if($branch->address || $branch->city)
@@ -126,6 +146,16 @@
                         <input type="text" x-model="form.district" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5">
                     </div>
                 </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                    <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                        <input type="checkbox" x-model="form.is_center" class="rounded text-brand-500 border-gray-300 w-4 h-4">
+                        Merkez şube
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                        <input type="checkbox" x-model="form.price_edit_locked" class="rounded text-brand-500 border-gray-300 w-4 h-4">
+                        Fiyat düzenleme kilidi
+                    </label>
+                </div>
                 <div class="flex gap-3 pt-4 border-t border-gray-100">
                     <button type="button" @click="showModal = false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg">İptal</button>
                     <button type="submit" :disabled="saving" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-900 bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 rounded-lg disabled:opacity-50">
@@ -135,6 +165,153 @@
             </form>
         </div>
     </div>
+
+    {{-- Moduller Modal --}}
+    <div x-show="showModulesModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showModulesModal = false"></div>
+        <div class="relative bg-white rounded-xl border border-gray-100 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" x-transition>
+            <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-900">Moduller</h2>
+                    <p class="text-xs text-gray-500" x-text="moduleBranchName"></p>
+                </div>
+                <button @click="showModulesModal = false" class="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-3">
+                <div x-show="modulesLoading" class="text-center py-6"><i class="fas fa-spinner fa-spin text-brand-500"></i></div>
+                <template x-for="m in modulesList" :key="m.id">
+                    <div class="flex items-start justify-between gap-4 border border-gray-100 rounded-xl p-4">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-sm font-semibold text-gray-900" x-text="m.name"></h3>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full" :class="m.tenant_active ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'" x-text="m.tenant_active ? 'Plan aktif' : 'Plan disi'"></span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1" x-text="m.description || '-' "></p>
+                            <p class="text-[10px] text-gray-400 mt-1" x-text="'Scope: ' + m.scope"></p>
+                        </div>
+                        <label class="flex items-center gap-2 text-xs text-gray-700">
+                            <input type="checkbox" x-model="m.branch_active" :disabled="!m.tenant_active" class="rounded text-brand-500 border-gray-300 w-4 h-4">
+                            Aktif
+                        </label>
+                    </div>
+                </template>
+                <p x-show="!modulesLoading && modulesList.length === 0" class="text-center text-sm text-gray-400 py-6">Modul bulunamadi.</p>
+            </div>
+            <div class="border-t border-gray-100 px-6 py-4 flex gap-3">
+                <button type="button" @click="showModulesModal = false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg">Kapat</button>
+                <button type="button" @click="saveModules()" :disabled="modulesSaving" class="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 rounded-lg disabled:opacity-50">
+                    <span x-text="modulesSaving ? 'Kaydediliyor...' : 'Kaydet'"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- Cihaz Ayarlari Modal --}}
+    <div x-show="showDeviceModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showDeviceModal = false"></div>
+        <div class="relative bg-white rounded-xl border border-gray-100 shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto" x-transition>
+            <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-900">Cihaz Ayarlari</h2>
+                    <p class="text-xs text-gray-500" x-text="deviceBranchName"></p>
+                </div>
+                <button @click="showDeviceModal = false" class="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div x-show="deviceLoading" class="text-center py-6"><i class="fas fa-spinner fa-spin text-brand-500"></i></div>
+                <div x-show="!deviceLoading" class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Fis Yazicisi</label>
+                        <select x-model="deviceSettings.receipt_printer_id" class="w-full bg-white border border-gray-200 text-gray-800 text-sm rounded-lg px-4 py-2.5">
+                            <option value="">Otomatik (varsayilan)</option>
+                            <template x-for="p in deviceOptions.printers" :key="p.id">
+                                <option :value="String(p.id)" x-text="p.name + (p.is_default ? ' (varsayilan)' : '')"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Mutfak Yazicisi</label>
+                        <select x-model="deviceSettings.kitchen_printer_id" class="w-full bg-white border border-gray-200 text-gray-800 text-sm rounded-lg px-4 py-2.5">
+                            <option value="">Otomatik (mutfak etiketi)</option>
+                            <template x-for="p in deviceOptions.printers" :key="p.id">
+                                <option :value="String(p.id)" x-text="p.name"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Para Cekmecesi</label>
+                        <select x-model="deviceSettings.cash_drawer_device_id" class="w-full bg-white border border-gray-200 text-gray-800 text-sm rounded-lg px-4 py-2.5">
+                            <option value="">Otomatik (cekmece/yazici)</option>
+                            <template x-for="d in deviceOptions.cash_drawers" :key="d.id">
+                                <option :value="String(d.id)" x-text="d.name"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <p x-show="deviceOptions.printers.length === 0 && deviceOptions.cash_drawers.length === 0" class="text-sm text-gray-400 text-center py-4">Bu subeye ait cihaz bulunamadi.</p>
+                </div>
+            </div>
+            <div class="border-t border-gray-100 px-6 py-4 flex gap-3">
+                <button type="button" @click="showDeviceModal = false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg">Kapat</button>
+                <button type="button" @click="saveDeviceSettings()" :disabled="deviceSaving" class="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 rounded-lg disabled:opacity-50">
+                    <span x-text="deviceSaving ? 'Kaydediliyor...' : 'Kaydet'"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- Rapor Modal --}}
+    <div x-show="showStatsModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showStatsModal = false"></div>
+        <div class="relative bg-white rounded-xl border border-gray-100 shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" x-transition>
+            <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-900">Sube Raporu</h2>
+                    <p class="text-xs text-gray-500" x-text="statsBranchName"></p>
+                </div>
+                <button @click="showStatsModal = false" class="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6">
+                <div x-show="statsLoading" class="text-center py-8"><i class="fas fa-spinner fa-spin text-brand-500"></i></div>
+                <div x-show="!statsLoading && statsData" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
+                        <p class="text-xs text-emerald-600">Bugun Ciro</p>
+                        <p class="text-lg font-bold text-emerald-700" x-text="formatMoney(statsData.today_revenue)"></p>
+                        <p class="text-xs text-emerald-500" x-text="statsData.today_sales + ' satis'"></p>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                        <p class="text-xs text-blue-600">Toplam Ciro</p>
+                        <p class="text-lg font-bold text-blue-700" x-text="formatMoney(statsData.total_revenue)"></p>
+                        <p class="text-xs text-blue-500" x-text="statsData.total_sales + ' satis'"></p>
+                    </div>
+                    <div class="bg-purple-50 border border-purple-100 rounded-xl p-4">
+                        <p class="text-xs text-purple-600">Ortalama Fis</p>
+                        <p class="text-lg font-bold text-purple-700" x-text="formatMoney(statsData.avg_ticket)"></p>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-100 rounded-xl p-4">
+                        <p class="text-xs text-amber-600">Son 7 Gun</p>
+                        <p class="text-lg font-bold text-amber-700" x-text="formatMoney(statsData.last7_revenue)"></p>
+                    </div>
+                    <div class="bg-gray-50 border border-gray-100 rounded-xl p-4">
+                        <p class="text-xs text-gray-600">Son 30 Gun</p>
+                        <p class="text-lg font-bold text-gray-700" x-text="formatMoney(statsData.last30_revenue)"></p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                        <p class="text-xs text-slate-600">Operasyon</p>
+                        <p class="text-xs text-slate-600" x-text="'Kullanici: ' + statsData.users"></p>
+                        <p class="text-xs text-slate-600" x-text="'Masa: ' + statsData.tables"></p>
+                        <p class="text-xs text-slate-600" x-text="'Kasa: ' + statsData.cash_registers"></p>
+                        <p class="text-xs text-slate-600" x-text="'Siparis: ' + statsData.orders"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
 
@@ -142,10 +319,106 @@
 <script>
 function branchManager() {
     return {
-        showModal: false, editingId: null, saving: false,
-        form: { name: '', code: '', address: '', phone: '', city: '', district: '' },
-        openCreate() { this.editingId = null; this.form = { name: '', code: '', address: '', phone: '', city: '', district: '' }; this.showModal = true; },
-        openEdit(b) { this.editingId = b.id; this.form = { name: b.name||'', code: b.code||'', address: b.address||'', phone: b.phone||'', city: b.city||'', district: b.district||'' }; this.showModal = true; },
+        showModal: false, showModulesModal: false, showDeviceModal: false, showStatsModal: false, editingId: null, saving: false,
+        modulesLoading: false, modulesSaving: false, modulesList: [], moduleBranchId: null, moduleBranchName: '',
+        deviceLoading: false, deviceSaving: false, deviceOptions: { printers: [], cash_drawers: [] },
+        deviceSettings: { receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_device_id: '' },
+        deviceBranchId: null, deviceBranchName: '',
+        statsLoading: false, statsData: null, statsBranchName: '', statsBranchId: null,
+        form: { name: '', code: '', address: '', phone: '', city: '', district: '', is_center: false, price_edit_locked: false },
+        formatMoney(val) {
+            return parseFloat(val || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+        },
+        openCreate() { this.editingId = null; this.form = { name: '', code: '', address: '', phone: '', city: '', district: '', is_center: false, price_edit_locked: false }; this.showModal = true; },
+        openEdit(b) { this.editingId = b.id; this.form = { name: b.name||'', code: b.code||'', address: b.address||'', phone: b.phone||'', city: b.city||'', district: b.district||'', is_center: !!b.is_center, price_edit_locked: !!b.price_edit_locked }; this.showModal = true; },
+        async openModules(b) {
+            this.moduleBranchId = b.id;
+            this.moduleBranchName = b.name || '';
+            this.modulesList = [];
+            this.showModulesModal = true;
+            await this.loadModules();
+        },
+        async loadModules() {
+            if (!this.moduleBranchId) return;
+            this.modulesLoading = true;
+            try {
+                const res = await posAjax(`/branches/${this.moduleBranchId}/modules`, {}, 'GET');
+                this.modulesList = res.modules || [];
+            } catch (e) {
+                showToast(e.message || 'Moduller yuklenemedi', 'error');
+                this.modulesList = [];
+            } finally { this.modulesLoading = false; }
+        },
+        async saveModules() {
+            if (!this.moduleBranchId) return;
+            this.modulesSaving = true;
+            try {
+                await posAjax(`/branches/${this.moduleBranchId}/modules`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        modules: this.modulesList.map(m => ({ module_id: m.id, is_active: !!m.branch_active }))
+                    })
+                });
+                showToast('Moduller guncellendi', 'success');
+                this.showModulesModal = false;
+            } catch (e) {
+                showToast(e.message || 'Moduller guncellenemedi', 'error');
+            } finally { this.modulesSaving = false; }
+        },
+        async openDeviceSettings(b) {
+            this.deviceBranchId = b.id;
+            this.deviceBranchName = b.name || '';
+            this.deviceOptions = { printers: [], cash_drawers: [] };
+            this.deviceSettings = { receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_device_id: '' };
+            this.showDeviceModal = true;
+            await this.loadDeviceOptions();
+        },
+        async loadDeviceOptions() {
+            if (!this.deviceBranchId) return;
+            this.deviceLoading = true;
+            try {
+                const res = await posAjax(`/branches/${this.deviceBranchId}/devices`, {}, 'GET');
+                this.deviceOptions.printers = res.printers || [];
+                this.deviceOptions.cash_drawers = res.cash_drawers || [];
+                this.deviceSettings.receipt_printer_id = res.settings?.receipt_printer_id ? String(res.settings.receipt_printer_id) : '';
+                this.deviceSettings.kitchen_printer_id = res.settings?.kitchen_printer_id ? String(res.settings.kitchen_printer_id) : '';
+                this.deviceSettings.cash_drawer_device_id = res.settings?.cash_drawer_device_id ? String(res.settings.cash_drawer_device_id) : '';
+            } catch (e) {
+                showToast(e.message || 'Cihazlar yuklenemedi', 'error');
+            } finally { this.deviceLoading = false; }
+        },
+        async saveDeviceSettings() {
+            if (!this.deviceBranchId) return;
+            this.deviceSaving = true;
+            try {
+                await posAjax(`/branches/${this.deviceBranchId}/device-settings`, {
+                    method: 'POST',
+                    body: JSON.stringify(this.deviceSettings),
+                });
+                showToast('Cihaz ayarlari guncellendi', 'success');
+                this.showDeviceModal = false;
+            } catch (e) {
+                showToast(e.message || 'Cihaz ayarlari guncellenemedi', 'error');
+            } finally { this.deviceSaving = false; }
+        },
+        async openStats(b) {
+            this.statsBranchId = b.id;
+            this.statsBranchName = b.name || '';
+            this.statsData = null;
+            this.showStatsModal = true;
+            await this.loadStats();
+        },
+        async loadStats() {
+            if (!this.statsBranchId) return;
+            this.statsLoading = true;
+            try {
+                const res = await posAjax(`/branches/${this.statsBranchId}/stats`, {}, 'GET');
+                this.statsData = res.stats || null;
+            } catch (e) {
+                showToast(e.message || 'Rapor yuklenemedi', 'error');
+                this.statsData = null;
+            } finally { this.statsLoading = false; }
+        },
         async submitForm() {
             this.saving = true;
             const url = this.editingId ? `/branches/${this.editingId}` : '/branches';

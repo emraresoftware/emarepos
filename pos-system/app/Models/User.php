@@ -81,7 +81,13 @@ class User extends Authenticatable
         }
 
         // Check additional role permissions — tek sorguda (N+1 önlemi)
-        $additionalRoleIds = $this->additionalRoles->pluck('id');
+        $branchId = (int) session('branch_id');
+        $additionalRoleIds = $this->additionalRoles()
+            ->where(function ($q) use ($branchId) {
+                $q->whereNull('user_roles.branch_id')
+                    ->orWhere('user_roles.branch_id', $branchId);
+            })
+            ->pluck('roles.id');
         if ($additionalRoleIds->isNotEmpty()) {
             $hasViaExtra = DB::table('role_permissions')
                 ->join('permissions', 'permissions.id', '=', 'role_permissions.permission_id')

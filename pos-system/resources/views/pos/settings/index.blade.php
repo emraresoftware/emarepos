@@ -14,9 +14,11 @@
         <button @click="activeTab = 'general'" :class="activeTab === 'general' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white' : 'bg-white text-gray-500 hover:text-gray-800'" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             <i class="fas fa-cog mr-1"></i> Genel Ayarlar
         </button>
-        <button @click="activeTab = 'payment'" :class="activeTab === 'payment' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white' : 'bg-white text-gray-500 hover:text-gray-800'" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            <i class="fas fa-credit-card mr-1"></i> Ödeme Tipleri
-        </button>
+        @if($canManagePaymentTypes)
+            <button @click="activeTab = 'payment'" :class="activeTab === 'payment' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white' : 'bg-white text-gray-500 hover:text-gray-800'" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                <i class="fas fa-credit-card mr-1"></i> Ödeme Tipleri
+            </button>
+        @endif
         <button @click="activeTab = 'tax'" :class="activeTab === 'tax' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white' : 'bg-white text-gray-500 hover:text-gray-800'" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             <i class="fas fa-percent mr-1"></i> Vergi Oranları
         </button>
@@ -104,6 +106,11 @@
 
     {{-- Payment Types Tab --}}
     <div x-show="activeTab === 'payment'" x-transition x-data="paymentTypeManager()">
+        @if(!$canManagePaymentTypes)
+            <div class="bg-amber-50 border border-amber-200 text-amber-700 text-sm rounded-xl p-4">
+                Bu alan yalnızca merkez şube ve yetkili kullanıcılar tarafından yönetilebilir.
+            </div>
+        @endif
         {{-- Yeni Ödeme Türü Ekle --}}
         <div class="bg-white rounded-xl border border-gray-100 p-4 mb-4">
             <h4 class="text-sm font-semibold text-gray-800 mb-3"><i class="fas fa-plus-circle text-brand-500 mr-1"></i> Yeni Ödeme Türü Ekle</h4>
