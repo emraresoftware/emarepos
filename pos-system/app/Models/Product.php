@@ -211,7 +211,7 @@ class Product extends Model
         return $total;
     }
 
-    public function adjustStockForBranch(int $branchId, float $delta): float
+    public function adjustStockForBranch(int $branchId, float $delta, bool $allowNegative = false): float
     {
         $branchProduct = $this->branchStockRecord($branchId);
         $hasAnyBranchStock = $branchProduct !== null || $this->branchStockEnabled();
@@ -220,7 +220,7 @@ class Product extends Model
             : ($hasAnyBranchStock ? 0.0 : (float) $this->stock_quantity);
 
         $newStock = $currentStock + $delta;
-        if ($newStock < 0) {
+        if ($newStock < 0 && !$allowNegative) {
             throw new \Exception("'{$this->name}' için yeterli stok yok (Mevcut: {$currentStock}).");
         }
 

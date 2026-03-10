@@ -121,10 +121,6 @@ class SaleService
 
                 if ($product && !$product->is_service) {
                     $qty = $item['quantity'] ?? 1;
-                    $currentStock = $product->stockForBranch($branchId);
-                    if ($currentStock < $qty) {
-                        throw new \Exception("'{$product->name}' için yeterli stok yok (Mevcut: {$currentStock}).");
-                    }
                 }
                 
                 $saleItem = SaleItem::create([
@@ -145,7 +141,7 @@ class SaleService
                 
                 // Update stock
                 if ($product && !$product->is_service) {
-                    $remainingStock = $product->adjustStockForBranch($branchId, -(float) ($item['quantity'] ?? 1));
+                    $remainingStock = $product->adjustStockForBranch($branchId, -(float) ($item['quantity'] ?? 1), true);
                     
                     // Create stock movement
                     StockMovement::create([
