@@ -324,8 +324,35 @@ function branchManager() {
         deviceLoading: false, deviceSaving: false, deviceOptions: { printers: [], cash_drawers: [] },
         deviceSettings: { receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_device_id: '' },
         deviceBranchId: null, deviceBranchName: '',
-        statsLoading: false, statsData: null, statsBranchName: '', statsBranchId: null,
+        statsLoading: false, statsData: {
+            today_revenue: 0,
+            today_sales: 0,
+            total_revenue: 0,
+            total_sales: 0,
+            avg_ticket: 0,
+            last7_revenue: 0,
+            last30_revenue: 0,
+            users: 0,
+            tables: 0,
+            cash_registers: 0,
+            orders: 0,
+        }, statsBranchName: '', statsBranchId: null,
         form: { name: '', code: '', address: '', phone: '', city: '', district: '', is_center: false, price_edit_locked: false },
+        defaultStats() {
+            return {
+                today_revenue: 0,
+                today_sales: 0,
+                total_revenue: 0,
+                total_sales: 0,
+                avg_ticket: 0,
+                last7_revenue: 0,
+                last30_revenue: 0,
+                users: 0,
+                tables: 0,
+                cash_registers: 0,
+                orders: 0,
+            };
+        },
         formatMoney(val) {
             return parseFloat(val || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
         },
@@ -404,7 +431,7 @@ function branchManager() {
         async openStats(b) {
             this.statsBranchId = b.id;
             this.statsBranchName = b.name || '';
-            this.statsData = null;
+            this.statsData = this.defaultStats();
             this.showStatsModal = true;
             await this.loadStats();
         },
@@ -413,10 +440,10 @@ function branchManager() {
             this.statsLoading = true;
             try {
                 const res = await posAjax(`/branches/${this.statsBranchId}/stats`, {}, 'GET');
-                this.statsData = res.stats || null;
+                this.statsData = res.stats || this.defaultStats();
             } catch (e) {
                 showToast(e.message || 'Rapor yuklenemedi', 'error');
-                this.statsData = null;
+                this.statsData = this.defaultStats();
             } finally { this.statsLoading = false; }
         },
         async submitForm() {
