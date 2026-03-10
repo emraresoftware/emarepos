@@ -78,6 +78,17 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
             </div>
+            <select x-model="groupFilter" @change="applySearch()"
+                    class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                <option value="">Tüm Gruplar</option>
+                @foreach($groups as $g)
+                    <option value="{{ $g->id }}">{{ $g->name }} ({{ $g->customers_count }})</option>
+                @endforeach
+            </select>
+            <button @click="showGroupPanel = !showGroupPanel"
+                    class="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium rounded-xl text-sm px-4 py-2.5 transition-colors flex items-center gap-2">
+                <i class="fas fa-layer-group"></i> Gruplar
+            </button>
             <button @click="openCreate()"
                     class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-white font-semibold rounded-xl text-sm px-5 py-2.5 transition-all flex items-center gap-2 justify-center whitespace-nowrap">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,6 +99,34 @@
         </div>
     </div>
 
+    {{-- Grup Yönetim Paneli --}}
+    <div x-show="showGroupPanel" x-transition class="bg-white rounded-2xl border border-gray-200 p-5 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-semibold text-gray-900"><i class="fas fa-layer-group text-brand-500 mr-2"></i>Müşteri Grupları</h3>
+            <button @click="showGroupPanel = false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-4">
+            @foreach($groups as $g)
+                <div class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+                    <span class="text-sm text-gray-700">{{ $g->name }}</span>
+                    <span class="text-xs text-gray-400">({{ $g->customers_count }})</span>
+                    <button @click="editGroup({{ $g->id }}, '{{ addslashes($g->name) }}')" class="text-gray-400 hover:text-yellow-500"><i class="fas fa-pen text-[10px]"></i></button>
+                    <button @click="deleteGroup({{ $g->id }})" class="text-gray-400 hover:text-red-500"><i class="fas fa-trash text-[10px]"></i></button>
+                </div>
+            @endforeach
+            <div x-show="!showGroupForm" class="flex items-center">
+                <button @click="showGroupForm = true; newGroupName = ''" class="text-sm text-brand-500 hover:text-brand-600"><i class="fas fa-plus mr-1"></i>Yeni Grup</button>
+            </div>
+        </div>
+        <div x-show="showGroupForm" class="flex items-center gap-2">
+            <input type="text" x-model="newGroupName" placeholder="Grup adı" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg px-3 py-2 flex-1 focus:border-brand-500">
+            <button @click="saveGroup()" :disabled="!newGroupName.trim()" class="px-4 py-2 bg-brand-500 text-white text-sm rounded-lg hover:bg-brand-600 disabled:opacity-50">
+                <span x-text="editingGroupId ? 'Güncelle' : 'Ekle'"></span>
+            </button>
+            <button @click="showGroupForm = false; editingGroupId = null" class="px-3 py-2 text-gray-500 hover:text-gray-700 text-sm">Vazgeç</button>
+        </div>
+    </div>
+
     {{-- Customer Table --}}
     <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-lg shadow-gray-100/50">
         <div class="overflow-x-auto">
@@ -95,6 +134,7 @@
                 <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200">
                     <tr>
                         <th class="px-4 py-3.5">Ad Soyad</th>
+                        <th class="px-4 py-3.5">Grup</th>
                         <th class="px-4 py-3.5">Telefon</th>
                         <th class="px-4 py-3.5 hidden md:table-cell">E-posta</th>
                         <th class="px-4 py-3.5 hidden lg:table-cell">Vergi No</th>
@@ -123,6 +163,14 @@
                                         @endif
                                     </div>
                                 </div>
+                            </td>
+                            {{-- Group --}}
+                            <td class="px-4 py-3">
+                                @if($customer->group)
+                                    <span class="text-xs bg-purple-500/10 text-purple-600 px-2 py-0.5 rounded-full">{{ $customer->group->name }}</span>
+                                @else
+                                    <span class="text-xs text-gray-400">-</span>
+                                @endif
                             </td>
                             {{-- Phone --}}
                             <td class="px-4 py-3">
@@ -176,6 +224,7 @@
                                     <button @click="openEdit({{ json_encode([
                                                 'id' => $customer->id,
                                                 'name' => $customer->name,
+                                                'customer_group_id' => $customer->customer_group_id,
                                                 'phone' => $customer->phone,
                                                 'email' => $customer->email,
                                                 'tax_number' => $customer->tax_number,
@@ -203,7 +252,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-4 py-12 text-center">
+                            <td colspan="9" class="px-4 py-12 text-center">
                                 <div class="flex flex-col items-center gap-3">
                                     <svg class="w-12 h-12 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -398,6 +447,16 @@
                     <input type="text" x-model="form.name" required
                            class="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400"
                            placeholder="Müşteri adını girin">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Müşteri Grubu</label>
+                    <select x-model="form.customer_group_id" class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                        <option value="">Grup Seç (Opsiyonel)</option>
+                        @foreach($groups as $g)
+                            <option value="{{ $g->id }}">{{ $g->name }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
                 {{-- Phone & Email --}}
@@ -599,6 +658,8 @@ function customerManager() {
         showFormModal: false,
         showCollectModal: false,
         showDetailModal: false,
+        showGroupPanel: false,
+        showGroupForm: false,
         detailLoading: false,
         detailData: null,
         detailTab: 'sales',
@@ -606,6 +667,9 @@ function customerManager() {
         saving: false,
         collecting: false,
         searchQuery: new URLSearchParams(window.location.search).get('search') || '',
+        groupFilter: new URLSearchParams(window.location.search).get('group_id') || '',
+        newGroupName: '',
+        editingGroupId: null,
 
         collectCustomerId: null,
         collectCustomerName: '',
@@ -613,6 +677,7 @@ function customerManager() {
 
         form: {
             name: '',
+            customer_group_id: '',
             phone: '',
             email: '',
             tax_number: '',
@@ -631,6 +696,7 @@ function customerManager() {
         resetForm() {
             this.form = {
                 name: '',
+                customer_group_id: '',
                 phone: '',
                 email: '',
                 tax_number: '',
@@ -678,6 +744,7 @@ function customerManager() {
             this.editingId = customer.id;
             this.form = {
                 name: customer.name || '',
+                customer_group_id: customer.customer_group_id ? String(customer.customer_group_id) : '',
                 phone: customer.phone || '',
                 email: customer.email || '',
                 tax_number: customer.tax_number || '',
@@ -751,7 +818,31 @@ function customerManager() {
         applySearch() {
             const params = new URLSearchParams();
             if (this.searchQuery) params.set('search', this.searchQuery);
+            if (this.groupFilter) params.set('group_id', this.groupFilter);
             window.location.href = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        },
+        editGroup(id, name) {
+            this.editingGroupId = id;
+            this.newGroupName = name;
+            this.showGroupForm = true;
+        },
+        async saveGroup() {
+            if (!this.newGroupName.trim()) return;
+            try {
+                if (this.editingGroupId) {
+                    await posAjax(`/customer-groups/${this.editingGroupId}`, { name: this.newGroupName }, 'PUT');
+                    showToast('Grup güncellendi', 'success');
+                } else {
+                    await posAjax('/customer-groups', { name: this.newGroupName }, 'POST');
+                    showToast('Grup oluşturuldu', 'success');
+                }
+                window.location.reload();
+            } catch(e) { showToast(e.message || 'Hata', 'error'); }
+        },
+        async deleteGroup(id) {
+            if (!confirm('Bu grubu silmek istediğinize emin misiniz?')) return;
+            try { await posAjax(`/customer-groups/${id}`, {}, 'DELETE'); showToast('Grup silindi', 'success'); window.location.reload(); }
+            catch(e) { showToast(e.message || 'Silinemedi', 'error'); }
         },
     };
 }

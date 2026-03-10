@@ -67,8 +67,9 @@
     @stack('styles')
 </head>
 <body class="h-full bg-gray-50 font-sans antialiased text-gray-800">
-    <div x-data="{ sidebarOpen: window.innerWidth >= 1024, sidebarMobile: false }" 
-         @resize.window="sidebarOpen = window.innerWidth >= 1024; if(window.innerWidth >= 1024) sidebarMobile = false" 
+            <div x-data="(() => { const collapseOnLoad = @json(request()->routeIs('pos.sales', 'pos.kitchen', 'pos.tables*')) || @json(request()->is('pos', 'kitchen', 'tables*')); return { collapseOnLoad, sidebarOpen: window.innerWidth >= 1024 && !collapseOnLoad, sidebarMobile: false }; })()" 
+                x-init="if (collapseOnLoad && window.innerWidth >= 1024) sidebarOpen = false"
+                @resize.window="sidebarOpen = window.innerWidth >= 1024 && !collapseOnLoad; if(window.innerWidth >= 1024) sidebarMobile = false" 
          class="h-full flex">
 
         <!-- Mobile Hamburger -->

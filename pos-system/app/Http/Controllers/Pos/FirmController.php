@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Firm;
 use App\Models\FirmGroup;
 use App\Models\AccountTransaction;
+use App\Models\PurchaseInvoice;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
@@ -57,9 +58,22 @@ class FirmController extends Controller
             ->limit(50)
             ->get();
 
+        $payments = AccountTransaction::where('firm_id', $firm->id)
+            ->where('type', 'payment')
+            ->orderBy('created_at', 'desc')
+            ->limit(50)
+            ->get();
+
+        $purchaseInvoices = PurchaseInvoice::where('firm_id', $firm->id)
+            ->orderByDesc('invoice_date')
+            ->limit(50)
+            ->get();
+
         return response()->json([
             'firm' => $firm,
             'transactions' => $transactions,
+            'payments' => $payments,
+            'purchase_invoices' => $purchaseInvoices,
         ]);
     }
 

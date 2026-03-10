@@ -13,6 +13,7 @@ class Customer extends Model
 
     protected $fillable = [
         'tenant_id',
+        'customer_group_id',
         'external_id',
         'name',
         'type',
@@ -51,5 +52,10 @@ class Customer extends Model
     public function loyaltyPoints()
     {
         return $this->hasMany(LoyaltyPoint::class);
+    }
+
+    public function group()
+    {
+        return $this->belongsTo(CustomerGroup::class, 'customer_group_id');
     }
 }

@@ -138,6 +138,9 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class, 'throttle:
     Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('pos.customers.update');
     Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('pos.customers.destroy');
     Route::post('/customers/{customer}/payment', [CustomerController::class, 'addPayment'])->name('pos.customers.payment');
+    Route::post('/customer-groups', [CustomerController::class, 'storeGroup'])->name('pos.customer-groups.store');
+    Route::put('/customer-groups/{group}', [CustomerController::class, 'updateGroup'])->name('pos.customer-groups.update');
+    Route::delete('/customer-groups/{group}', [CustomerController::class, 'destroyGroup'])->name('pos.customer-groups.destroy');
     
     // Raporlar (Reports)
     Route::get('/reports', [ReportController::class, 'index'])->name('pos.reports');

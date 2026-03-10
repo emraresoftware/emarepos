@@ -117,7 +117,7 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse($firms as $firm)
-                        <tr class="hover:bg-gray-50 transition-colors">
+                        <tr class="hover:bg-gray-50 transition-colors cursor-pointer" @click="openDetail({{ $firm->id }})">
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-3">
                                     <div class="w-9 h-9 rounded-full bg-purple-500/10 flex items-center justify-center text-sm font-semibold text-purple-600">
@@ -144,15 +144,15 @@
                             </td>
                             <td class="px-4 py-3 text-center">
                                 <div class="flex items-center justify-center gap-1">
-                                    <button @click="openDetail({{ $firm->id }})"
+                                        <button @click.stop="openDetail({{ $firm->id }})"
                                             class="p-2 text-gray-500 hover:text-brand-600 hover:bg-brand-500/10 rounded-lg transition-colors" title="Detay / Hareketler">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                                     </button>
-                                    <button @click="openEdit({{ json_encode(['id'=>$firm->id,'name'=>$firm->name,'firm_group_id'=>$firm->firm_group_id,'tax_number'=>$firm->tax_number,'tax_office'=>$firm->tax_office,'phone'=>$firm->phone,'email'=>$firm->email,'address'=>$firm->address,'city'=>$firm->city,'notes'=>$firm->notes]) }})"
+                                        <button @click.stop="openEdit({{ json_encode(['id'=>$firm->id,'name'=>$firm->name,'firm_group_id'=>$firm->firm_group_id,'tax_number'=>$firm->tax_number,'tax_office'=>$firm->tax_office,'phone'=>$firm->phone,'email'=>$firm->email,'address'=>$firm->address,'city'=>$firm->city,'notes'=>$firm->notes]) }})"
                                             class="p-2 text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors" title="Düzenle">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                     </button>
-                                    <button @click="openPayment({{ $firm->id }}, '{{ addslashes($firm->name) }}', {{ $bal }})"
+                                        <button @click.stop="openPayment({{ $firm->id }}, '{{ addslashes($firm->name) }}', {{ $bal }})"
                                             class="p-2 text-gray-500 hover:text-emerald-600 hover:bg-green-500/10 rounded-lg transition-colors" title="Ödeme">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                                     </button>
@@ -269,38 +269,113 @@
                             </div>
                         </div>
 
-                        {{-- Hareketler Başlığı --}}
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="font-semibold text-gray-900 text-sm"><i class="fas fa-list-ul mr-2 text-brand-500"></i>Hesap Hareketleri</h3>
-                            <button @click="openPayment(detailData.firm.id, detailData.firm.name, detailData.firm.balance); showDetailModal = false"
-                                    class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium rounded-lg transition-colors">
-                                <i class="fas fa-plus mr-1"></i>Ödeme Ekle
+                        {{-- Sekmeler --}}
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <button @click="detailTab = 'invoices'"
+                                    class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+                                    :class="detailTab === 'invoices' ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'">
+                                Alış Faturaları
+                            </button>
+                            <button @click="detailTab = 'payments'"
+                                    class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+                                    :class="detailTab === 'payments' ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'">
+                                Ödemeler / Tahsilatlar
+                            </button>
+                            <button @click="detailTab = 'movements'"
+                                    class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+                                    :class="detailTab === 'movements' ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'">
+                                Bakiye Hareketleri
+                            </button>
+                            <button @click="detailTab = 'notes'"
+                                    class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+                                    :class="detailTab === 'notes' ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'">
+                                Notlar
                             </button>
                         </div>
 
-                        {{-- Hareketler Listesi --}}
-                        <div x-show="detailData.transactions.length === 0" class="text-center py-8 text-gray-400 text-sm">
-                            Henüz hareket kaydı yok
-                        </div>
-                        <div class="space-y-2" x-show="detailData.transactions.length > 0">
-                            <template x-for="t in detailData.transactions" :key="t.id">
-                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                                             :class="t.amount > 0 ? 'bg-emerald-500' : 'bg-red-500'">
-                                            <i :class="t.amount > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
-                                        </div>
+                        {{-- Alış Faturaları --}}
+                        <div x-show="detailTab === 'invoices'">
+                            <div x-show="detailData.purchase_invoices.length === 0" class="text-center py-8 text-gray-400 text-sm">
+                                Alış faturası bulunamadı
+                            </div>
+                            <div class="space-y-2" x-show="detailData.purchase_invoices.length > 0">
+                                <template x-for="inv in detailData.purchase_invoices" :key="inv.id">
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
                                         <div>
-                                            <p class="text-sm font-medium text-gray-800" x-text="t.description || t.type"></p>
-                                            <p class="text-xs text-gray-400" x-text="t.reference ? ('Ref: ' + t.reference) : ''"></p>
+                                            <p class="text-sm font-medium text-gray-800" x-text="inv.invoice_no || ('Fatura #' + inv.id)"></p>
+                                            <p class="text-xs text-gray-400" x-text="inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('tr-TR') : ''"></p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-bold text-gray-900" x-text="formatCur(inv.grand_total)"></p>
+                                            <p class="text-xs text-gray-400" x-text="(inv.status || '-') + ' / ' + (inv.payment_status || '-')"></p>
                                         </div>
                                     </div>
-                                    <div class="text-right">
-                                        <p class="text-sm font-bold" :class="t.amount > 0 ? 'text-emerald-600' : 'text-red-500'" x-text="(t.amount > 0 ? '+' : '') + formatCur(t.amount)"></p>
-                                        <p class="text-xs text-gray-400" x-text="t.transaction_date ? new Date(t.transaction_date).toLocaleDateString('tr-TR') : ''"></p>
+                                </template>
+                            </div>
+                        </div>
+
+                        {{-- Ödemeler / Tahsilatlar --}}
+                        <div x-show="detailTab === 'payments'">
+                            <div class="flex items-center justify-end mb-3">
+                                <button @click="openPayment(detailData.firm.id, detailData.firm.name, detailData.firm.balance); showDetailModal = false"
+                                        class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium rounded-lg transition-colors">
+                                    <i class="fas fa-plus mr-1"></i>Ödeme Ekle
+                                </button>
+                            </div>
+                            <div x-show="detailData.payments.length === 0" class="text-center py-8 text-gray-400 text-sm">
+                                Ödeme / tahsilat kaydı yok
+                            </div>
+                            <div class="space-y-2" x-show="detailData.payments.length > 0">
+                                <template x-for="t in detailData.payments" :key="t.id">
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold bg-emerald-500">
+                                                <i class="fas fa-arrow-up"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-800" x-text="t.description || t.type"></p>
+                                                <p class="text-xs text-gray-400" x-text="t.reference ? ('Ref: ' + t.reference) : ''"></p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-bold text-emerald-600" x-text="'+' + formatCur(t.amount)"></p>
+                                            <p class="text-xs text-gray-400" x-text="t.transaction_date ? new Date(t.transaction_date).toLocaleDateString('tr-TR') : ''"></p>
+                                        </div>
                                     </div>
-                                </div>
-                            </template>
+                                </template>
+                            </div>
+                        </div>
+
+                        {{-- Bakiye Hareketleri --}}
+                        <div x-show="detailTab === 'movements'">
+                            <div x-show="detailData.transactions.length === 0" class="text-center py-8 text-gray-400 text-sm">
+                                Henüz hareket kaydı yok
+                            </div>
+                            <div class="space-y-2" x-show="detailData.transactions.length > 0">
+                                <template x-for="t in detailData.transactions" :key="t.id">
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                                                 :class="t.amount > 0 ? 'bg-emerald-500' : 'bg-red-500'">
+                                                <i :class="t.amount > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-800" x-text="t.description || t.type"></p>
+                                                <p class="text-xs text-gray-400" x-text="t.reference ? ('Ref: ' + t.reference) : ''"></p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-bold" :class="t.amount > 0 ? 'text-emerald-600' : 'text-red-500'" x-text="(t.amount > 0 ? '+' : '') + formatCur(t.amount)"></p>
+                                            <p class="text-xs text-gray-400" x-text="t.transaction_date ? new Date(t.transaction_date).toLocaleDateString('tr-TR') : ''"></p>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        {{-- Notlar --}}
+                        <div x-show="detailTab === 'notes'">
+                            <div class="bg-gray-50 rounded-xl border border-gray-100 p-4 text-sm text-gray-700 whitespace-pre-line" x-text="detailData.firm.notes || 'Not bulunmuyor.'"></div>
                         </div>
                     </div>
                 </template>
@@ -319,6 +394,7 @@ function firmManager() {
         showGroupPanel: false, showGroupForm: false,
         editingId: null, saving: false, paying: false, detailLoading: false,
         detailData: null,
+        detailTab: 'movements',
         searchQuery: new URLSearchParams(window.location.search).get('search') || '',
         groupFilter: new URLSearchParams(window.location.search).get('group_id') || '',
         // Grup y\u00f6netimi
@@ -330,6 +406,7 @@ function firmManager() {
         openPayment(id, name, balance) { this.payFirmId = id; this.payFirmName = name; this.payFirmBalance = balance; this.payForm = { amount: '', description: '' }; this.showPaymentModal = true; },
         async openDetail(id) {
             this.detailData = null;
+            this.detailTab = 'movements';
             this.detailLoading = true;
             this.showDetailModal = true;
             try {

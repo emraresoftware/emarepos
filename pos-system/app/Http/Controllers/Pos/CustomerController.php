@@ -3,16 +3,19 @@ namespace App\Http\Controllers\Pos;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\CustomerGroup;
 use App\Models\AccountTransaction;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use App\Models\ActivityLog;
+use Illuminate\Validation\Rule;
 
 class CustomerController extends Controller
 {
     public function index(Request $request)
     {
         $query = Customer::where('is_active', true)
+            ->with('group')
             ->withSum('sales', 'grand_total')
             ->withMax('sales', 'sold_at')
             ->orderBy('name');
@@ -25,15 +28,21 @@ class CustomerController extends Controller
                   ->orWhere('email', 'like', "%{$s}%");
             });
         }
+
+        if ($request->filled('group_id')) {
+            $query->where('customer_group_id', $request->group_id);
+        }
         
         $customers = $query->paginate(50)->withQueryString();
-        return view('pos.customers.index', compact('customers'));
+        $groups = CustomerGroup::where('is_active', true)->withCount('customers')->orderBy('name')->get();
+        return view('pos.customers.index', compact('customers', 'groups'));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
+            'customer_group_id' => ['nullable', 'integer', Rule::exists('customer_groups', 'id')->where('tenant_id', session('tenant_id'))],
             'phone' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
             'type' => 'nullable|string',
@@ -77,6 +86,7 @@ class CustomerController extends Controller
         }
         $data = $request->validate([
             'name' => 'required|string|max:255',
+            'customer_group_id' => ['nullable', 'integer', Rule::exists('customer_groups', 'id')->where('tenant_id', session('tenant_id'))],
             'phone' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
             'type' => 'nullable|string',
@@ -137,5 +147,43 @@ class CustomerController extends Controller
         $customer->update(['is_active' => false]);
         ActivityLog::log('delete', 'Müşteri pasife alındı: ' . $customer->name, $customer);
         return response()->json(['success' => true, 'message' => 'Müşteri pasife alındı.']);
+    }
+
+    // ─── Müşteri Grupları ─────────────────────────────────────
+
+    public function storeGroup(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+        $data['tenant_id'] = session('tenant_id');
+        $group = CustomerGroup::create($data);
+        return response()->json(['success' => true, 'group' => $group]);
+    }
+
+    public function updateGroup(Request $request, CustomerGroup $group)
+    {
+        if ($group->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+        $group->update($data);
+        return response()->json(['success' => true, 'group' => $group->fresh()]);
+    }
+
+    public function destroyGroup(CustomerGroup $group)
+    {
+        if ($group->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
+        if ($group->customers()->exists()) {
+            $group->customers()->update(['customer_group_id' => null]);
+        }
+        $group->delete();
+        return response()->json(['success' => true]);
     }
 }

@@ -159,17 +159,20 @@
     </div>
 
     {{-- SAĞ PANEL: Sepet --}}
-    <div class="w-full lg:w-[440px] flex flex-col bg-white border-l border-gray-200 flex-1 min-h-0 lg:flex-none overflow-hidden"
-         :class="{ 'hidden lg:flex': mobileTab !== 'cart' }">
+        <div class="w-full lg:flex-none flex flex-col bg-white border-l border-gray-200 flex-1 min-h-0 overflow-hidden relative"
+            :style="panelStyle()"
+            :class="{ 'hidden lg:flex': mobileTab !== 'cart' }">
+           <div x-show="panelResizeEnabled" x-cloak
+               class="hidden lg:block absolute left-0 top-0 h-full w-1.5 cursor-col-resize bg-transparent hover:bg-brand-200/40"
+               @mousedown.prevent="startPanelResize($event)"></div>
 
         {{-- Koyu Header: Barkod + Toplam + KDV --}}
         <div class="bg-gray-100 shrink-0">
             {{-- Barkod Input --}}
             <div class="px-3 pt-2 pb-1">
                 <div class="relative">
-                    <input type="text" x-model="searchQuery"
-                           @keydown.enter="addByBarcode()"
-                           @input.debounce.400ms="searchProducts()"
+                          <input type="text" x-model="barcodeQuery"
+                              @keydown.enter="addByBarcode()"
                            placeholder="Barkod Okutunuz"
                            class="w-full pl-3 pr-10 py-2.5 bg-white border-2 border-blue-400 rounded text-gray-900 text-sm font-medium placeholder-gray-400 focus:outline-none focus:border-blue-500"
                            x-ref="searchInput">
@@ -900,6 +903,7 @@ function posScreen() {
         cart: [],
         selectedCategory: null,
         searchQuery: '',
+        barcodeQuery: '',
         selectedCustomer: null,
         customerResults: [],
         generalDiscount: 0,
@@ -952,9 +956,17 @@ function posScreen() {
         pendingPriceCallback: null,
         // Fiş ayarları
         receiptSettings: @json($receiptSettings),
+        isDesktop: window.innerWidth >= 1024,
+        panelWidth: 520,
+        panelMinWidth: 420,
+        panelMaxWidth: 720,
+        panelResizing: false,
+        panelResizeEnabled: {{ auth()->user()->is_super_admin ? 'true' : 'false' }},
+        panelResizeStorageKey: 'pos_cart_width',
 
         init() {
             this.showAllProducts();
+            this.initPanelResize();
             this.$refs.searchInput?.focus();
             // Barkod okuyucu için keyboard shortcut
             window.addEventListener('keydown', (e) => {
@@ -964,6 +976,48 @@ function posScreen() {
                 if (e.key === 'F6') { e.preventDefault(); this.processPayment('card'); }
                 if (e.key === 'Escape') { this.showMixedPayment = false; this.showReceipt = false; this.showDiscountModal = false; this.showRecentSales = false; this.showRefundModal = false; this.showPriceSelectModal = false; }
             });
+            window.addEventListener('resize', () => {
+                this.isDesktop = window.innerWidth >= 1024;
+            });
+        },
+
+        initPanelResize() {
+            if (this.panelResizeEnabled) {
+                const saved = localStorage.getItem(this.panelResizeStorageKey);
+                if (saved) {
+                    this.panelWidth = this.clampPanelWidth(parseInt(saved, 10));
+                }
+            }
+
+            this.panelResizeMove = (e) => {
+                if (!this.panelResizing) return;
+                this.panelWidth = this.clampPanelWidth(window.innerWidth - e.clientX);
+            };
+            this.panelResizeEnd = () => {
+                if (!this.panelResizing) return;
+                this.panelResizing = false;
+                document.body.classList.remove('select-none');
+                if (this.panelResizeEnabled) {
+                    localStorage.setItem(this.panelResizeStorageKey, String(this.panelWidth));
+                }
+            };
+
+            window.addEventListener('mousemove', this.panelResizeMove);
+            window.addEventListener('mouseup', this.panelResizeEnd);
+        },
+
+        clampPanelWidth(value) {
+            return Math.max(this.panelMinWidth, Math.min(this.panelMaxWidth, value));
+        },
+
+        panelStyle() {
+            return this.isDesktop ? `width: ${this.panelWidth}px;` : '';
+        },
+
+        startPanelResize() {
+            if (!this.panelResizeEnabled) return;
+            this.panelResizing = true;
+            document.body.classList.add('select-none');
         },
 
         async showAllProducts() {
@@ -1006,20 +1060,45 @@ function posScreen() {
             }
         },
 
-        addByBarcode() {
-            const barcode = this.searchQuery.trim();
-            const product = this.products.find(p => p.barcode === barcode);
-            if (product) {
-                // Çoklu fiyat varsa modal aç
-                if (product.alternative_prices && product.alternative_prices.length > 0) {
-                    this.pendingProduct = product;
-                    this.showPriceSelectModal = true;
+        async addByBarcode() {
+            const query = this.barcodeQuery.trim();
+            if (!query) return;
+
+            let product = this.products.find(p =>
+                (p.barcode && p.barcode === query) ||
+                (p.name && p.name.toLowerCase() === query.toLowerCase())
+            );
+
+            if (!product) {
+                try {
+                    const data = await posAjax('{{ route("pos.products.search") }}?q=' + encodeURIComponent(query), {}, 'GET');
+                    if (Array.isArray(data) && data.length === 1) {
+                        product = data[0];
+                    } else if (Array.isArray(data) && data.length > 1) {
+                        showToast('Birden fazla ürün bulundu, soldan seçiniz.', 'warning');
+                        return;
+                    }
+                } catch (e) {
+                    showToast('Ürün bulunamadı.', 'error');
                     return;
                 }
-                this.addToCart(product);
-                this.searchQuery = '';
-                this.showAllProducts();
             }
+
+            if (!product) {
+                showToast('Ürün bulunamadı.', 'error');
+                return;
+            }
+
+            // Çoklu fiyat varsa modal aç
+            if (product.alternative_prices && product.alternative_prices.length > 0) {
+                this.pendingProduct = product;
+                this.showPriceSelectModal = true;
+                this.barcodeQuery = '';
+                return;
+            }
+
+            this.addToCart(product);
+            this.barcodeQuery = '';
         },
 
         addToCart(product) {
@@ -1310,7 +1389,7 @@ function posScreen() {
         },
 
         checkPrice() {
-            const barcode = this.searchQuery.trim();
+            const barcode = this.barcodeQuery.trim();
             if (!barcode) { showToast('Barkod alanına ürün barkodunu girin', 'warning'); return; }
             const product = this.products.find(p => p.barcode === barcode);
             if (product) {
@@ -1513,7 +1592,7 @@ function posScreen() {
                     });
                 }
                 this.recalcTotals();
-                this.searchQuery = '';
+                this.barcodeQuery = '';
                 this.pendingProduct = null;
             }
         },
