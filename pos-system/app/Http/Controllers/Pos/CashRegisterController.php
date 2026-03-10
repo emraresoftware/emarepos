@@ -23,15 +23,17 @@ class CashRegisterController extends Controller
         $register = $this->service->getActiveRegister($branchId);
         
         // Sales stats for current register period
-        $stats = ['cash_total' => 0, 'card_total' => 0, 'credit_total' => 0, 'sale_count' => 0];
+        $stats = ['cash_total' => 0, 'card_total' => 0, 'credit_total' => 0, 'transfer_total' => 0, 'total_sales' => 0, 'sale_count' => 0];
         if ($register) {
             $salesQuery = Sale::where('branch_id', $branchId)
                 ->where('status', 'completed')
                 ->where('sold_at', '>=', $register->opened_at);
-            $stats['cash_total']   = (clone $salesQuery)->whereIn('payment_method', ['cash', 'mixed'])->sum('cash_amount');
-            $stats['card_total']   = (clone $salesQuery)->whereIn('payment_method', ['card', 'mixed'])->sum('card_amount');
-            $stats['credit_total'] = (clone $salesQuery)->sum('credit_amount');
-            $stats['sale_count']   = $salesQuery->count();
+            $stats['cash_total']     = (clone $salesQuery)->whereIn('payment_method', ['cash', 'mixed'])->sum('cash_amount');
+            $stats['card_total']     = (clone $salesQuery)->whereIn('payment_method', ['card', 'mixed'])->sum('card_amount');
+            $stats['transfer_total'] = (clone $salesQuery)->sum('transfer_amount');
+            $stats['credit_total']   = (clone $salesQuery)->sum('credit_amount');
+            $stats['total_sales']    = (clone $salesQuery)->sum('grand_total');
+            $stats['sale_count']     = $salesQuery->count();
         }
         
         $zReports = CashRegister::where('branch_id', $branchId)

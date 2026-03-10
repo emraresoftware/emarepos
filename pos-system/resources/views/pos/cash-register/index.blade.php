@@ -143,7 +143,7 @@
                         <i class="fas fa-chart-line text-purple-600 text-sm"></i>
                     </span>
                 </div>
-                <div class="text-2xl font-bold text-gray-900">{{ number_format(($stats['cash_total'] ?? 0) + ($stats['card_total'] ?? 0) + ($stats['credit_total'] ?? 0), 2) }} ₺</div>
+                <div class="text-2xl font-bold text-gray-900">{{ number_format($stats['total_sales'] ?? 0, 2) }} ₺</div>
                 <div class="text-xs text-gray-400 mt-1">{{ $stats['sale_count'] ?? 0 }} adet satış <i class="fas fa-chevron-right ml-1"></i></div>
             </div>
         </div>
