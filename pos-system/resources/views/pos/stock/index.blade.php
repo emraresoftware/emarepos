@@ -189,9 +189,23 @@ function stockManager() {
             window.location.href = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
         },
         async submitMovement() {
+            if (!this.movForm.product_id) {
+                showToast('Ürün seçmelisiniz', 'error');
+                return;
+            }
+            if (this.movForm.quantity === '' || this.movForm.quantity === null) {
+                showToast('Miktar giriniz', 'error');
+                return;
+            }
             this.saving = true;
             try {
-                await posAjax('/stock', { method: 'POST', body: JSON.stringify(this.movForm) });
+                const payload = {
+                    ...this.movForm,
+                    product_id: parseInt(this.movForm.product_id, 10),
+                    quantity: parseFloat(this.movForm.quantity),
+                    unit_price: this.movForm.unit_price === '' ? null : parseFloat(this.movForm.unit_price),
+                };
+                await posAjax('/stock', { method: 'POST', body: JSON.stringify(payload) });
                 showToast('Stok hareketi kaydedildi', 'success');
                 this.showModal = false; window.location.reload();
             } catch (e) { showToast(e.message || 'Hata', 'error'); }
