@@ -238,8 +238,8 @@
                 <template x-for="(item, index) in cart" :key="index">
                     <div class="hover:bg-blue-50/50 transition-colors">
                         {{-- Ana Satır --}}
-                        <div class="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-3 py-2 items-center cursor-pointer"
-                             @click="item.showDiscount = !item.showDiscount">
+                            <div class="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-3 py-2 items-center cursor-pointer"
+                                @click="(item.price_options && item.price_options.length > 1) ? openCartPriceModal(index) : (item.showDiscount = !item.showDiscount)">
                             <div class="min-w-0">
                                 <div class="text-sm font-medium text-gray-900 truncate" x-text="item.product_name"></div>
                                 <div class="text-[11px] text-gray-500 flex items-center gap-1.5 mt-0.5">
@@ -248,6 +248,14 @@
                                         <span class="px-1 text-gray-700 font-medium text-xs" x-text="item.quantity"></span>
                                         <button @click.stop="updateQty(index, 1)" class="px-1.5 py-0.5 text-gray-500 hover:text-emerald-600 text-xs">+</button>
                                     </div>
+                                    <template x-if="item.price_options && item.price_options.length > 1">
+                                        <select x-model="item.price_label" @change="updatePriceType(index, item.price_label)"
+                                                class="bg-white border border-gray-200 rounded px-1.5 py-0.5 text-[10px] text-gray-600">
+                                            <template x-for="opt in item.price_options" :key="opt.label + '-' + opt.price">
+                                                <option :value="opt.label" x-text="opt.label"></option>
+                                            </template>
+                                        </select>
+                                    </template>
                                     <span x-text="'× ' + formatCurrency(item.unit_price)" class="text-gray-400"></span>
                                     <button @click.stop="removeFromCart(index)" class="ml-auto text-gray-300 hover:text-red-500 transition-colors">
                                         <i class="fas fa-times text-xs"></i>
@@ -618,23 +626,23 @@
     {{-- Fiyat Seçim Modalı (Barkod okutunca çoklu fiyat varsa) --}}
     <div x-show="showPriceSelectModal" x-transition x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4" @click.away="showPriceSelectModal = false; pendingProduct = null">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4" @click.away="showPriceSelectModal = false; pendingProduct = null; pendingCartIndex = null">
             <div class="flex items-center justify-between px-5 py-3 bg-brand-600 rounded-t-2xl">
                 <h3 class="text-base font-bold text-white"><i class="fas fa-tags mr-2"></i>Fiyat Seçin</h3>
-                <button @click="showPriceSelectModal = false; pendingProduct = null" class="text-white/70 hover:text-white"><i class="fas fa-times-circle text-lg"></i></button>
+                <button @click="showPriceSelectModal = false; pendingProduct = null; pendingCartIndex = null" class="text-white/70 hover:text-white"><i class="fas fa-times-circle text-lg"></i></button>
             </div>
             <div class="p-4">
                 <div class="text-sm font-medium text-gray-900 mb-3" x-text="pendingProduct?.name"></div>
                 <div class="space-y-2">
                     {{-- Ana Fiyat --}}
-                    <button @click="selectPrice(pendingProduct?.sale_price); showPriceSelectModal = false"
+                    <button @click="selectPrice(pendingProduct?.sale_price, 'Standart'); showPriceSelectModal = false"
                             class="w-full py-3 px-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 flex items-center justify-between transition-colors">
                         <span class="text-sm font-medium text-gray-700">Standart Fiyat</span>
                         <span class="text-sm font-bold text-blue-600" x-text="formatCurrency(pendingProduct?.sale_price || 0)"></span>
                     </button>
                     {{-- Alternatif Fiyatlar --}}
                     <template x-for="ap in (pendingProduct?.alternative_prices || [])" :key="ap.id">
-                        <button @click="selectPrice(ap.price); showPriceSelectModal = false"
+                        <button @click="selectPrice(ap.price, ap.label); showPriceSelectModal = false"
                                 class="w-full py-3 px-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 flex items-center justify-between transition-colors">
                             <span class="text-sm font-medium text-gray-700" x-text="ap.label"></span>
                             <span class="text-sm font-bold text-blue-600" x-text="formatCurrency(ap.price)"></span>
@@ -972,6 +980,7 @@ function posScreen() {
         // Çoklu fiyat seçim
         showPriceSelectModal: false,
         pendingProduct: null,
+        pendingCartIndex: null,
         pendingPriceCallback: null,
         // Fiş ayarları
         receiptSettings: @json($receiptSettings),
@@ -982,10 +991,12 @@ function posScreen() {
         panelResizing: false,
         panelResizeEnabled: {{ auth()->user()->is_super_admin ? 'true' : 'false' }},
         panelResizeStorageKey: 'pos_cart_width',
+        cartStorageKey: 'pos_cart_state',
 
         init() {
             this.showAllProducts();
             this.initPanelResize();
+            this.loadCart();
             this.$refs.searchInput?.focus();
             // Barkod okuyucu için keyboard shortcut
             window.addEventListener('keydown', (e) => {
@@ -1123,6 +1134,16 @@ function posScreen() {
             this.barcodeSelectedIndex = -1;
         },
 
+        buildPriceOptions(product) {
+            const options = [{ label: 'Standart', price: product.sale_price }];
+            if (product.alternative_prices && product.alternative_prices.length > 0) {
+                product.alternative_prices.forEach(p => {
+                    options.push({ label: p.label, price: p.price });
+                });
+            }
+            return options;
+        },
+
         async searchBarcode() {
             const query = this.barcodeQuery.trim();
             if (!query) {
@@ -1177,6 +1198,7 @@ function posScreen() {
         },
 
         addToCart(product) {
+            const priceOptions = this.buildPriceOptions(product);
             const existing = this.cart.find(i => i.product_id === product.id);
             if (existing) {
                 existing.quantity++;
@@ -1187,6 +1209,8 @@ function posScreen() {
                     product_name: product.name,
                     barcode: product.barcode,
                     unit_price: product.sale_price,
+                    price_label: 'Standart',
+                    price_options: priceOptions,
                     quantity: 1,
                     discount: 0,
                     discountType: 'TL',
@@ -1207,10 +1231,26 @@ function posScreen() {
         handleProductClick(product) {
             if (product.alternative_prices && product.alternative_prices.length > 0) {
                 this.pendingProduct = product;
+                this.pendingCartIndex = null;
                 this.showPriceSelectModal = true;
                 return;
             }
             this.addToCart(product);
+        },
+
+        openCartPriceModal(index) {
+            const item = this.cart[index];
+            if (!item || !item.price_options || item.price_options.length <= 1) {
+                item.showDiscount = !item.showDiscount;
+                return;
+            }
+            this.pendingCartIndex = index;
+            this.pendingProduct = {
+                name: item.product_name,
+                sale_price: item.price_options[0]?.price || item.unit_price,
+                alternative_prices: item.price_options.slice(1).map(p => ({ label: p.label, price: p.price })),
+            };
+            this.showPriceSelectModal = true;
         },
 
         updateQty(index, delta) {
@@ -1231,6 +1271,16 @@ function posScreen() {
             this.recalcTotals();
         },
 
+        updatePriceType(index, label) {
+            const item = this.cart[index];
+            if (!item || !item.price_options) return;
+            const selected = item.price_options.find(p => p.label === label);
+            if (!selected) return;
+            item.unit_price = parseFloat(selected.price || 0);
+            item.price_label = selected.label;
+            this.recalcItem(index);
+        },
+
         recalcTotals() {
             let subtotal = 0, vatTotal = 0, discountTotal = 0;
             this.cart.forEach(item => {
@@ -1248,6 +1298,7 @@ function posScreen() {
                 discount_total: Math.round(discountTotal * 100) / 100,
                 grand_total: Math.round((subtotal + vatTotal - genDiscAmt) * 100) / 100,
             };
+            this.saveCart();
         },
 
         removeFromCart(index) {
@@ -1262,6 +1313,39 @@ function posScreen() {
             this.generalDiscount = 0;
             this.paidAmount = '';
             this.recalcTotals();
+        },
+
+        saveCart() {
+            const payload = {
+                cart: this.cart,
+                selectedCustomer: this.selectedCustomer,
+                generalDiscount: this.generalDiscount,
+                generalDiscountType: this.generalDiscountType,
+            };
+            try {
+                localStorage.setItem(this.cartStorageKey, JSON.stringify(payload));
+            } catch (e) { /* ignore */ }
+        },
+
+        loadCart() {
+            try {
+                const raw = localStorage.getItem(this.cartStorageKey);
+                if (!raw) return;
+                const data = JSON.parse(raw);
+                if (Array.isArray(data.cart)) {
+                    this.cart = data.cart;
+                }
+                if (data.selectedCustomer) {
+                    this.selectedCustomer = data.selectedCustomer;
+                }
+                if (data.generalDiscount !== undefined) {
+                    this.generalDiscount = data.generalDiscount;
+                }
+                if (data.generalDiscountType) {
+                    this.generalDiscountType = data.generalDiscountType;
+                }
+                this.recalcTotals();
+            } catch (e) { /* ignore */ }
         },
 
         async saveCategory() {
@@ -1649,10 +1733,22 @@ function posScreen() {
         },
 
         // ---- Çoklu Fiyat Seçimi (barkod okutunca) ----
-        selectPrice(price) {
+        selectPrice(price, label = 'Standart') {
+            if (this.pendingCartIndex !== null) {
+                const item = this.cart[this.pendingCartIndex];
+                if (item) {
+                    item.unit_price = parseFloat(price || 0);
+                    item.price_label = label;
+                    this.recalcItem(this.pendingCartIndex);
+                }
+                this.pendingCartIndex = null;
+                this.pendingProduct = null;
+                return;
+            }
             if (this.pendingProduct) {
                 const product = this.pendingProduct;
                 const existing = this.cart.find(i => i.product_id === product.id && i.unit_price === price);
+                const priceOptions = this.buildPriceOptions(product);
                 if (existing) {
                     existing.quantity++;
                     this.recalcItem(this.cart.indexOf(existing));
@@ -1664,6 +1760,8 @@ function posScreen() {
                         product_name: product.name,
                         barcode: product.barcode,
                         unit_price: price,
+                        price_label: label,
+                        price_options: priceOptions,
                         quantity: 1,
                         discount: 0,
                         discountType: 'TL',

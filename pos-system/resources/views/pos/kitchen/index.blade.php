@@ -99,7 +99,7 @@
                         <span class="text-gray-900 font-bold text-sm">#{{ $order->order_number }}</span>
                         {{-- Masa --}}
                         @if($order->tableSession && $order->tableSession->table)
-                        <span class="px-2 py-0.5 bg-gray-100 rounded text-xs text-white">
+                        <span class="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-700">
                             <i class="fas fa-utensils mr-1 text-gray-300"></i>{{ ($order->tableSession->table->region->name ?? '') ? ($order->tableSession->table->region->name . ' ') : '' }}{{ $order->tableSession->table->name ?? ('Masa ' . $order->tableSession->table->table_no) }}
                         </span>
                         @endif
