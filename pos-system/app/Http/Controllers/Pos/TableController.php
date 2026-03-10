@@ -550,9 +550,21 @@ class TableController extends Controller
             'positions.*.region_id'   => ['nullable', Rule::exists('table_regions', 'id')->where('branch_id', session('branch_id'))],
         ]);
 
+        $branchId = (int) session('branch_id');
+        $ids = array_column($request->positions, 'id');
+
+        // Tüm masa ID'lerinin bu şubeye ait olduğunu doğrula
+        $validIds = RestaurantTable::where('branch_id', $branchId)
+            ->whereIn('id', $ids)
+            ->pluck('id')
+            ->toArray();
+
         foreach ($request->positions as $pos) {
+            if (!in_array((int) $pos['id'], $validIds, true)) {
+                continue; // Başka şubenin masasına dokunma
+            }
             RestaurantTable::where('id', $pos['id'])
-                ->where('branch_id', session('branch_id'))
+                ->where('branch_id', $branchId)
                 ->update([
                     'pos_x'           => $pos['pos_x'],
                     'pos_y'           => $pos['pos_y'],

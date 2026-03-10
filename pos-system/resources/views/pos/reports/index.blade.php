@@ -192,7 +192,7 @@
                 @forelse($categoryStats as $category)
                     <div>
                         <div class="flex items-center justify-between mb-1">
-                            <span class="text-sm text-gray-700">{{ $category->name }}</span>
+                            <span class="text-sm text-gray-700">{{ $category->category_name }}</span>
                             <span class="text-sm text-gray-900 font-medium">{{ number_format($category->revenue, 2, ',', '.') }} ₺</span>
                         </div>
                         <div class="w-full bg-gray-100/40 rounded-full h-2">
@@ -229,7 +229,7 @@
                 <tbody>
                     @forelse($categoryStats as $category)
                         <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                            <td class="py-2.5 px-3 text-gray-900 font-medium">{{ $category->name }}</td>
+                            <td class="py-2.5 px-3 text-gray-900 font-medium">{{ $category->category_name }}</td>
                             <td class="py-2.5 px-3 text-right text-gray-700">{{ number_format($category->product_count ?? 0) }}</td>
                             <td class="py-2.5 px-3 text-right text-gray-700">{{ number_format($category->sale_count ?? 0) }}</td>
                             <td class="py-2.5 px-3 text-right text-gray-700">{{ number_format($category->total_qty ?? 0) }}</td>

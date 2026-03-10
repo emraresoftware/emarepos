@@ -817,6 +817,11 @@ class ProductController extends Controller
         $updated = 0;
         $errors = [];
 
+        // N+1 önlemi: tüm kategorileri önceden yükle (ad → id eşlemesi)
+        $categoryCache = Category::where('tenant_id', session('tenant_id'))
+            ->pluck('id', 'name')
+            ->toArray();
+
         foreach ($rows as $i => $row) {
             if (count($row) < 7) {
                 $errors[] = 'Satır ' . ($i + 2) . ': Yetersiz sütun';
@@ -842,8 +847,7 @@ class ProductController extends Controller
 
                 $categoryId = null;
                 if (!empty($categoryName)) {
-                    $cat = Category::where('name', $categoryName)->first();
-                    if ($cat) $categoryId = $cat->id;
+                    $categoryId = $categoryCache[$categoryName] ?? null;
                 }
 
                 $existing = null;

@@ -95,7 +95,7 @@ class ReportController extends Controller
         ->join('products', 'sale_items.product_id', '=', 'products.id')
         ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
                 ->select(
-                    DB::raw("COALESCE(categories.name, 'Kategorisiz') as name"),
+                    DB::raw("COALESCE(categories.name, 'Kategorisiz') as category_name"),
                     DB::raw('SUM(sale_items.total) as revenue'),
                     DB::raw('COUNT(DISTINCT sale_items.sale_id) as sale_count'),
                     DB::raw('SUM(sale_items.quantity) as total_qty'),
