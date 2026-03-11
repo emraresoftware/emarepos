@@ -132,6 +132,35 @@ class CustomerController extends Controller
         });
     }
 
+    public function addDebt(Request $request, Customer $customer)
+    {
+        if ($customer->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+        $request->validate([
+            'amount'      => 'required|numeric|min:0.01',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($customer, $request) {
+            $customer = Customer::where('id', $customer->id)->lockForUpdate()->first();
+            $customer->decrement('balance', $request->amount);
+            $customer->refresh();
+
+            AccountTransaction::create([
+                'tenant_id'        => session('tenant_id'),
+                'customer_id'      => $customer->id,
+                'type'             => 'debt',
+                'amount'           => -$request->amount,
+                'balance_after'    => $customer->balance,
+                'description'      => $request->description ?? 'Borç Eklendi',
+                'transaction_date' => Carbon::now(),
+            ]);
+
+            return response()->json(['success' => true, 'customer' => $customer->fresh()]);
+        });
+    }
+
     public function destroy(Customer $customer)
     {
         if ($customer->tenant_id !== (int) session('tenant_id')) {

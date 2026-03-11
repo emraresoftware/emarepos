@@ -139,6 +139,7 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class, 'throttle:
     Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('pos.customers.update');
     Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('pos.customers.destroy');
     Route::post('/customers/{customer}/payment', [CustomerController::class, 'addPayment'])->name('pos.customers.payment');
+    Route::post('/customers/{customer}/debt', [CustomerController::class, 'addDebt'])->name('pos.customers.debt');
     Route::post('/customer-groups', [CustomerController::class, 'storeGroup'])->name('pos.customer-groups.store');
     Route::put('/customer-groups/{group}', [CustomerController::class, 'updateGroup'])->name('pos.customer-groups.update');
     Route::delete('/customer-groups/{group}', [CustomerController::class, 'destroyGroup'])->name('pos.customer-groups.destroy');
@@ -153,6 +154,8 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class, 'throttle:
     Route::get('/reports/products', [ReportController::class, 'productReport'])->name('pos.reports.products');
     Route::get('/reports/comparison', [ReportController::class, 'periodComparison'])->name('pos.reports.comparison');
     Route::get('/reports/suspicious', [ReportController::class, 'suspiciousTransactions'])->name('pos.reports.suspicious');
+    Route::get('/reports/financial', [ReportController::class, 'financialReport'])->name('pos.reports.financial');
+    Route::get('/reports/stock', [ReportController::class, 'stockReport'])->name('pos.reports.stock');
     
     // Siparişler (Orders)
     Route::get('/orders', [OrderController::class, 'index'])->name('pos.orders');

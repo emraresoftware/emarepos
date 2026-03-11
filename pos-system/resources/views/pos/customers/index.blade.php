@@ -239,13 +239,19 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                         </svg>
                                     </button>
-                                    {{-- Collect Payment --}}
+                                    {{-- Ödeme Al --}}
                                     <button @click="openCollect({{ $customer->id }}, '{{ addslashes($customer->name) }}', {{ $customer->balance ?? 0 }})"
                                             class="p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors"
-                                            title="Tahsilat Al">
+                                            title="Ödeme Al">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
                                         </svg>
+                                    </button>
+                                    {{-- Borç Ekle --}}
+                                    <button @click="openDebt({{ $customer->id }}, '{{ addslashes($customer->name) }}', {{ $customer->balance ?? 0 }})"
+                                            class="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                                            title="Borç Ekle">
+                                        <i class="fas fa-user-minus w-4 text-center"></i>
                                     </button>
                                 </div>
                             </td>
@@ -298,19 +304,30 @@
 
             <div x-show="!detailLoading && detailData" class="flex flex-col overflow-hidden flex-1">
                 {{-- Özet Bakiye Kartları --}}
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 border-b border-gray-100 flex-shrink-0">
+                <div class="grid grid-cols-3 gap-3 px-4 pt-4 flex-shrink-0">
                     <div class="bg-gray-50 rounded-xl p-3 text-center">
                         <p class="text-xs text-gray-400">Bakiye</p>
                         <p class="font-bold text-lg mt-0.5" :class="(detailData?.customer?.balance??0)<0?'text-red-500':((detailData?.customer?.balance??0)>0?'text-emerald-600':'text-gray-700')" x-text="formatCurrency(detailData?.customer?.balance??0)"></p>
                     </div>
                     <div class="bg-gray-50 rounded-xl p-3 text-center">
-                        <p class="text-xs text-gray-400">Toplam Alışveriş</p>
-                        <p class="font-bold text-lg mt-0.5 text-gray-900" x-text="detailData?.recent_sales?.length + ' satış'"></p>
+                        <p class="text-xs text-gray-400">Satış</p>
+                        <p class="font-bold text-lg mt-0.5 text-gray-900" x-text="detailData?.recent_sales?.length"></p>
                     </div>
                     <div class="bg-gray-50 rounded-xl p-3 text-center">
-                        <p class="text-xs text-gray-400">Toplam Hareket</p>
-                        <p class="font-bold text-lg mt-0.5 text-gray-900" x-text="detailData?.transactions?.length + ' kayıt'"></p>
+                        <p class="text-xs text-gray-400">Hareket</p>
+                        <p class="font-bold text-lg mt-0.5 text-gray-900" x-text="detailData?.transactions?.length"></p>
                     </div>
+                </div>
+                {{-- Aksiyon Butonları --}}
+                <div class="flex gap-2 px-4 pt-3 pb-3 border-b border-gray-100 flex-shrink-0">
+                    <button @click="openCollect(detailData.customer.id, detailData.customer.name, detailData.customer.balance); showDetailModal=false"
+                            class="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-1.5 transition-colors">
+                        <i class="fas fa-hand-holding-dollar"></i> Ödeme Al
+                    </button>
+                    <button @click="openDebt(detailData.customer.id, detailData.customer.name, detailData.customer.balance); showDetailModal=false"
+                            class="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-1.5 transition-colors">
+                        <i class="fas fa-user-minus"></i> Borç Ekle
+                    </button>
                 </div>
 
                 {{-- Sekmeler --}}
@@ -380,6 +397,65 @@
 
                 </div>
             </div>
+        </div>
+    </div>
+
+    {{-- Borç Ekle Modal --}}
+    <div x-show="showDebtModal"
+         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display: none;">
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showDebtModal = false"></div>
+        <div x-show="showDebtModal"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+             class="relative bg-white rounded-2xl border border-gray-200 shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div class="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-gray-900"><i class="fas fa-user-minus mr-2 text-red-500"></i>Borç Ekle</h2>
+                <button @click="showDebtModal = false" class="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-xl transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <form @submit.prevent="submitDebt()" class="p-6 space-y-5">
+                <div class="bg-red-50 rounded-xl border border-red-100 p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">Müşteri</p>
+                            <p class="text-gray-900 font-medium mt-0.5" x-text="debtCustomerName"></p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-500">Mevcut Bakiye</p>
+                            <p class="font-mono font-semibold mt-0.5" :class="debtCustomerBalance < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCurrency(debtCustomerBalance)"></p>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Borç Tutarı <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <input type="number" x-model="debtForm.amount" step="0.01" min="0.01" required
+                               class="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl pl-4 pr-8 py-3 focus:ring-2 focus:ring-red-500/20 focus:border-red-400 text-lg font-mono"
+                               placeholder="0.00" x-ref="debtAmountInput">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-semibold">₺</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Açıklama</label>
+                    <input type="text" x-model="debtForm.description"
+                           class="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-red-500/20 focus:border-red-400"
+                           placeholder="Borç nedeni (opsiyonel)">
+                </div>
+                <div class="flex gap-3 pt-4 border-t border-gray-200">
+                    <button type="button" @click="showDebtModal = false"
+                            class="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-colors">
+                        İptal
+                    </button>
+                    <button type="submit" :disabled="addingDebt"
+                            class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                        <svg x-show="addingDebt" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                        <span x-text="addingDebt ? 'Kaydediliyor...' : 'Borç Ekle'"></span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -550,7 +626,7 @@
 
             {{-- Header --}}
             <div class="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-gray-900">Tahsilat Al</h2>
+                <h2 class="text-lg font-semibold text-gray-900"><i class="fas fa-hand-holding-dollar mr-2 text-emerald-500"></i>Ödeme Al</h2>
                 <button @click="showCollectModal = false" class="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-xl transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -657,6 +733,7 @@ function customerManager() {
     return {
         showFormModal: false,
         showCollectModal: false,
+        showDebtModal: false,
         showDetailModal: false,
         showGroupPanel: false,
         showGroupForm: false,
@@ -666,6 +743,7 @@ function customerManager() {
         editingId: null,
         saving: false,
         collecting: false,
+        addingDebt: false,
         searchQuery: new URLSearchParams(window.location.search).get('search') || '',
         groupFilter: new URLSearchParams(window.location.search).get('group_id') || '',
         newGroupName: '',
@@ -674,6 +752,9 @@ function customerManager() {
         collectCustomerId: null,
         collectCustomerName: '',
         collectCustomerBalance: 0,
+        debtCustomerId: null,
+        debtCustomerName: '',
+        debtCustomerBalance: 0,
 
         form: {
             name: '',
@@ -690,6 +771,10 @@ function customerManager() {
         collectForm: {
             amount: '',
             payment_method: 'cash',
+            description: '',
+        },
+        debtForm: {
+            amount: '',
             description: '',
         },
 
@@ -709,14 +794,38 @@ function customerManager() {
         },
 
         resetCollectForm() {
-            this.collectForm = {
-                amount: '',
-                payment_method: 'cash',
-                description: '',
-            };
+            this.collectForm = { amount: '', payment_method: 'cash', description: '' };
             this.collectCustomerId = null;
             this.collectCustomerName = '';
             this.collectCustomerBalance = 0;
+        },
+
+        openDebt(id, name, balance) {
+            this.debtForm = { amount: '', description: '' };
+            this.debtCustomerId = id;
+            this.debtCustomerName = name;
+            this.debtCustomerBalance = balance;
+            this.showDebtModal = true;
+            this.$nextTick(() => this.$refs.debtAmountInput?.focus());
+        },
+
+        async submitDebt() {
+            if (!this.debtForm.amount || this.debtForm.amount <= 0) {
+                showToast('Geçerli bir tutar girin.', 'error');
+                return;
+            }
+            this.addingDebt = true;
+            const url = '{{ route("pos.customers.debt", ":id") }}'.replace(':id', this.debtCustomerId);
+            try {
+                await posAjax(url, this.debtForm, 'POST');
+                showToast('Borç başarıyla eklendi.', 'success');
+                this.showDebtModal = false;
+                window.location.reload();
+            } catch (e) {
+                showToast(e.message || 'Borç eklenemedi.', 'error');
+            } finally {
+                this.addingDebt = false;
+            }
         },
 
         async openDetail(id) {

@@ -601,4 +601,234 @@ class ReportController extends Controller
 
         return response()->json(['suspicious' => $suspicious->toArray(), 'summary' => $summary]);
     }
+
+    /**
+     * Finansal Hareketler Raporu — satış + gelir + gider + hesap hareketleri
+     */
+    public function financialReport(Request $request)
+    {
+        $branchId  = session('branch_id');
+        $tenantId  = session('tenant_id');
+        $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
+        $endDate   = $request->get('end_date', Carbon::today()->format('Y-m-d'));
+        $typeFilter = $request->get('type', 'all'); // all|sale|income|expense|account
+
+        $start = $startDate . ' 00:00:00';
+        $end   = $endDate   . ' 23:59:59';
+
+        // ── Satışlar ────────────────────────────────────────────
+        $salesStats = \App\Models\Sale::where('branch_id', $branchId)
+            ->where('status', 'completed')
+            ->whereBetween('sold_at', [$start, $end])
+            ->selectRaw('COUNT(*) as count, COALESCE(SUM(grand_total),0) as total, COALESCE(SUM(cash_amount),0) as cash, COALESCE(SUM(card_amount),0) as card, COALESCE(SUM(credit_amount),0) as credit')
+            ->first();
+
+        // ── Satış iadeler ────────────────────────────────────────
+        $refundStats = \App\Models\Sale::where('branch_id', $branchId)
+            ->where('status', 'refunded')
+            ->whereBetween('sold_at', [$start, $end])
+            ->selectRaw('COUNT(*) as count, COALESCE(SUM(grand_total),0) as total')
+            ->first();
+
+        // ── Manuel Gelirler ──────────────────────────────────────
+        $totalIncome = \App\Models\Income::where('branch_id', $branchId)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->sum('amount');
+
+        // ── Giderler ─────────────────────────────────────────────
+        $totalExpense = \App\Models\Expense::where('branch_id', $branchId)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->sum('amount');
+
+        // ── Müşteri tahsilat / borç ───────────────────────────────
+        $accountStats = \App\Models\AccountTransaction::where('tenant_id', $tenantId)
+            ->whereBetween('created_at', [$start, $end])
+            ->selectRaw("type, COALESCE(SUM(amount),0) as total, COUNT(*) as count")
+            ->groupBy('type')
+            ->get()
+            ->keyBy('type');
+
+        $totalCollected = abs((float)($accountStats->get('payment')?->total ?? 0));
+        $totalDebt      = abs((float)($accountStats->get('debt')?->total ?? 0));
+
+        // ── Tüm hareketler (birleşik liste) ──────────────────────
+        $movements = collect();
+
+        if (in_array($typeFilter, ['all', 'sale'])) {
+            $sales = \App\Models\Sale::where('branch_id', $branchId)
+                ->where('status', 'completed')
+                ->whereBetween('sold_at', [$start, $end])
+                ->with('customer:id,name')
+                ->select('id', 'receipt_no', 'sold_at as date', 'grand_total as amount', 'payment_method', 'customer_id', 'staff_name')
+                ->orderByDesc('sold_at')
+                ->limit(500)
+                ->get()
+                ->map(fn($s) => [
+                    'date'        => $s->date,
+                    'type'        => 'sale',
+                    'type_label'  => 'Satış',
+                    'direction'   => 'in',
+                    'description' => 'Satış #' . ($s->receipt_no ?? $s->id) . ($s->staff_name ? ' — ' . $s->staff_name : ''),
+                    'sub'         => $s->customer?->name ?? '-',
+                    'amount'      => (float) $s->amount,
+                    'payment'     => match($s->payment_method) { 'cash' => 'Nakit', 'card' => 'Kart', 'credit' => 'Veresiye', default => 'Karma' },
+                ]);
+            $movements = $movements->concat($sales);
+        }
+
+        if (in_array($typeFilter, ['all', 'income'])) {
+            $incomes = \App\Models\Income::where('branch_id', $branchId)
+                ->whereBetween('date', [$startDate, $endDate])
+                ->with('type:id,name')
+                ->orderByDesc('date')
+                ->limit(300)
+                ->get()
+                ->map(fn($i) => [
+                    'date'        => $i->date . ' 00:00:00',
+                    'type'        => 'income',
+                    'type_label'  => 'Gelir',
+                    'direction'   => 'in',
+                    'description' => $i->note ?: ($i->type?->name ?? 'Manuel Gelir'),
+                    'sub'         => $i->type?->name ?? '-',
+                    'amount'      => (float) $i->amount,
+                    'payment'     => $i->payment_type ?? '-',
+                ]);
+            $movements = $movements->concat($incomes);
+        }
+
+        if (in_array($typeFilter, ['all', 'expense'])) {
+            $expenses = \App\Models\Expense::where('branch_id', $branchId)
+                ->whereBetween('date', [$startDate, $endDate])
+                ->with('type:id,name')
+                ->orderByDesc('date')
+                ->limit(300)
+                ->get()
+                ->map(fn($e) => [
+                    'date'        => $e->date . ' 00:00:00',
+                    'type'        => 'expense',
+                    'type_label'  => 'Gider',
+                    'direction'   => 'out',
+                    'description' => $e->note ?: ($e->type?->name ?? 'Gider'),
+                    'sub'         => $e->type?->name ?? '-',
+                    'amount'      => (float) $e->amount,
+                    'payment'     => $e->payment_type ?? '-',
+                ]);
+            $movements = $movements->concat($expenses);
+        }
+
+        if (in_array($typeFilter, ['all', 'account'])) {
+            $accountTx = \App\Models\AccountTransaction::where('tenant_id', $tenantId)
+                ->whereBetween('created_at', [$start, $end])
+                ->with('customer:id,name')
+                ->orderByDesc('created_at')
+                ->limit(300)
+                ->get()
+                ->map(fn($t) => [
+                    'date'        => (string) $t->created_at,
+                    'type'        => 'account',
+                    'type_label'  => $t->type === 'payment' ? 'Tahsilat' : ($t->type === 'debt' ? 'Borç' : 'Hesap'),
+                    'direction'   => $t->amount >= 0 ? 'in' : 'out',
+                    'description' => $t->description ?: ($t->type === 'payment' ? 'Tahsilat' : 'Borç'),
+                    'sub'         => $t->customer?->name ?? '-',
+                    'amount'      => abs((float) $t->amount),
+                    'payment'     => '-',
+                ]);
+            $movements = $movements->concat($accountTx);
+        }
+
+        $movements = $movements->sortByDesc('date')->values();
+
+        $summary = [
+            'total_in'        => (float)($salesStats->total ?? 0) + $totalIncome + $totalCollected,
+            'total_out'       => $totalExpense + $totalDebt,
+            'sale_total'      => (float)($salesStats->total ?? 0),
+            'sale_count'      => (int)($salesStats->count ?? 0),
+            'refund_total'    => (float)($refundStats->total ?? 0),
+            'refund_count'    => (int)($refundStats->count ?? 0),
+            'income_total'    => $totalIncome,
+            'expense_total'   => $totalExpense,
+            'collected_total' => $totalCollected,
+            'debt_total'      => $totalDebt,
+            'net'             => ((float)($salesStats->total ?? 0) + $totalIncome + $totalCollected) - ($totalExpense + $totalDebt),
+        ];
+
+        return view('pos.reports.financial', compact('movements', 'summary', 'startDate', 'endDate', 'typeFilter'));
+    }
+
+    /**
+     * Stok Raporu — mevcut stok seviyeleri
+     */
+    public function stockReport(Request $request)
+    {
+        $branchId  = session('branch_id');
+        $tenantId  = session('tenant_id');
+        $search    = $request->get('search', '');
+        $catFilter = $request->get('category_id', '');
+        $sortBy    = $request->get('sort', 'name'); // name|stock_asc|stock_desc|value
+        $lowOnly   = $request->boolean('low_stock');
+
+        $query = \App\Models\Product::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->with('category:id,name')
+            ->with(['branches' => function ($q) use ($branchId) {
+                $q->where('branches.id', $branchId)->select('branches.id');
+            }]);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('barcode', 'like', "%{$search}%")
+                  ->orWhere('stock_code', 'like', "%{$search}%");
+            });
+        }
+        if ($catFilter) {
+            $query->where('category_id', $catFilter);
+        }
+
+        $allProducts = $query->get()->map(function ($p) use ($branchId) {
+            $branchPivot = $p->branches->first()?->pivot;
+            $hasMultiBranch = $p->branchStockEnabled();
+            $stock = $hasMultiBranch
+                ? (float) ($branchPivot?->stock_quantity ?? 0)
+                : (float) $p->stock_quantity;
+
+            return [
+                'id'            => $p->id,
+                'name'          => $p->name,
+                'barcode'       => $p->barcode ?? '',
+                'stock_code'    => $p->stock_code ?? '',
+                'category'      => $p->category?->name ?? 'Kategorisiz',
+                'unit'          => $p->unit ?? 'adet',
+                'stock'         => $stock,
+                'critical_stock'=> (float) $p->critical_stock,
+                'purchase_price'=> (float) $p->purchase_price,
+                'sale_price'    => (float) $p->sale_price,
+                'stock_value'   => round($stock * (float) $p->purchase_price, 2),
+                'is_low'        => $stock <= (float) $p->critical_stock,
+            ];
+        });
+
+        if ($lowOnly) {
+            $allProducts = $allProducts->filter(fn($p) => $p['is_low']);
+        }
+
+        $allProducts = match($sortBy) {
+            'stock_asc'  => $allProducts->sortBy('stock'),
+            'stock_desc' => $allProducts->sortByDesc('stock'),
+            'value'      => $allProducts->sortByDesc('stock_value'),
+            default      => $allProducts->sortBy('name'),
+        };
+        $products = $allProducts->values();
+
+        $stats = [
+            'total_products' => $products->count(),
+            'low_stock'      => $products->filter(fn($p) => $p['is_low'])->count(),
+            'zero_stock'     => $products->filter(fn($p) => $p['stock'] <= 0)->count(),
+            'total_value'    => $products->sum('stock_value'),
+        ];
+
+        $categories = \App\Models\Category::where('tenant_id', $tenantId)->orderBy('name')->get();
+
+        return view('pos.reports.stock', compact('products', 'stats', 'categories', 'search', 'catFilter', 'sortBy', 'lowOnly'));
+    }
 }

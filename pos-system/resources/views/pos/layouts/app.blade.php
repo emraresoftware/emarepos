@@ -108,6 +108,8 @@
                         ['route' => 'pos.categories', 'icon' => 'fa-layer-group', 'label' => 'Kategoriler'],
                         ['route' => 'pos.users', 'icon' => 'fa-user-gear', 'label' => 'Kullanıcılar'],
                         ['route' => 'pos.reports', 'icon' => 'fa-chart-pie', 'label' => 'Raporlar'],
+                        ['route' => 'pos.reports.financial', 'icon' => 'fa-money-bill-transfer', 'label' => 'Finansal Rapor'],
+                        ['route' => 'pos.reports.stock', 'icon' => 'fa-boxes-stacked', 'label' => 'Stok Raporu'],
                         ['route' => 'pos.stock', 'icon' => 'fa-warehouse', 'label' => 'Depo'],
                         ['route' => 'pos.stock-count', 'icon' => 'fa-clipboard-check', 'label' => 'Stok Sayımı'],
                         ['route' => 'pos.stock-transfers', 'icon' => 'fa-exchange-alt', 'label' => 'Transfer'],
