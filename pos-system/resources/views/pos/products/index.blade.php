@@ -61,6 +61,10 @@
             <button @click="openSummaryModal()" class="px-3 py-2 text-xs font-medium bg-red-50 border border-red-200 text-red-700 rounded-xl hover:bg-red-100 flex items-center gap-1.5 transition-colors">
                 <i class="fas fa-chart-pie text-[10px]"></i> Ürün özet dökümü
             </button>
+            {{-- Raporlar --}}
+            <button @click="openProductReport()" class="px-3 py-2 text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-xl hover:bg-indigo-100 flex items-center gap-1.5 transition-colors">
+                <i class="fas fa-chart-bar text-[10px]"></i> Raporlar
+            </button>
             {{-- Excel Aktar --}}
             <div class="relative" x-data="{ openExcel: false }">
                 <button @click="openExcel = !openExcel" class="px-3 py-2 text-xs font-medium bg-blue-50 border border-blue-200 text-blue-700 rounded-xl hover:bg-blue-100 flex items-center gap-1.5 transition-colors">
@@ -224,7 +228,7 @@
         <button @click="showBulkCategoryModal = true" class="px-3 py-2 text-xs font-medium bg-blue-50 border border-blue-200 text-blue-600 rounded-xl hover:bg-blue-100 flex items-center gap-1.5">
             <i class="fas fa-folder text-[10px]"></i> Kategori Ata
         </button>
-        <button @click="showBulkPriceModal = true" :disabled="!priceEditAllowed" class="px-3 py-2 text-xs font-medium bg-amber-50 border border-amber-200 text-amber-600 rounded-xl hover:bg-amber-100 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+        <button @click="showBulkPriceModal = true; priceModalTab = 'quick'; branchPriceData = null; branchPriceUpdates = []" :disabled="!priceEditAllowed" class="px-3 py-2 text-xs font-medium bg-amber-50 border border-amber-200 text-amber-600 rounded-xl hover:bg-amber-100 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
             <i class="fas fa-dollar-sign text-[10px]"></i> Fiyat Güncelle
         </button>
         <button @click="openBulkBranchModal()" class="px-3 py-2 text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-xl hover:bg-indigo-100 flex items-center gap-1.5">
@@ -1090,6 +1094,151 @@
     </div>
 
     {{-- ═══════════════════════════════════════════ --}}
+    {{-- MODAL: Ürün Raporları --}}
+    {{-- ═══════════════════════════════════════════ --}}
+    <div x-show="showProductReportModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showProductReportModal=false"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+                <h3 class="text-lg font-bold text-gray-900"><i class="fas fa-chart-bar text-indigo-500 mr-2"></i>Ürün Raporları</h3>
+                <button @click="showProductReportModal=false" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6">
+                <div x-show="productReportLoading" class="flex items-center justify-center py-16">
+                    <i class="fas fa-spinner fa-spin text-2xl text-indigo-500"></i>
+                </div>
+                <template x-if="!productReportLoading && productReportData">
+                    <div class="space-y-6">
+                        {{-- Özet Kartlar --}}
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                            <div class="bg-indigo-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Toplam Ürün</p>
+                                <p class="text-xl font-bold text-indigo-700" x-text="productReportData.summary.total_products"></p>
+                            </div>
+                            <div class="bg-emerald-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Stok Değeri</p>
+                                <p class="text-base font-bold text-emerald-700" x-text="formatPrice(productReportData.summary.total_stock_value)"></p>
+                            </div>
+                            <div class="bg-blue-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Satış Değeri</p>
+                                <p class="text-base font-bold text-blue-700" x-text="formatPrice(productReportData.summary.total_sale_value)"></p>
+                            </div>
+                            <div class="bg-amber-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Potansiyel Kar</p>
+                                <p class="text-base font-bold text-amber-700" x-text="formatPrice(productReportData.summary.potential_profit)"></p>
+                            </div>
+                            <div class="bg-orange-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Kritik Stok</p>
+                                <p class="text-xl font-bold text-orange-600" x-text="productReportData.summary.low_stock_count"></p>
+                            </div>
+                            <div class="bg-red-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Stok Yok</p>
+                                <p class="text-xl font-bold text-red-600" x-text="productReportData.summary.zero_stock_count"></p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {{-- Kategori Dağılımı --}}
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-700 mb-3"><i class="fas fa-tags text-indigo-500 mr-1.5"></i>Kategori Dağılımı</h4>
+                                <div class="space-y-2">
+                                    <template x-for="cat in productReportData.by_category" :key="cat.name">
+                                        <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-100">
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs w-5 h-5 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold" x-text="cat.count"></span>
+                                                <span class="text-sm text-gray-700" x-text="cat.name"></span>
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="text-xs font-mono text-gray-600" x-text="formatPrice(cat.value)"></span>
+                                                <span class="text-xs text-gray-400 ml-2">(<span x-text="cat.stock" ></span> adet)</span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            {{-- Şube Stok Özeti --}}
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-700 mb-3"><i class="fas fa-store text-brand-500 mr-1.5"></i>Şube Stok Özeti</h4>
+                                <div class="space-y-2">
+                                    <template x-for="b in productReportData.branch_stocks" :key="b.id">
+                                        <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-100">
+                                            <span class="text-sm text-gray-700" x-text="b.name"></span>
+                                            <div class="text-right">
+                                                <span class="text-xs font-bold text-gray-800" x-text="b.total_stock + ' adet'"></span>
+                                                <span class="text-xs font-mono text-emerald-600 ml-2" x-text="formatPrice(b.total_value)"></span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <template x-if="!(productReportData.branch_stocks||[]).length">
+                                        <p class="text-xs text-gray-400 text-center py-4">Şube stok verisi yok</p>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- En Çok Satan Ürünler --}}
+                        <div x-show="(productReportData.top_selling||[]).length > 0">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3"><i class="fas fa-fire text-orange-500 mr-1.5"></i>Son 30 Gün — En Çok Satan Ürünler</h4>
+                            <div class="overflow-x-auto rounded-xl border border-gray-100">
+                                <table class="w-full text-xs">
+                                    <thead class="bg-gray-50 text-gray-500">
+                                        <tr>
+                                            <th class="px-3 py-2 text-left">#</th>
+                                            <th class="px-3 py-2 text-left">Ürün</th>
+                                            <th class="px-3 py-2 text-right">Satış Adedi</th>
+                                            <th class="px-3 py-2 text-right">Toplam Ciro</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-50">
+                                        <template x-for="(p, idx) in productReportData.top_selling" :key="p.id">
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-3 py-2 text-gray-400" x-text="idx+1"></td>
+                                                <td class="px-3 py-2 text-gray-700 font-medium" x-text="p.name"></td>
+                                                <td class="px-3 py-2 text-right font-mono text-gray-800" x-text="p.total_qty"></td>
+                                                <td class="px-3 py-2 text-right font-mono text-emerald-600" x-text="formatPrice(p.total_revenue)"></td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {{-- Kritik Stok Ürünler --}}
+                        <div x-show="(productReportData.low_stock_products||[]).length > 0">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3"><i class="fas fa-exclamation-triangle text-orange-500 mr-1.5"></i>Kritik Stok Ürünler</h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <template x-for="p in productReportData.low_stock_products" :key="p.id">
+                                    <div class="flex items-center justify-between p-2.5 bg-orange-50 border border-orange-100 rounded-lg">
+                                        <div>
+                                            <span class="text-xs font-medium text-gray-800" x-text="p.name"></span>
+                                            <span class="text-[10px] text-gray-400 block" x-text="p.category || ''"></span>
+                                        </div>
+                                        <div class="text-right">
+                                            <span class="text-sm font-bold text-orange-600" x-text="p.stock"></span>
+                                            <span class="text-[10px] text-gray-400 block">Kritik: <span x-text="p.critical"></span></span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        {{-- Stoksuz Ürünler --}}
+                        <div x-show="(productReportData.zero_stock_products||[]).length > 0">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3"><i class="fas fa-times-circle text-red-500 mr-1.5"></i>Stok Yok Ürünler</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <template x-for="p in productReportData.zero_stock_products" :key="p.id">
+                                    <span class="text-xs bg-red-50 border border-red-100 text-red-700 rounded-lg px-2.5 py-1" x-text="p.name"></span>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    {{-- ═══════════════════════════════════════════ --}}
     {{-- MODAL: Ürün Özet Dökümü --}}
     {{-- ═══════════════════════════════════════════ --}}
     <div x-show="showSummaryModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
@@ -1224,36 +1373,149 @@
     </div>
 
     {{-- ═══════════════════════════════════════════ --}}
-    {{-- MODAL: Toplu Fiyat Güncelleme --}}
+    {{-- MODAL: Toplu Fiyat Güncelleme (Gelişmiş) --}}
     {{-- ═══════════════════════════════════════════ --}}
     <div x-show="showBulkPriceModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
         <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showBulkPriceModal=false"></div>
-        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-            <h3 class="text-lg font-bold text-gray-900 mb-4"><i class="fas fa-dollar-sign text-amber-500 mr-2"></i>Toplu Fiyat Güncelle</h3>
-            <p class="text-sm text-gray-500 mb-4"><span class="font-medium" x-text="selectedIds.length"></span> ürünün fiyatı güncellenecek</p>
-            <div class="space-y-3 mb-4">
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">Fiyat Alanı</label>
-                    <select x-model="bulkPriceField" class="w-full text-sm px-3 py-2 border border-gray-200 rounded-xl">
-                        <option value="sale_price">Satış Fiyatı</option>
-                        <option value="purchase_price">Alış Fiyatı</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">Güncelleme Tipi</label>
-                    <select x-model="bulkPriceType" class="w-full text-sm px-3 py-2 border border-gray-200 rounded-xl">
-                        <option value="percent">Yüzde (%)</option>
-                        <option value="fixed">Sabit Fiyat (₺)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1" x-text="bulkPriceType === 'percent' ? 'Yüzde (+ artış, - azalış)' : 'Yeni Fiyat (₺)'"></label>
-                    <input type="number" x-model="bulkPriceValue" step="0.01" class="w-full text-sm px-3 py-2 border border-gray-200 rounded-xl" placeholder="10">
-                </div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between shrink-0">
+                <h3 class="text-lg font-bold text-gray-900"><i class="fas fa-dollar-sign text-amber-500 mr-2"></i>Toplu Fiyat Güncelle
+                    <span class="ml-2 text-sm font-normal text-gray-500">(<span x-text="selectedIds.length"></span> ürün)</span>
+                </h3>
+                <button @click="showBulkPriceModal=false" class="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
             </div>
-            <div class="flex gap-3">
-                <button @click="showBulkPriceModal=false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl">İptal</button>
-                <button @click="bulkPriceUpdate()" :disabled="!bulkPriceValue" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-xl disabled:opacity-50">Uygula</button>
+            {{-- Sekmeler --}}
+            <div class="flex border-b border-gray-100 px-6 shrink-0">
+                <button @click="priceModalTab = 'quick'" class="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+                        :class="priceModalTab === 'quick' ? 'border-amber-500 text-amber-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
+                    <i class="fas fa-bolt mr-1.5"></i>Hızlı Güncelleme
+                </button>
+                <button @click="priceModalTab = 'branch'; loadBranchPrices()" class="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+                        :class="priceModalTab === 'branch' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
+                    <i class="fas fa-store mr-1.5"></i>Şube Bazlı
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6">
+                {{-- Hızlı güncelleme --}}
+                <div x-show="priceModalTab === 'quick'" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1.5">Fiyat Alanı</label>
+                        <select x-model="bulkPriceField" class="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl">
+                            <option value="sale_price">Satış Fiyatı</option>
+                            <option value="purchase_price">Alış Fiyatı</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1.5">Güncelleme Tipi</label>
+                        <select x-model="bulkPriceType" class="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl">
+                            <option value="percent">Yüzde (%) — artış pozitif, azalış negatif</option>
+                            <option value="fixed">Sabit Fiyat (₺)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1.5" x-text="bulkPriceType === 'percent' ? 'Yüzde (ör: 10 = %10 artış, -5 = %5 azalış)' : 'Yeni Fiyat (₺)'"></label>
+                        <div class="relative">
+                            <input type="number" x-model="bulkPriceValue" step="0.01"
+                                   class="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl pr-10" placeholder="0">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-semibold" x-text="bulkPriceType === 'percent' ? '%' : '₺'"></span>
+                        </div>
+                    </div>
+                    <div class="pt-2 flex gap-3">
+                        <button @click="showBulkPriceModal=false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl">İptal</button>
+                        <button @click="bulkPriceUpdate()" :disabled="!bulkPriceValue" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-xl disabled:opacity-50">Uygula</button>
+                    </div>
+                </div>
+
+                {{-- Şube bazlı --}}
+                <div x-show="priceModalTab === 'branch'">
+                    <div x-show="branchPriceLoading" class="flex items-center justify-center py-12">
+                        <i class="fas fa-spinner fa-spin text-xl text-brand-500"></i>
+                    </div>
+                    <template x-if="!branchPriceLoading && branchPriceData">
+                        <div>
+                            {{-- Güncelleme Ayarları Satırı --}}
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 p-3 bg-amber-50 rounded-xl border border-amber-100">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Şube</label>
+                                    <select x-model="branchPriceUpdateBranchId" class="w-full text-xs px-2.5 py-2 border border-gray-200 rounded-lg bg-white">
+                                        <option value="">— Şube Seç —</option>
+                                        <template x-for="b in branchPriceData.branches" :key="b.id">
+                                            <option :value="b.id" x-text="b.name"></option>
+                                        </template>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Tip</label>
+                                    <select x-model="branchPriceUpdateType" class="w-full text-xs px-2.5 py-2 border border-gray-200 rounded-lg bg-white">
+                                        <option value="percent">Yüzde (%)</option>
+                                        <option value="fixed">Sabit (₺)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1" x-text="branchPriceUpdateType === 'percent' ? 'Değer (%)' : 'Yeni Fiyat (₺)'"></label>
+                                    <div class="flex gap-1">
+                                        <input type="number" x-model="branchPriceUpdateValue" step="0.01"
+                                               class="flex-1 text-xs px-2.5 py-2 border border-gray-200 rounded-lg" placeholder="0">
+                                        <button @click="applyBranchPricePreview()"
+                                                :disabled="!branchPriceUpdateBranchId || !branchPriceUpdateValue"
+                                                class="px-2.5 py-2 text-xs bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 whitespace-nowrap">
+                                            Önizle
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Ürün + Şube Fiyat Tablosu --}}
+                            <div class="overflow-x-auto rounded-xl border border-gray-100">
+                                <table class="w-full text-xs">
+                                    <thead class="bg-gray-50 text-gray-500 uppercase">
+                                        <tr>
+                                            <th class="px-3 py-2 text-left font-semibold">Ürün</th>
+                                            <th class="px-3 py-2 text-right font-semibold">Merkez Fiyatı</th>
+                                            <template x-for="b in branchPriceData.branches" :key="b.id">
+                                                <th class="px-3 py-2 text-right font-semibold" x-text="b.name"></th>
+                                            </template>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-50">
+                                        <template x-for="prod in branchPriceData.products" :key="prod.id">
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-3 py-2 text-gray-700 font-medium max-w-[150px] truncate" x-text="prod.name"></td>
+                                                <td class="px-3 py-2 text-right font-mono text-gray-600" x-text="formatPrice(prod.sale_price)"></td>
+                                                <template x-for="b in branchPriceData.branches" :key="b.id">
+                                                    <td class="px-3 py-2 text-right">
+                                                        <div x-data="{
+                                                            get current() { return prod.branch_prices[b.id] ?? null; },
+                                                            get preview() { return prod._preview && prod._preview[b.id] !== undefined ? prod._preview[b.id] : null; }
+                                                        }">
+                                                            <span class="font-mono" :class="preview !== null ? 'text-amber-600 font-semibold' : 'text-gray-600'">
+                                                                <span x-show="preview !== null" x-text="formatPrice(preview)"></span>
+                                                                <span x-show="preview === null" x-text="current !== null ? formatPrice(current) : '—'"></span>
+                                                            </span>
+                                                            <span x-show="preview !== null && current !== null" class="text-gray-400 text-[10px] ml-1" x-text="'(' + formatPrice(current) + ')'"></span>
+                                                        </div>
+                                                    </td>
+                                                </template>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="flex gap-3 mt-4">
+                                <button @click="showBulkPriceModal=false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl">İptal</button>
+                                <button @click="bulkBranchPriceUpdate()"
+                                        :disabled="!branchPriceUpdates || branchPriceUpdates.length === 0 || branchPriceApplying"
+                                        class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
+                                    <svg x-show="branchPriceApplying" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                    <span x-text="branchPriceApplying ? 'Uygulanıyor...' : 'Şube Fiyatlarını Uygula'"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
             </div>
         </div>
     </div>
@@ -1560,6 +1822,19 @@ function productManager() {
         bulkPriceField: 'sale_price',
         bulkPriceType: 'percent',
         bulkPriceValue: '',
+        priceModalTab: 'quick',
+        // Şube Bazlı Fiyat Güncelleme
+        branchPriceLoading: false,
+        branchPriceData: null,
+        branchPriceUpdates: [],
+        branchPriceApplying: false,
+        branchPriceUpdateBranchId: '',
+        branchPriceUpdateType: 'percent',
+        branchPriceUpdateValue: '',
+        // Raporlar
+        showProductReportModal: false,
+        productReportLoading: false,
+        productReportData: null,
 
         // Toplu Şube
         showBulkBranchModal: false,
@@ -2065,6 +2340,70 @@ function productManager() {
                 window.location.reload();
             } catch(e) { showToast(e.message || 'Hata', 'error'); }
         },
+
+        async loadBranchPrices() {
+            if (this.branchPriceData) return; // cache
+            this.branchPriceLoading = true;
+            try {
+                const params = this.selectedIds.map(id => `ids[]=${id}`).join('&');
+                const res = await posAjax(`/products/branch-prices?${params}`, {}, 'GET');
+                // Her ürüne _preview alanı ekle
+                (res.products || []).forEach(p => { p._preview = {}; });
+                this.branchPriceData = res;
+            } catch(e) { showToast(e.message || 'Şube fiyatları yüklenemedi', 'error'); }
+            finally { this.branchPriceLoading = false; }
+        },
+
+        applyBranchPricePreview() {
+            if (!this.branchPriceUpdateBranchId || !this.branchPriceUpdateValue) return;
+            const bid = parseInt(this.branchPriceUpdateBranchId);
+            const type = this.branchPriceUpdateType;
+            const val = parseFloat(this.branchPriceUpdateValue);
+            (this.branchPriceData.products || []).forEach(prod => {
+                const current = prod.branch_prices[bid] ?? prod.sale_price;
+                let np = type === 'percent' ? current * (1 + val / 100) : val;
+                prod._preview = prod._preview || {};
+                prod._preview[bid] = Math.max(0, Math.round(np * 100) / 100);
+            });
+            // updates listesi
+            const existing = this.branchPriceUpdates.findIndex(u => u.branch_id === bid);
+            if (existing >= 0) {
+                this.branchPriceUpdates[existing] = { branch_id: bid, type, value: val };
+            } else {
+                this.branchPriceUpdates.push({ branch_id: bid, type, value: val });
+            }
+            showToast('Önizleme hazır — Uygula butonuna basın', 'info');
+        },
+
+        async bulkBranchPriceUpdate() {
+            if (!this.branchPriceUpdates.length) return;
+            this.branchPriceApplying = true;
+            try {
+                const res = await posAjax('/products/bulk-branch-price-update', {
+                    method: 'POST',
+                    body: JSON.stringify({ ids: this.selectedIds.map(Number), updates: this.branchPriceUpdates }),
+                });
+                showToast(res.message, 'success');
+                this.showBulkPriceModal = false;
+                this.branchPriceData = null;
+                this.branchPriceUpdates = [];
+                window.location.reload();
+            } catch(e) { showToast(e.message || 'Hata', 'error'); }
+            finally { this.branchPriceApplying = false; }
+        },
+
+        async openProductReport() {
+            this.showProductReportModal = true;
+            if (this.productReportData) return;
+            this.productReportLoading = true;
+            try {
+                const res = await posAjax('/products/report-summary', {}, 'GET');
+                this.productReportData = res;
+            } catch(e) { showToast(e.message || 'Rapor yüklenemedi', 'error'); this.showProductReportModal = false; }
+            finally { this.productReportLoading = false; }
+        },
+
+        formatPrice(v) { return new Intl.NumberFormat('tr-TR', {style:'currency', currency:'TRY', minimumFractionDigits:2}).format(v||0); },
 
         // ── Barkod Etiket ────────────────────────
         openLabelModal() { this.showLabelModal = true; this.labelData = []; },

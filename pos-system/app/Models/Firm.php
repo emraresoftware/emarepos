@@ -40,6 +40,12 @@ class Firm extends Model
     {
         return $this->belongsTo(FirmGroup::class, 'firm_group_id');
     }
+
+    public function phones()
+    {
+        return $this->hasMany(FirmPhone::class)->orderByDesc('is_primary');
+    }
+
     public function stockMovements()
     {
         return $this->hasMany(StockMovement::class, 'firm_customer', 'name');

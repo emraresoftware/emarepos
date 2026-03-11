@@ -731,9 +731,184 @@ class ProductController extends Controller
         return response()->json(['success' => true, 'message' => count($request->ids) . ' ürünün fiyatı güncellendi.']);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // GÖRSEL YÜKLEME
-    // ═══════════════════════════════════════════════════════════
+    /**
+     * Seçili ürünlerin şube bazlı mevcut fiyatlarını getir
+     * GET /products/branch-prices?ids[]=1&ids[]=2
+     */
+    public function getBranchPricesForProducts(Request $request)
+    {
+        $tenantId = session('tenant_id');
+        $ids = array_filter((array) $request->get('ids', []), 'is_numeric');
+
+        $products = Product::whereIn('id', $ids)
+            ->where('tenant_id', $tenantId)
+            ->with('branches')
+            ->get(['id', 'name', 'sale_price', 'purchase_price']);
+
+        $branches = Branch::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $productData = $products->map(function ($p) use ($branches) {
+            $pivotMap = $p->branches->keyBy('id');
+            return [
+                'id'           => $p->id,
+                'name'         => $p->name,
+                'sale_price'   => $p->sale_price,
+                'branch_prices' => $branches->mapWithKeys(function ($b) use ($pivotMap) {
+                    $pivot = $pivotMap->get($b->id);
+                    return [$b->id => $pivot ? $pivot->pivot->sale_price : null];
+                }),
+            ];
+        });
+
+        return response()->json([
+            'success'  => true,
+            'products' => $productData,
+            'branches' => $branches->map(fn ($b) => ['id' => $b->id, 'name' => $b->name]),
+        ]);
+    }
+
+    /**
+     * Şube bazlı toplu fiyat güncelleme
+     * POST /products/bulk-branch-price-update
+     */
+    public function bulkBranchPriceUpdate(Request $request)
+    {
+        if (!$this->canEditPrices()) {
+            return response()->json(['success' => false, 'message' => 'Fiyat düzenleme yetkiniz yok.'], 403);
+        }
+        $request->validate([
+            'ids'              => 'required|array',
+            'ids.*'            => 'integer',
+            'updates'          => 'required|array',
+            'updates.*.branch_id' => 'required|integer',
+            'updates.*.type'   => 'required|in:percent,fixed',
+            'updates.*.value'  => 'required|numeric',
+        ]);
+
+        $tenantId  = session('tenant_id');
+        $products  = Product::whereIn('id', $request->ids)->where('tenant_id', $tenantId)->get();
+        $branchIds = Branch::where('tenant_id', $tenantId)->where('is_active', true)->pluck('id')->toArray();
+        $updatedCount = 0;
+
+        foreach ($products as $product) {
+            foreach ($request->updates as $upd) {
+                $branchId = (int) $upd['branch_id'];
+                if (!in_array($branchId, $branchIds)) continue;
+
+                // Mevcut pivot satırını bul
+                $pivot = DB::table('branch_product')
+                    ->where('product_id', $product->id)
+                    ->where('branch_id', $branchId)
+                    ->first();
+
+                $currentPrice = $pivot ? (float) $pivot->sale_price : (float) $product->sale_price;
+
+                if ($upd['type'] === 'percent') {
+                    $newPrice = $currentPrice * (1 + (float) $upd['value'] / 100);
+                } else {
+                    $newPrice = (float) $upd['value'];
+                }
+                $newPrice = max(0, round($newPrice, 2));
+
+                DB::table('branch_product')->updateOrInsert(
+                    ['product_id' => $product->id, 'branch_id' => $branchId],
+                    ['sale_price' => $newPrice, 'updated_at' => now(), 'created_at' => now()]
+                );
+                $updatedCount++;
+            }
+        }
+
+        return response()->json(['success' => true, 'message' => "{$updatedCount} şube-ürün fiyatı güncellendi."]);
+    }
+
+    /**
+     * Ürün rapor özeti — raporlar modalı için
+     * GET /products/report-summary
+     */
+    public function reportSummary(Request $request)
+    {
+        $tenantId = session('tenant_id');
+        $branchId = (int) session('branch_id');
+
+        $products = Product::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->with(['category', 'branches'])
+            ->get();
+
+        $lowStock      = $products->filter(fn ($p) => !$p->is_service && $p->stock_quantity <= $p->critical_stock && $p->stock_quantity > 0);
+        $zeroStock     = $products->filter(fn ($p) => !$p->is_service && $p->stock_quantity <= 0);
+        $totalStockVal = $products->sum(fn ($p) => $p->stock_quantity * $p->purchase_price);
+        $totalSaleVal  = $products->sum(fn ($p) => $p->stock_quantity * $p->sale_price);
+
+        $byCat = $products->groupBy(fn ($p) => optional($p->category)->name ?? 'Kategori Yok')
+            ->map(fn ($grp, $name) => [
+                'name'    => $name,
+                'count'   => $grp->count(),
+                'stock'   => $grp->sum('stock_quantity'),
+                'value'   => round($grp->sum(fn ($p) => $p->stock_quantity * $p->purchase_price), 2),
+            ])->values()->sortByDesc('count')->values();
+
+        // En çok satan 10 ürün (son 30 gün)
+        $topSelling = DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->where('products.tenant_id', $tenantId)
+            ->where('orders.created_at', '>=', now()->subDays(30))
+            ->where('orders.status', '!=', 'cancelled')
+            ->select('products.id', 'products.name', DB::raw('SUM(order_items.quantity) as total_qty'), DB::raw('SUM(order_items.total_price) as total_revenue'))
+            ->groupBy('products.id', 'products.name')
+            ->orderByDesc('total_qty')
+            ->limit(10)
+            ->get();
+
+        // Şube bazlı stok özeti
+        $branchStocks = Branch::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->withCount(['products as product_count'])
+            ->get(['id', 'name'])
+            ->map(function ($b) use ($tenantId) {
+                $rows = DB::table('branch_product')
+                    ->join('products', 'products.id', '=', 'branch_product.product_id')
+                    ->where('products.tenant_id', $tenantId)
+                    ->where('branch_product.branch_id', $b->id)
+                    ->select(DB::raw('SUM(branch_product.stock_quantity) as total_stock'),
+                             DB::raw('SUM(branch_product.stock_quantity * products.purchase_price) as total_value'))
+                    ->first();
+                return [
+                    'id'          => $b->id,
+                    'name'        => $b->name,
+                    'total_stock' => (int) ($rows->total_stock ?? 0),
+                    'total_value' => round($rows->total_value ?? 0, 2),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'summary' => [
+                'total_products'    => $products->count(),
+                'active_products'   => $products->where('is_active', true)->count(),
+                'total_stock_value' => round($totalStockVal, 2),
+                'total_sale_value'  => round($totalSaleVal, 2),
+                'potential_profit'  => round($totalSaleVal - $totalStockVal, 2),
+                'low_stock_count'   => $lowStock->count(),
+                'zero_stock_count'  => $zeroStock->count(),
+            ],
+            'low_stock_products' => $lowStock->take(10)->map(fn ($p) => [
+                'id' => $p->id, 'name' => $p->name,
+                'stock' => $p->stock_quantity, 'critical' => $p->critical_stock,
+                'category' => optional($p->category)->name,
+            ])->values(),
+            'zero_stock_products' => $zeroStock->take(10)->map(fn ($p) => [
+                'id' => $p->id, 'name' => $p->name, 'category' => optional($p->category)->name,
+            ])->values(),
+            'by_category'    => $byCat,
+            'top_selling'    => $topSelling,
+            'branch_stocks'  => $branchStocks,
+        ]);
+    }
 
     /**
      * Ürüne görsel yükle

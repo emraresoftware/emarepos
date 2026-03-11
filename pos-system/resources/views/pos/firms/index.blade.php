@@ -3,7 +3,7 @@
 @section('title', 'Cariler')
 
 @section('content')
-<div class="p-6 overflow-y-auto h-full" x-data="firmManager()" x-cloak>
+<div class="p-6 overflow-y-auto h-full" x-data="firmManager()" x-cloak x-init="init()">
     {{-- Stats --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-xl border border-gray-100 p-5">
@@ -113,8 +113,7 @@
                         <th class="px-4 py-3.5">Vergi No</th>
                         <th class="px-4 py-3.5 text-right">Bakiye</th>
                         <th class="px-4 py-3.5 text-center">İşlemler</th>
-                    </tr>
-                </thead>
+                    </tr>                </thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse($firms as $firm)
                         <tr class="hover:bg-gray-50 transition-colors cursor-pointer" @click="openDetail({{ $firm->id }})">
@@ -133,7 +132,22 @@
                                     <span class="text-xs text-gray-400">-</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-gray-700">{{ $firm->phone ?? '-' }}</td>
+                            <td class="px-4 py-3 text-gray-700">
+                                @if($firm->phones->count())
+                                    <div class="flex flex-col gap-0.5">
+                                        @foreach($firm->phones->take(2) as $ph)
+                                            <div class="flex items-center gap-1.5">
+                                                @if($ph->is_primary)<span class="text-yellow-500 text-[9px]">★</span>@endif
+                                                <span class="text-[10px] font-semibold rounded px-1 py-0.5 {{ $ph->type === 'mobile' ? 'bg-blue-100 text-blue-700' : ($ph->type === 'landline' ? 'bg-gray-100 text-gray-600' : 'bg-purple-100 text-purple-700') }}">{{ $ph->type === 'mobile' ? 'H' : ($ph->type === 'landline' ? 'S' : 'D') }}</span>
+                                                <span class="text-xs">{{ $ph->phone }}</span>
+                                            </div>
+                                        @endforeach
+                                        @if($firm->phones->count() > 2)<span class="text-[10px] text-gray-400">+{{ $firm->phones->count() - 2 }} daha</span>@endif
+                                    </div>
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3 text-gray-500">{{ $firm->email ?? '-' }}</td>
                             <td class="px-4 py-3 font-mono text-xs text-gray-500">{{ $firm->tax_number ?? '-' }}</td>
                             <td class="px-4 py-3 text-right">
@@ -148,13 +162,17 @@
                                             class="p-2 text-gray-500 hover:text-brand-600 hover:bg-brand-500/10 rounded-lg transition-colors" title="Detay / Hareketler">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                                     </button>
-                                        <button @click.stop="openEdit({{ json_encode(['id'=>$firm->id,'name'=>$firm->name,'firm_group_id'=>$firm->firm_group_id,'tax_number'=>$firm->tax_number,'tax_office'=>$firm->tax_office,'phone'=>$firm->phone,'email'=>$firm->email,'address'=>$firm->address,'city'=>$firm->city,'notes'=>$firm->notes]) }})"
+                                        <button @click.stop="openEdit({{ json_encode(['id'=>$firm->id,'name'=>$firm->name,'firm_group_id'=>$firm->firm_group_id,'tax_number'=>$firm->tax_number,'tax_office'=>$firm->tax_office,'email'=>$firm->email,'address'=>$firm->address,'city'=>$firm->city,'notes'=>$firm->notes,'phones'=>$firm->phones->map(fn($p)=>['phone'=>$p->phone,'type'=>$p->type,'is_primary'=>(bool)$p->is_primary])->values()->toArray()]) }})"
                                             class="p-2 text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors" title="Düzenle">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                     </button>
                                         <button @click.stop="openPayment({{ $firm->id }}, '{{ addslashes($firm->name) }}', {{ $bal }})"
-                                            class="p-2 text-gray-500 hover:text-emerald-600 hover:bg-green-500/10 rounded-lg transition-colors" title="Ödeme">
+                                            class="p-2 text-gray-500 hover:text-emerald-600 hover:bg-green-500/10 rounded-lg transition-colors" title="Ödeme Yap">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                    </button>
+                                        <button @click.stop="openDebt({{ $firm->id }}, '{{ addslashes($firm->name) }}', {{ $bal }})"
+                                            class="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Borç Ekle">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     </button>
                                 </div>
                             </td>
@@ -197,8 +215,40 @@
                     <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Vergi No</label><input type="text" x-model="form.tax_number" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
                     <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Vergi Dairesi</label><input type="text" x-model="form.tax_office" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
                 </div>
+                {{-- Çoklu Telefon --}}
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="text-sm font-medium text-gray-700">Telefon Numaraları</label>
+                        <button type="button" @click="addPhone()" class="text-xs text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1">
+                            <i class="fas fa-plus"></i> Telefon Ekle
+                        </button>
+                    </div>
+                    <div class="space-y-2">
+                        <template x-for="(p, idx) in form.phones" :key="idx">
+                            <div class="flex items-center gap-2">
+                                <select x-model="p.type" class="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg px-2 py-2.5 w-28 flex-shrink-0">
+                                    <option value="mobile">Hareketli</option>
+                                    <option value="landline">Sabit</option>
+                                    <option value="other">Diğer</option>
+                                </select>
+                                <input type="tel" x-model="p.phone" placeholder="Telefon numarası"
+                                       class="flex-1 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg px-3 py-2.5 placeholder-gray-400">
+                                <button type="button" @click="setPrimaryPhone(idx)"
+                                        :title="p.is_primary ? 'Ana numara' : 'Ana numara yap'"
+                                        :class="p.is_primary ? 'text-yellow-500 bg-yellow-50' : 'text-gray-300 hover:text-yellow-400'"
+                                        class="p-2 rounded-lg border border-gray-200 flex-shrink-0">
+                                    <i class="fas fa-star text-xs"></i>
+                                </button>
+                                <button type="button" @click="removePhone(idx)" x-show="form.phones.length > 1"
+                                        class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg border border-gray-200 flex-shrink-0">
+                                    <i class="fas fa-times text-xs"></i>
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Telefon</label><input type="tel" x-model="form.phone" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
+                    <div></div>
                     <div><label class="block text-sm font-medium text-gray-700 mb-1.5">E-posta</label><input type="email" x-model="form.email" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
                 </div>
                 <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Adres</label><textarea x-model="form.address" rows="2" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 resize-none"></textarea></div>
@@ -253,121 +303,205 @@
                 {{-- Content --}}
                 <template x-if="detailData && !detailLoading">
                     <div>
-                        {{-- Özet --}}
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                            <div class="bg-gray-50 rounded-xl p-4 text-center">
+                        {{-- Özet Kartlar --}}
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Bakiye</p>
-                                <p class="text-xl font-bold" :class="(detailData.firm.balance||0) < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCur(detailData.firm.balance)"></p>
+                                <p class="text-lg font-bold" :class="(detailData.firm.balance||0) < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCur(detailData.firm.balance)"></p>
                             </div>
-                            <div class="bg-gray-50 rounded-xl p-4 text-center">
-                                <p class="text-xs text-gray-500 mb-1">Telefon</p>
-                                <p class="text-sm font-medium text-gray-800" x-text="detailData.firm.phone || '-'"></p>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Toplam Alış</p>
+                                <p class="text-lg font-bold text-gray-800" x-text="formatCur(detailData.total_purchase)"></p>
                             </div>
-                            <div class="bg-gray-50 rounded-xl p-4 text-center">
-                                <p class="text-xs text-gray-500 mb-1">Vergi No</p>
-                                <p class="text-sm font-mono text-gray-800" x-text="detailData.firm.tax_number || '-'"></p>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Toplam Ödeme</p>
+                                <p class="text-lg font-bold text-emerald-600" x-text="formatCur(detailData.total_payment)"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Fatura Sayısı</p>
+                                <p class="text-lg font-bold text-gray-800" x-text="(detailData.purchase_invoices||[]).length"></p>
+                            </div>
+                        </div>
+
+                        {{-- Telefon & İletişim Bilgileri --}}
+                        <div class="bg-gray-50 rounded-xl border border-gray-100 p-3 mb-4">
+                            <div class="flex flex-wrap gap-3 items-center">
+                                <template x-for="(ph, i) in (detailData.phones||[])" :key="i">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[10px] font-bold rounded px-1.5 py-0.5"
+                                              :class="ph.type === 'mobile' ? 'bg-blue-100 text-blue-700' : (ph.type === 'landline' ? 'bg-gray-200 text-gray-600' : 'bg-purple-100 text-purple-700')"
+                                              x-text="ph.type === 'mobile' ? 'H' : (ph.type === 'landline' ? 'S' : 'D')"></span>
+                                        <span class="text-sm text-gray-800" x-text="ph.phone"></span>
+                                        <span x-show="ph.is_primary" class="text-yellow-500 text-xs">★</span>
+                                    </div>
+                                </template>
+                                <template x-if="!(detailData.phones||[]).length">
+                                    <span class="text-xs text-gray-400">Telefon yok</span>
+                                </template>
+                                <span class="text-gray-300">|</span>
+                                <span class="text-xs text-gray-500" x-text="detailData.firm.email || ''"></span>
+                                <span x-show="detailData.firm.tax_number" class="text-xs text-gray-500">VN: <span x-text="detailData.firm.tax_number" class="font-mono"></span></span>
                             </div>
                         </div>
 
                         {{-- Sekmeler --}}
                         <div class="flex flex-wrap gap-2 mb-4">
-                            <button @click="detailTab = 'invoices'"
-                                    class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+                            <button @click="detailTab = 'timeline'" class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+                                    :class="detailTab === 'timeline' ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'">
+                                <i class="fas fa-stream mr-1"></i>Tüm Hareketler
+                            </button>
+                            <button @click="detailTab = 'invoices'" class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
                                     :class="detailTab === 'invoices' ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'">
-                                Alış Faturaları
+                                <i class="fas fa-file-invoice mr-1"></i>Alış Faturaları
+                                <span class="ml-1 bg-gray-200 text-gray-600 rounded-full px-1.5 py-0.5 text-[10px]" x-text="(detailData.purchase_invoices||[]).length"></span>
                             </button>
-                            <button @click="detailTab = 'payments'"
-                                    class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+                            <button @click="detailTab = 'payments'" class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
                                     :class="detailTab === 'payments' ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'">
-                                Ödemeler / Tahsilatlar
+                                <i class="fas fa-coins mr-1"></i>Ödemeler
+                                <span class="ml-1 bg-gray-200 text-gray-600 rounded-full px-1.5 py-0.5 text-[10px]" x-text="(detailData.payments||[]).length"></span>
                             </button>
-                            <button @click="detailTab = 'movements'"
-                                    class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
-                                    :class="detailTab === 'movements' ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'">
-                                Bakiye Hareketleri
-                            </button>
-                            <button @click="detailTab = 'notes'"
-                                    class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+                            <button @click="detailTab = 'notes'" class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
                                     :class="detailTab === 'notes' ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'">
                                 Notlar
                             </button>
                         </div>
 
+                        {{-- Quick Actions --}}
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <button @click="openPayment(detailData.firm.id, detailData.firm.name, detailData.firm.balance); showDetailModal=false"
+                                    class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium rounded-lg flex items-center gap-1.5">
+                                <i class="fas fa-money-bill-wave"></i> Ödeme Yap
+                            </button>
+                            <button @click="openDebt(detailData.firm.id, detailData.firm.name, detailData.firm.balance); showDetailModal=false"
+                                    class="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg flex items-center gap-1.5">
+                                <i class="fas fa-plus-circle"></i> Borç Ekle
+                            </button>
+                        </div>
+
+                        {{-- Tüm Hareketler (Timeline) --}}
+                        <div x-show="detailTab === 'timeline'">
+                            <div x-show="detailTimeline.length === 0" class="text-center py-8 text-gray-400 text-sm">Hareket kaydı yok</div>
+                            <div class="space-y-2">
+                                <template x-for="item in detailTimeline" :key="item._key">
+                                    <div>
+                                        {{-- Fatura Satırı (genişletilebilir) --}}
+                                        <template x-if="item._type === 'invoice'">
+                                            <div class="rounded-xl border border-gray-100 overflow-hidden">
+                                                <button type="button" @click="item._open = !item._open"
+                                                        class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left">
+                                                    <div class="flex items-center gap-3">
+                                                        <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                                                            <i class="fas fa-file-invoice text-orange-500 text-xs"></i>
+                                                        </div>
+                                                        <div>
+                                                            <p class="text-sm font-semibold text-gray-800" x-text="item.invoice_no || ('Fatura #' + item.id)"></p>
+                                                            <p class="text-xs text-gray-400" x-text="item.invoice_date ? new Date(item.invoice_date).toLocaleDateString('tr-TR') : ''"></p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex items-center gap-3">
+                                                        <div class="text-right">
+                                                            <p class="text-sm font-bold text-gray-900" x-text="formatCur(item.grand_total)"></p>
+                                                            <p class="text-xs text-gray-400" x-text="item.payment_status || ''"></p>
+                                                        </div>
+                                                        <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform" :class="item._open ? 'rotate-180' : ''"></i>
+                                                    </div>
+                                                </button>
+                                                <div x-show="item._open" x-collapse class="border-t border-gray-100 bg-white p-3">
+                                                    <div class="space-y-1">
+                                                        <template x-for="line in (item.items||[])" :key="line.id">
+                                                            <div class="flex items-center justify-between text-xs py-1">
+                                                                <span class="text-gray-600" x-text="line.product_name || line.description"></span>
+                                                                <div class="flex items-center gap-3 text-gray-500">
+                                                                    <span x-text="(line.quantity||1) + ' x ' + formatCur(line.unit_price)"></span>
+                                                                    <span class="font-semibold text-gray-700" x-text="formatCur(line.total_price)"></span>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        <div x-show="!(item.items||[]).length" class="text-xs text-gray-400 py-1">Kalem detayı yok</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                        {{-- İşlem Satırı --}}
+                                        <template x-if="item._type === 'tx'">
+                                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                                                         :class="item.amount > 0 ? 'bg-emerald-500' : 'bg-red-500'">
+                                                        <i :class="item.amount > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-sm font-medium text-gray-800" x-text="item.description || item.type"></p>
+                                                        <p class="text-xs text-gray-400" x-text="item.transaction_date ? new Date(item.transaction_date).toLocaleDateString('tr-TR') : ''"></p>
+                                                    </div>
+                                                </div>
+                                                <p class="text-sm font-bold" :class="item.amount > 0 ? 'text-emerald-600' : 'text-red-500'"
+                                                   x-text="(item.amount > 0 ? '+' : '') + formatCur(item.amount)"></p>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
                         {{-- Alış Faturaları --}}
                         <div x-show="detailTab === 'invoices'">
-                            <div x-show="detailData.purchase_invoices.length === 0" class="text-center py-8 text-gray-400 text-sm">
-                                Alış faturası bulunamadı
-                            </div>
-                            <div class="space-y-2" x-show="detailData.purchase_invoices.length > 0">
-                                <template x-for="inv in detailData.purchase_invoices" :key="inv.id">
-                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-800" x-text="inv.invoice_no || ('Fatura #' + inv.id)"></p>
-                                            <p class="text-xs text-gray-400" x-text="inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('tr-TR') : ''"></p>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="text-sm font-bold text-gray-900" x-text="formatCur(inv.grand_total)"></p>
-                                            <p class="text-xs text-gray-400" x-text="(inv.status || '-') + ' / ' + (inv.payment_status || '-')"></p>
+                            <div x-show="(detailData.purchase_invoices||[]).length === 0" class="text-center py-8 text-gray-400 text-sm">Alış faturası bulunamadı</div>
+                            <div class="space-y-2">
+                                <template x-for="inv in (detailData.purchase_invoices||[])" :key="inv.id">
+                                    <div class="rounded-xl border border-gray-100 overflow-hidden">
+                                        <button type="button" @click="inv._open = !inv._open"
+                                                class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                                                    <i class="fas fa-file-invoice text-orange-500 text-xs"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-semibold text-gray-800" x-text="inv.invoice_no || ('Fatura #' + inv.id)"></p>
+                                                    <p class="text-xs text-gray-400" x-text="inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('tr-TR') : ''"></p>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-3">
+                                                <div class="text-right">
+                                                    <p class="text-sm font-bold text-gray-900" x-text="formatCur(inv.grand_total)"></p>
+                                                    <p class="text-xs" :class="inv.payment_status === 'paid' ? 'text-emerald-600' : 'text-orange-500'" x-text="inv.payment_status || ''"></p>
+                                                </div>
+                                                <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform" :class="inv._open ? 'rotate-180' : ''"></i>
+                                            </div>
+                                        </button>
+                                        <div x-show="inv._open" x-collapse class="border-t border-gray-100 bg-white p-3">
+                                            <template x-for="line in (inv.items||[])" :key="line.id">
+                                                <div class="flex justify-between text-xs py-1 border-b border-gray-50">
+                                                    <span class="text-gray-600" x-text="line.product_name || line.description || 'Kalem'"></span>
+                                                    <div class="flex gap-3">
+                                                        <span class="text-gray-400" x-text="(line.quantity||1) + ' x ' + formatCur(line.unit_price)"></span>
+                                                        <span class="font-semibold text-gray-700" x-text="formatCur(line.total_price)"></span>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <div x-show="!(inv.items||[]).length" class="text-xs text-gray-400 py-1">Kalem yok</div>
                                         </div>
                                     </div>
                                 </template>
                             </div>
                         </div>
 
-                        {{-- Ödemeler / Tahsilatlar --}}
+                        {{-- Ödemeler --}}
                         <div x-show="detailTab === 'payments'">
-                            <div class="flex items-center justify-end mb-3">
-                                <button @click="openPayment(detailData.firm.id, detailData.firm.name, detailData.firm.balance); showDetailModal = false"
-                                        class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium rounded-lg transition-colors">
-                                    <i class="fas fa-plus mr-1"></i>Ödeme Ekle
-                                </button>
-                            </div>
-                            <div x-show="detailData.payments.length === 0" class="text-center py-8 text-gray-400 text-sm">
-                                Ödeme / tahsilat kaydı yok
-                            </div>
-                            <div class="space-y-2" x-show="detailData.payments.length > 0">
-                                <template x-for="t in detailData.payments" :key="t.id">
+                            <div x-show="(detailData.payments||[]).length === 0" class="text-center py-8 text-gray-400 text-sm">Ödeme kaydı yok</div>
+                            <div class="space-y-2">
+                                <template x-for="t in (detailData.payments||[])" :key="t.id">
                                     <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
                                         <div class="flex items-center gap-3">
-                                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold bg-emerald-500">
+                                            <div class="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs">
                                                 <i class="fas fa-arrow-up"></i>
                                             </div>
                                             <div>
                                                 <p class="text-sm font-medium text-gray-800" x-text="t.description || t.type"></p>
-                                                <p class="text-xs text-gray-400" x-text="t.reference ? ('Ref: ' + t.reference) : ''"></p>
+                                                <p class="text-xs text-gray-400" x-text="t.transaction_date ? new Date(t.transaction_date).toLocaleDateString('tr-TR') : ''"></p>
                                             </div>
                                         </div>
-                                        <div class="text-right">
-                                            <p class="text-sm font-bold text-emerald-600" x-text="'+' + formatCur(t.amount)"></p>
-                                            <p class="text-xs text-gray-400" x-text="t.transaction_date ? new Date(t.transaction_date).toLocaleDateString('tr-TR') : ''"></p>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-
-                        {{-- Bakiye Hareketleri --}}
-                        <div x-show="detailTab === 'movements'">
-                            <div x-show="detailData.transactions.length === 0" class="text-center py-8 text-gray-400 text-sm">
-                                Henüz hareket kaydı yok
-                            </div>
-                            <div class="space-y-2" x-show="detailData.transactions.length > 0">
-                                <template x-for="t in detailData.transactions" :key="t.id">
-                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                        <div class="flex items-center gap-3">
-                                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                                                 :class="t.amount > 0 ? 'bg-emerald-500' : 'bg-red-500'">
-                                                <i :class="t.amount > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
-                                            </div>
-                                            <div>
-                                                <p class="text-sm font-medium text-gray-800" x-text="t.description || t.type"></p>
-                                                <p class="text-xs text-gray-400" x-text="t.reference ? ('Ref: ' + t.reference) : ''"></p>
-                                            </div>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="text-sm font-bold" :class="t.amount > 0 ? 'text-emerald-600' : 'text-red-500'" x-text="(t.amount > 0 ? '+' : '') + formatCur(t.amount)"></p>
-                                            <p class="text-xs text-gray-400" x-text="t.transaction_date ? new Date(t.transaction_date).toLocaleDateString('tr-TR') : ''"></p>
-                                        </div>
+                                        <p class="text-sm font-bold text-emerald-600" x-text="'+' + formatCur(t.amount)"></p>
                                     </div>
                                 </template>
                             </div>
@@ -375,11 +509,50 @@
 
                         {{-- Notlar --}}
                         <div x-show="detailTab === 'notes'">
-                            <div class="bg-gray-50 rounded-xl border border-gray-100 p-4 text-sm text-gray-700 whitespace-pre-line" x-text="detailData.firm.notes || 'Not bulunmuyor.'"></div>
+                            <div class="bg-gray-50 rounded-xl border border-gray-100 p-4 text-sm text-gray-700 whitespace-pre-line min-h-[80px]" x-text="detailData.firm.notes || 'Not bulunmuyor.'"></div>
                         </div>
                     </div>
                 </template>
             </div>
+        </div>
+    </div>
+
+    {{-- Borç Ekle Modal --}}
+    <div x-show="showDebtModal" x-transition class="fixed inset-0 z-[60] flex items-center justify-center p-4" style="display:none;">
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showDebtModal = false"></div>
+        <div class="relative bg-white rounded-xl border border-gray-100 shadow-2xl w-full max-w-md" x-transition>
+            <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-gray-900"><i class="fas fa-plus-circle text-red-500 mr-2"></i>Borç Ekle</h2>
+                <button @click="showDebtModal = false" class="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <form @submit.prevent="submitDebt()" class="p-6 space-y-4">
+                <div class="bg-red-50 rounded-lg border border-red-100 p-4">
+                    <p class="text-sm text-gray-600">Cari: <span class="font-semibold text-gray-900" x-text="debtFirmName"></span></p>
+                    <p class="text-sm text-gray-600 mt-1">Mevcut Bakiye: <span class="font-mono font-semibold" :class="debtFirmBalance < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCur(debtFirmBalance)"></span></p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Tutar <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <input type="number" x-model="debtForm.amount" x-ref="debtAmountInput" step="0.01" min="0.01" required
+                               class="w-full bg-white border border-gray-200 text-gray-900 text-lg rounded-lg pl-4 pr-8 py-2.5 font-mono focus:border-red-400"
+                               placeholder="0.00">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">₺</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Açıklama</label>
+                    <input type="text" x-model="debtForm.description" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5" placeholder="Borç açıklaması (opsiyonel)">
+                </div>
+                <div class="flex gap-3 pt-4 border-t border-gray-100">
+                    <button type="button" @click="showDebtModal = false" class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg">İptal</button>
+                    <button type="submit" :disabled="addingDebt" class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg disabled:opacity-50 flex items-center justify-center gap-2">
+                        <svg x-show="addingDebt" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                        <span x-text="addingDebt ? 'Kaydediliyor...' : 'Borç Ekle'"></span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -391,30 +564,86 @@
 function firmManager() {
     return {
         showFormModal: false, showPaymentModal: false, showDetailModal: false,
+        showDebtModal: false,
         showGroupPanel: false, showGroupForm: false,
-        editingId: null, saving: false, paying: false, detailLoading: false,
+        editingId: null, saving: false, paying: false, addingDebt: false, detailLoading: false,
         detailData: null,
-        detailTab: 'movements',
+        detailTab: 'timeline',
         searchQuery: new URLSearchParams(window.location.search).get('search') || '',
         groupFilter: new URLSearchParams(window.location.search).get('group_id') || '',
-        // Grup y\u00f6netimi
         newGroupName: '', editingGroupId: null,
-        form: { name: '', firm_group_id: '', tax_number: '', tax_office: '', phone: '', email: '', address: '', city: '', notes: '' },
+        form: { name: '', firm_group_id: '', tax_number: '', tax_office: '', phones: [{phone: '', type: 'mobile', is_primary: true}], email: '', address: '', city: '', notes: '' },
         payForm: { amount: '', description: '' }, payFirmId: null, payFirmName: '', payFirmBalance: 0,
-        openCreate() { this.editingId = null; this.form = { name: '', firm_group_id: '', tax_number: '', tax_office: '', phone: '', email: '', address: '', city: '', notes: '' }; this.showFormModal = true; },
-        openEdit(f) { this.editingId = f.id; this.form = { name: f.name||'', firm_group_id: f.firm_group_id ? String(f.firm_group_id) : '', tax_number: f.tax_number||'', tax_office: f.tax_office||'', phone: f.phone||'', email: f.email||'', address: f.address||'', city: f.city||'', notes: f.notes||'' }; this.showFormModal = true; },
+        debtForm: { amount: '', description: '' }, debtFirmId: null, debtFirmName: '', debtFirmBalance: 0,
+
+        init() {},
+
+        // ─── Telefon yönetimi ────────────────────────────────
+        addPhone() { this.form.phones.push({phone: '', type: 'mobile', is_primary: false}); },
+        removePhone(idx) {
+            const wasPrimary = this.form.phones[idx].is_primary;
+            this.form.phones.splice(idx, 1);
+            if (wasPrimary && this.form.phones.length > 0) this.form.phones[0].is_primary = true;
+        },
+        setPrimaryPhone(idx) { this.form.phones.forEach((p, i) => p.is_primary = (i === idx)); },
+
+        openCreate() {
+            this.editingId = null;
+            this.form = { name: '', firm_group_id: '', tax_number: '', tax_office: '', phones: [{phone: '', type: 'mobile', is_primary: true}], email: '', address: '', city: '', notes: '' };
+            this.showFormModal = true;
+        },
+        openEdit(f) {
+            this.editingId = f.id;
+            let phones = [];
+            if (f.phones && f.phones.length > 0) {
+                phones = f.phones.map(p => ({phone: p.phone, type: p.type || 'mobile', is_primary: !!p.is_primary}));
+            } else {
+                phones = [{phone: '', type: 'mobile', is_primary: true}];
+            }
+            this.form = {
+                name: f.name||'', firm_group_id: f.firm_group_id ? String(f.firm_group_id) : '',
+                tax_number: f.tax_number||'', tax_office: f.tax_office||'',
+                phones: phones,
+                email: f.email||'', address: f.address||'', city: f.city||'', notes: f.notes||''
+            };
+            this.showFormModal = true;
+        },
         openPayment(id, name, balance) { this.payFirmId = id; this.payFirmName = name; this.payFirmBalance = balance; this.payForm = { amount: '', description: '' }; this.showPaymentModal = true; },
+        openDebt(id, name, balance) {
+            this.debtFirmId = id; this.debtFirmName = name; this.debtFirmBalance = balance;
+            this.debtForm = { amount: '', description: '' };
+            this.showDebtModal = true;
+            this.$nextTick(() => this.$refs.debtAmountInput?.focus());
+        },
+
         async openDetail(id) {
             this.detailData = null;
-            this.detailTab = 'movements';
+            this.detailTab = 'timeline';
             this.detailLoading = true;
             this.showDetailModal = true;
             try {
                 const data = await posAjax(`/firms/${id}`, {}, 'GET');
+                // Faturalara _open durumu ve _key ekle
+                (data.purchase_invoices || []).forEach(inv => { inv._open = false; inv._type = 'invoice'; inv._key = 'inv_'+inv.id; });
+                (data.transactions || []).forEach(t => { t._type = 'tx'; t._key = 'tx_'+t.id; });
                 this.detailData = data;
-            } catch(e) { showToast('Detay y\u00fcklenemedi', 'error'); this.showDetailModal = false; }
+            } catch(e) { showToast('Detay yüklenemedi', 'error'); this.showDetailModal = false; }
             finally { this.detailLoading = false; }
         },
+
+        get detailTimeline() {
+            if (!this.detailData) return [];
+            const invoices = (this.detailData.purchase_invoices || []).map(i => ({...i, _type:'invoice', _key:'inv_'+i.id}));
+            const txs = (this.detailData.transactions || []).map(t => ({...t, _type:'tx', _key:'tx_'+t.id}));
+            const all = [...invoices, ...txs];
+            all.sort((a, b) => {
+                const dA = new Date(a.invoice_date || a.transaction_date || a.created_at);
+                const dB = new Date(b.invoice_date || b.transaction_date || b.created_at);
+                return dB - dA;
+            });
+            return all;
+        },
+
         applySearch() {
             const params = new URLSearchParams();
             if (this.searchQuery) params.set('search', this.searchQuery);
@@ -425,13 +654,26 @@ function firmManager() {
             this.saving = true;
             const url = this.editingId ? `/firms/${this.editingId}` : '/firms';
             const method = this.editingId ? 'PUT' : 'POST';
-            try { await posAjax(url, this.form, method); showToast(this.editingId ? 'Cari g\u00fcncellendi' : 'Cari olu\u015fturuldu', 'success'); this.showFormModal = false; window.location.reload(); }
-            catch (e) { showToast(e.message || 'Hata', 'error'); } finally { this.saving = false; }
+            try {
+                await posAjax(url, this.form, method);
+                showToast(this.editingId ? 'Cari güncellendi' : 'Cari oluşturuldu', 'success');
+                this.showFormModal = false; window.location.reload();
+            } catch (e) { showToast(e.message || 'Hata', 'error'); } finally { this.saving = false; }
         },
         async submitPayment() {
             this.paying = true;
-            try { await posAjax(`/firms/${this.payFirmId}/payment`, this.payForm, 'POST'); showToast('\u00d6deme kaydedildi', 'success'); this.showPaymentModal = false; window.location.reload(); }
-            catch (e) { showToast(e.message || 'Hata', 'error'); } finally { this.paying = false; }
+            try {
+                await posAjax(`/firms/${this.payFirmId}/payment`, this.payForm, 'POST');
+                showToast('Ödeme kaydedildi', 'success'); this.showPaymentModal = false; window.location.reload();
+            } catch (e) { showToast(e.message || 'Hata', 'error'); } finally { this.paying = false; }
+        },
+        async submitDebt() {
+            if (!this.debtForm.amount || parseFloat(this.debtForm.amount) <= 0) { showToast('Geçerli bir tutar girin', 'error'); return; }
+            this.addingDebt = true;
+            try {
+                await posAjax(`/firms/${this.debtFirmId}/debt`, this.debtForm, 'POST');
+                showToast('Borç başarıyla eklendi', 'success'); this.showDebtModal = false; window.location.reload();
+            } catch (e) { showToast(e.message || 'Borç eklenemedi', 'error'); } finally { this.addingDebt = false; }
         },
         // Grup CRUD
         editGroup(id, name) { this.editingGroupId = id; this.newGroupName = name; this.showGroupForm = true; },
@@ -440,16 +682,16 @@ function firmManager() {
             try {
                 if (this.editingGroupId) {
                     await posAjax(`/firm-groups/${this.editingGroupId}`, { name: this.newGroupName }, 'PUT');
-                    showToast('Grup g\u00fcncellendi', 'success');
+                    showToast('Grup güncellendi', 'success');
                 } else {
                     await posAjax('/firm-groups', { name: this.newGroupName }, 'POST');
-                    showToast('Grup olu\u015fturuldu', 'success');
+                    showToast('Grup oluşturuldu', 'success');
                 }
                 window.location.reload();
             } catch(e) { showToast(e.message || 'Hata', 'error'); }
         },
         async deleteGroup(id) {
-            if (!confirm('Bu grubu silmek istedi\u011finize emin misiniz?')) return;
+            if (!confirm('Bu grubu silmek istediğinize emin misiniz?')) return;
             try { await posAjax(`/firm-groups/${id}`, {}, 'DELETE'); showToast('Grup silindi', 'success'); window.location.reload(); }
             catch(e) { showToast(e.message || 'Silinemedi', 'error'); }
         },

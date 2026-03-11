@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Pos;
 use App\Http\Controllers\Controller;
 use App\Models\Firm;
 use App\Models\FirmGroup;
+use App\Models\FirmPhone;
 use App\Models\AccountTransaction;
 use App\Models\PurchaseInvoice;
 use Illuminate\Http\Request;
@@ -15,7 +16,7 @@ class FirmController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Firm::where('is_active', true)->with('group')->orderBy('name');
+        $query = Firm::where('is_active', true)->with(['group', 'phones'])->orderBy('name');
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -53,9 +54,11 @@ class FirmController extends Controller
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
 
+        $firm->load('phones');
+
         $transactions = AccountTransaction::where('firm_id', $firm->id)
             ->orderBy('created_at', 'desc')
-            ->limit(50)
+            ->limit(100)
             ->get();
 
         $payments = AccountTransaction::where('firm_id', $firm->id)
@@ -69,11 +72,17 @@ class FirmController extends Controller
             ->limit(50)
             ->get();
 
+        $totalPurchase = $purchaseInvoices->sum('grand_total');
+        $totalPayment  = $payments->sum('amount');
+
         return response()->json([
-            'firm' => $firm,
-            'transactions' => $transactions,
-            'payments' => $payments,
+            'firm'             => $firm,
+            'phones'           => $firm->phones,
+            'transactions'     => $transactions,
+            'payments'         => $payments,
             'purchase_invoices' => $purchaseInvoices,
+            'total_purchase'   => $totalPurchase,
+            'total_payment'    => $totalPayment,
         ]);
     }
 
@@ -96,7 +105,26 @@ class FirmController extends Controller
         $data['is_active'] = true;
         $firm = Firm::create($data);
 
-        return response()->json(['success' => true, 'firm' => $firm->load('group')]);
+        // Çoklu telefon
+        if ($request->has('phones')) {
+            foreach ($request->phones as $p) {
+                if (!empty($p['phone'])) {
+                    FirmPhone::create([
+                        'firm_id'    => $firm->id,
+                        'phone'      => $p['phone'],
+                        'type'       => $p['type'] ?? 'mobile',
+                        'is_primary' => !empty($p['is_primary']),
+                    ]);
+                }
+            }
+            $primary = collect($request->phones)->firstWhere('is_primary', true)
+                ?? collect($request->phones)->first();
+            if ($primary && !empty($primary['phone'])) {
+                $firm->update(['phone' => $primary['phone']]);
+            }
+        }
+
+        return response()->json(['success' => true, 'firm' => $firm->load(['group', 'phones'])]);
     }
 
     public function update(Request $request, Firm $firm)
@@ -119,7 +147,28 @@ class FirmController extends Controller
         ]);
 
         $firm->update($data);
-        return response()->json(['success' => true, 'firm' => $firm->fresh()->load('group')]);
+
+        // Çoklu telefon güncelle
+        if ($request->has('phones')) {
+            $firm->phones()->delete();
+            foreach ($request->phones as $p) {
+                if (!empty($p['phone'])) {
+                    FirmPhone::create([
+                        'firm_id'    => $firm->id,
+                        'phone'      => $p['phone'],
+                        'type'       => $p['type'] ?? 'mobile',
+                        'is_primary' => !empty($p['is_primary']),
+                    ]);
+                }
+            }
+            $primary = collect($request->phones)->firstWhere('is_primary', true)
+                ?? collect($request->phones)->first();
+            if ($primary && !empty($primary['phone'])) {
+                $firm->update(['phone' => $primary['phone']]);
+            }
+        }
+
+        return response()->json(['success' => true, 'firm' => $firm->fresh()->load(['group', 'phones'])]);
     }
 
     public function destroy(Firm $firm)
@@ -164,6 +213,35 @@ class FirmController extends Controller
                 'balance_after' => $firm->balance,
                 'description' => $request->description ?: ('Ödeme: ' . $firm->name),
                 'transaction_date' => \Carbon\Carbon::now(),
+            ]);
+
+            return response()->json(['success' => true, 'firm' => $firm]);
+        });
+    }
+
+    public function addDebt(Request $request, Firm $firm)
+    {
+        if ($firm->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+        $request->validate([
+            'amount'      => 'required|numeric|min:0.01',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($firm, $request) {
+            $firm = Firm::where('id', $firm->id)->lockForUpdate()->first();
+            $firm->decrement('balance', $request->amount);
+            $firm->refresh();
+
+            AccountTransaction::create([
+                'tenant_id'        => session('tenant_id'),
+                'firm_id'          => $firm->id,
+                'type'             => 'debt',
+                'amount'           => -$request->amount,
+                'balance_after'    => $firm->balance,
+                'description'      => $request->description ?? 'Borç Eklendi',
+                'transaction_date' => Carbon::now(),
             ]);
 
             return response()->json(['success' => true, 'firm' => $firm]);

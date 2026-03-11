@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Product;
@@ -9,6 +10,7 @@ use App\Models\RestaurantTable;
 use App\Models\TableRegion;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class SampleDataSeeder extends Seeder
 {
@@ -250,11 +252,43 @@ class SampleDataSeeder extends Seeder
         }
         $this->command->info(count($customers) . ' müşteri hazır.');
 
+        // ─── Şube Bazlı Stok ve Fiyatlar ─────────────────────────────
+        $this->command->info('Şube/ürün stok & fiyat verisi dolduruluyor...');
+        $branches = Branch::where('tenant_id', $tenantId)->where('is_active', true)->get();
+        $allProducts = Product::where('tenant_id', $tenantId)->get();
+
+        if ($branches->isNotEmpty() && $allProducts->isNotEmpty()) {
+            $now = now();
+            foreach ($allProducts as $product) {
+                foreach ($branches as $branch) {
+                    // Fiyat: ürün fiyatının ±%15 varyansı
+                    $priceFactor = 1 + (rand(-15, 20) / 100);
+                    $branchPrice = max(0.01, round($product->sale_price * $priceFactor, 2));
+                    // Stok: 5–80 arası
+                    $stock = rand(5, 80);
+
+                    DB::table('branch_product')->updateOrInsert(
+                        ['branch_id' => $branch->id, 'product_id' => $product->id],
+                        [
+                            'stock_quantity' => $stock,
+                            'sale_price'     => $branchPrice,
+                            'created_at'     => $now,
+                            'updated_at'     => $now,
+                        ]
+                    );
+                }
+            }
+            $this->command->info("  {$branches->count()} şube × {$allProducts->count()} ürün = " . ($branches->count() * $allProducts->count()) . " branch_product kaydı.");
+        } else {
+            $this->command->warn('  Şube veya ürün bulunamadı, branch_product atlandı.');
+        }
+
         $this->command->info('');
         $this->command->info('✅ Tüm örnek veriler başarıyla oluşturuldu!');
         $this->command->info('   - ' . count($catData) . ' kategori');
         $this->command->info('   - ' . count($products) . ' ürün');
         $this->command->info('   - 3 masa bölgesi (Salon, Bahçe, Teras) / 20 masa');
         $this->command->info('   - ' . count($customers) . ' müşteri');
+        $this->command->info('   - Şube bazlı stok/fiyat verisi');
     }
 }

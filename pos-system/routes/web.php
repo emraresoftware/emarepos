@@ -115,6 +115,9 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class, 'throttle:
     Route::post('/products/bulk-assign-category', [ProductController::class, 'bulkAssignCategory'])->name('pos.products.bulk-assign');
     Route::post('/products/bulk-price-update', [ProductController::class, 'bulkPriceUpdate'])->name('pos.products.bulk-price');
     Route::post('/products/bulk-assign-branches', [ProductController::class, 'bulkAssignBranches'])->name('pos.products.bulk-branches');
+    Route::get('/products/branch-prices', [ProductController::class, 'getBranchPricesForProducts'])->name('pos.products.branch-prices');
+    Route::post('/products/bulk-branch-price-update', [ProductController::class, 'bulkBranchPriceUpdate'])->name('pos.products.bulk-branch-price');
+    Route::get('/products/report-summary', [ProductController::class, 'reportSummary'])->name('pos.products.report-summary');
 
     // Görsel Yükleme
     Route::post('/products/{product}/image', [ProductController::class, 'uploadImage'])->name('pos.products.image');
@@ -218,6 +221,7 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class, 'throttle:
     Route::put('/firms/{firm}', [FirmController::class, 'update'])->name('pos.firms.update');
     Route::delete('/firms/{firm}', [FirmController::class, 'destroy'])->name('pos.firms.destroy');
     Route::post('/firms/{firm}/payment', [FirmController::class, 'addPayment'])->name('pos.firms.payment');
+    Route::post('/firms/{firm}/debt', [FirmController::class, 'addDebt'])->name('pos.firms.debt');
     Route::post('/firm-groups', [FirmController::class, 'storeGroup'])->name('pos.firm-groups.store');
     Route::put('/firm-groups/{group}', [FirmController::class, 'updateGroup'])->name('pos.firm-groups.update');
     Route::delete('/firm-groups/{group}', [FirmController::class, 'destroyGroup'])->name('pos.firm-groups.destroy');
