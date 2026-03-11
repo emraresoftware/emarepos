@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Pos;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Models\Staff;
 use App\Models\Module;
 use App\Models\Tenant;
 use App\Models\HardwareDevice;
 use App\Models\Order;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class BranchController extends Controller
 {
@@ -236,6 +238,114 @@ class BranchController extends Controller
         $branch->update(['settings' => $settings]);
 
         return response()->json(['success' => true]);
+    }
+
+    public function report(Request $request, Branch $branch)
+    {
+        if ($branch->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
+        $from = $request->query('from')
+            ? Carbon::parse($request->query('from'))->startOfDay()
+            : now()->subDays(29)->startOfDay();
+        $to = $request->query('to')
+            ? Carbon::parse($request->query('to'))->endOfDay()
+            : now()->endOfDay();
+
+        $salesQ = Sale::where('branch_id', $branch->id)
+            ->where('status', 'completed')
+            ->whereBetween('created_at', [$from, $to]);
+
+        // KPI
+        $totalRevenue  = (float) (clone $salesQ)->sum('grand_total');
+        $totalCount    = (int)   (clone $salesQ)->count();
+        $totalDiscount = (float) (clone $salesQ)->sum('discount_total');
+        $cashTotal     = (float) (clone $salesQ)->sum('cash_amount');
+        $cardTotal     = (float) (clone $salesQ)->sum('card_amount');
+        $creditTotal   = (float) (clone $salesQ)->sum('credit_amount');
+        $transferTotal = (float) (clone $salesQ)->sum('transfer_amount');
+        $avgTicket     = $totalCount > 0 ? round($totalRevenue / $totalCount, 2) : 0;
+
+        // Günlük kırılım (chart)
+        $daily = (clone $salesQ)
+            ->selectRaw("STRFTIME('%Y-%m-%d', created_at) as day, SUM(grand_total) as revenue, COUNT(*) as cnt")
+            ->groupByRaw("STRFTIME('%Y-%m-%d', created_at)")
+            ->orderBy('day')
+            ->get()
+            ->map(fn($r) => ['day' => $r->day, 'revenue' => (float) $r->revenue, 'cnt' => (int) $r->cnt]);
+
+        // Ödeme yöntemi dağılımı
+        $payments = [
+            ['method' => 'Nakit',   'total' => $cashTotal],
+            ['method' => 'Kart',    'total' => $cardTotal],
+            ['method' => 'Veresiye','total' => $creditTotal],
+            ['method' => 'Havale',  'total' => $transferTotal],
+        ];
+
+        // En çok satan 10 ürün (sale_items üzerinden)
+        $saleIds = (clone $salesQ)->pluck('id');
+        $topProducts = SaleItem::whereIn('sale_id', $saleIds)
+            ->selectRaw('product_id, MAX(product_name) as product_name, SUM(quantity) as total_qty, SUM(total) as total_revenue')
+            ->groupBy('product_id')
+            ->orderByDesc('total_revenue')
+            ->limit(10)
+            ->get()
+            ->map(fn($r) => [
+                'product_id'    => $r->product_id,
+                'name'          => $r->product_name,
+                'total_qty'     => (float) $r->total_qty,
+                'total_revenue' => (float) $r->total_revenue,
+            ]);
+
+        // En çok alışveriş yapan 10 müşteri
+        $topCustomers = (clone $salesQ)
+            ->whereNotNull('customer_id')
+            ->selectRaw('customer_id, COUNT(*) as sale_count, SUM(grand_total) as total_revenue')
+            ->groupBy('customer_id')
+            ->orderByDesc('total_revenue')
+            ->limit(10)
+            ->with('customer:id,name,phone')
+            ->get()
+            ->map(fn($r) => [
+                'customer_id'   => $r->customer_id,
+                'name'          => $r->customer?->name ?? '—',
+                'phone'         => $r->customer?->phone ?? '',
+                'sale_count'    => (int) $r->sale_count,
+                'total_revenue' => (float) $r->total_revenue,
+            ]);
+
+        // Şubeye atanmış ürünler
+        $products = $branch->products()
+            ->with('category:id,name')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get()
+            ->map(fn($p) => [
+                'id'         => $p->id,
+                'name'       => $p->name,
+                'barcode'    => $p->barcode,
+                'category'   => $p->category?->name,
+                'stock'      => (float) $p->pivot->stock_quantity,
+                'sale_price' => (float) $p->pivot->sale_price,
+            ]);
+
+        // Personel
+        $staff = $branch->staff()
+            ->orderBy('name')
+            ->get(['id', 'name', 'role', 'phone']);
+
+        return response()->json([
+            'success'       => true,
+            'period'        => ['from' => $from->toDateString(), 'to' => $to->toDateString()],
+            'kpi'           => compact('totalRevenue', 'totalCount', 'totalDiscount', 'cashTotal', 'cardTotal', 'creditTotal', 'transferTotal', 'avgTicket'),
+            'daily'         => $daily,
+            'payments'      => $payments,
+            'top_products'  => $topProducts,
+            'top_customers' => $topCustomers,
+            'products'      => $products,
+            'staff'         => $staff,
+        ]);
     }
 
     public function stats(Branch $branch)
