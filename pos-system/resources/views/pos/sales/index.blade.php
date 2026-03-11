@@ -417,6 +417,11 @@
                            @keydown.escape="showCustomerDropdown = false; customerSearch = ''"
                            placeholder="Müşteri ara (ad / telefon)..."
                            class="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30">
+                    <button @click="quickCustomerForm.name = customerSearch; showQuickCustomerModal = true; showCustomerDropdown = false"
+                            title="Yeni müşteri ekle"
+                            class="p-1.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors shrink-0">
+                        <i class="fas fa-user-plus text-sm"></i>
+                    </button>
                     <button @click="showCustomerDropdown = false; customerSearch = ''" class="p-1.5 text-gray-400 hover:text-red-500 transition-colors shrink-0">
                         <i class="fas fa-times text-sm"></i>
                     </button>
@@ -434,7 +439,7 @@
                         </button>
                     </template>
                 </div>
-                {{-- Sonuç yok + Oluştur --}}
+                {{-- Sonuç yok --}}
                 <div x-show="customerSearch.length > 1 && customerResults.length === 0" class="mt-1">
                     <p class="text-xs text-gray-400 text-center py-1">Kayıt bulunamadı</p>
                     <button @click="quickCustomerForm.name = customerSearch; showQuickCustomerModal = true; showCustomerDropdown = false"
