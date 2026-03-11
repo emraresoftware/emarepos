@@ -58,4 +58,9 @@ class Customer extends Model
     {
         return $this->belongsTo(CustomerGroup::class, 'customer_group_id');
     }
+
+    public function phones()
+    {
+        return $this->hasMany(CustomerPhone::class)->orderByDesc('is_primary');
+    }
 }

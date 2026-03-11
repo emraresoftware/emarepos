@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Pos;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
+use App\Models\CustomerPhone;
 use App\Models\AccountTransaction;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -15,7 +16,7 @@ class CustomerController extends Controller
     public function index(Request $request)
     {
         $query = Customer::where('is_active', true)
-            ->with('group')
+            ->with(['group', 'phones'])
             ->withSum('sales', 'grand_total')
             ->withMax('sales', 'sold_at')
             ->orderBy('name');
@@ -56,8 +57,27 @@ class CustomerController extends Controller
         
         $data['tenant_id'] = session('tenant_id');
         $customer = Customer::create($data);
-        
-        return response()->json(['success' => true, 'customer' => $customer]);
+
+        // Çoklu telefon numaraları
+        if ($request->has('phones')) {
+            foreach ($request->phones as $p) {
+                if (!empty($p['phone'])) {
+                    CustomerPhone::create([
+                        'customer_id' => $customer->id,
+                        'phone'       => $p['phone'],
+                        'type'        => $p['type'] ?? 'mobile',
+                        'is_primary'  => !empty($p['is_primary']),
+                    ]);
+                }
+            }
+            $primary = collect($request->phones)->firstWhere('is_primary', true)
+                ?? collect($request->phones)->first();
+            if ($primary && !empty($primary['phone'])) {
+                $customer->update(['phone' => $primary['phone']]);
+            }
+        }
+
+        return response()->json(['success' => true, 'customer' => $customer->load('phones')]);
     }
 
     public function show(Customer $customer)
@@ -65,15 +85,22 @@ class CustomerController extends Controller
         if ($customer->tenant_id !== (int) session('tenant_id')) {
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
+        $customer->load('phones');
+
         $transactions = AccountTransaction::where('customer_id', $customer->id)
             ->orderBy('created_at', 'desc')
+            ->limit(100)
+            ->get();
+
+        $sales = $customer->sales()
+            ->with('items')
+            ->orderBy('sold_at', 'desc')
             ->limit(50)
             ->get();
-        
-        $sales = $customer->sales()->orderBy('sold_at', 'desc')->limit(20)->get();
-        
+
         return response()->json([
-            'customer' => $customer,
+            'customer'     => $customer,
+            'phones'       => $customer->phones,
             'transactions' => $transactions,
             'recent_sales' => $sales,
         ]);
@@ -100,7 +127,27 @@ class CustomerController extends Controller
 
         $customer->update($data);
 
-        return response()->json(['success' => true, 'customer' => $customer->fresh()]);
+        // Çoklu telefon numaraları güncelle
+        if ($request->has('phones')) {
+            $customer->phones()->delete();
+            foreach ($request->phones as $p) {
+                if (!empty($p['phone'])) {
+                    CustomerPhone::create([
+                        'customer_id' => $customer->id,
+                        'phone'       => $p['phone'],
+                        'type'        => $p['type'] ?? 'mobile',
+                        'is_primary'  => !empty($p['is_primary']),
+                    ]);
+                }
+            }
+            $primary = collect($request->phones)->firstWhere('is_primary', true)
+                ?? collect($request->phones)->first();
+            if ($primary && !empty($primary['phone'])) {
+                $customer->update(['phone' => $primary['phone']]);
+            }
+        }
+
+        return response()->json(['success' => true, 'customer' => $customer->fresh()->load('phones')]);
     }
 
     public function addPayment(Request $request, Customer $customer)

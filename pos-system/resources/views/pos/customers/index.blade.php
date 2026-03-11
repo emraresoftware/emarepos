@@ -174,7 +174,22 @@
                             </td>
                             {{-- Phone --}}
                             <td class="px-4 py-3">
-                                <span class="text-gray-700">{{ $customer->phone ?? '-' }}</span>
+                                @if($customer->phones->isNotEmpty())
+                                    @foreach($customer->phones->take(2) as $ph)
+                                        <div class="flex items-center gap-1">
+                                            <span class="text-gray-700 text-xs">{{ $ph->phone }}</span>
+                                            <span class="text-[10px] px-1 rounded {{ $ph->type === 'mobile' ? 'bg-blue-50 text-blue-600' : ($ph->type === 'landline' ? 'bg-gray-100 text-gray-500' : 'bg-purple-50 text-purple-600') }}">
+                                                {{ $ph->type === 'mobile' ? 'H' : ($ph->type === 'landline' ? 'S' : 'D') }}
+                                            </span>
+                                            @if($ph->is_primary) <i class="fas fa-star text-[9px] text-yellow-400"></i> @endif
+                                        </div>
+                                    @endforeach
+                                    @if($customer->phones->count() > 2)
+                                        <span class="text-xs text-gray-400">+{{ $customer->phones->count() - 2 }} daha</span>
+                                    @endif
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
                             </td>
                             {{-- Email --}}
                             <td class="px-4 py-3 hidden md:table-cell">
@@ -226,6 +241,7 @@
                                                 'name' => $customer->name,
                                                 'customer_group_id' => $customer->customer_group_id,
                                                 'phone' => $customer->phone,
+                                                'phones' => $customer->phones->map(fn($p) => ['phone' => $p->phone, 'type' => $p->type, 'is_primary' => $p->is_primary])->values()->toArray(),
                                                 'email' => $customer->email,
                                                 'tax_number' => $customer->tax_number,
                                                 'tax_office' => $customer->tax_office,
@@ -288,38 +304,56 @@
         <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showDetailModal = false"></div>
         <div x-show="showDetailModal"
              x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
-             class="relative bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+             class="relative bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col">
 
             {{-- Header --}}
-            <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between flex-shrink-0">
+            <div class="border-b border-gray-100 px-6 py-4 flex items-start justify-between flex-shrink-0 bg-gradient-to-r from-gray-50 to-white">
                 <div x-show="!detailLoading && detailData">
                     <h2 class="text-lg font-bold text-gray-900" x-text="detailData?.customer?.name"></h2>
-                    <p class="text-xs text-gray-400 mt-0.5" x-text="(detailData?.customer?.phone || '') + (detailData?.customer?.email ? ' • ' + detailData.customer.email : '')"></p>
+                    <div class="flex flex-wrap gap-2 mt-1">
+                        {{-- Telefon numaraları --}}
+                        <template x-for="ph in (detailData?.phones || [])" :key="ph.id">
+                            <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border"
+                                  :class="ph.type==='mobile'?'bg-blue-50 text-blue-700 border-blue-200':ph.type==='landline'?'bg-gray-50 text-gray-600 border-gray-200':'bg-purple-50 text-purple-700 border-purple-200'">
+                                <i :class="ph.type==='mobile'?'fas fa-mobile-alt':ph.type==='landline'?'fas fa-phone':'fas fa-circle-dot'" class="text-[9px]"></i>
+                                <span x-text="ph.phone"></span>
+                                <span x-text="ph.type==='mobile'?'H':ph.type==='landline'?'S':'D'" class="opacity-60"></span>
+                                <i x-show="ph.is_primary" class="fas fa-star text-[9px] text-yellow-400"></i>
+                            </span>
+                        </template>
+                        <span x-show="detailData?.customer?.email" class="text-xs text-gray-400" x-text="detailData?.customer?.email"></span>
+                    </div>
                 </div>
                 <div x-show="detailLoading" class="text-sm text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i>Yükleniyor...</div>
-                <button @click="showDetailModal = false" class="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-50 rounded-xl ml-auto">
+                <button @click="showDetailModal = false" class="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl ml-4 flex-shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
 
             <div x-show="!detailLoading && detailData" class="flex flex-col overflow-hidden flex-1">
                 {{-- Özet Bakiye Kartları --}}
-                <div class="grid grid-cols-3 gap-3 px-4 pt-4 flex-shrink-0">
-                    <div class="bg-gray-50 rounded-xl p-3 text-center">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 px-5 pt-4 flex-shrink-0">
+                    <div class="rounded-xl p-3 text-center border"
+                         :class="(detailData?.customer?.balance??0)<0?'bg-red-50 border-red-200':'(detailData?.customer?.balance??0)>0?bg-emerald-50 border-emerald-200:bg-gray-50 border-gray-200'">
                         <p class="text-xs text-gray-400">Bakiye</p>
-                        <p class="font-bold text-lg mt-0.5" :class="(detailData?.customer?.balance??0)<0?'text-red-500':((detailData?.customer?.balance??0)>0?'text-emerald-600':'text-gray-700')" x-text="formatCurrency(detailData?.customer?.balance??0)"></p>
+                        <p class="font-bold text-base mt-0.5" :class="(detailData?.customer?.balance??0)<0?'text-red-500':((detailData?.customer?.balance??0)>0?'text-emerald-600':'text-gray-700')" x-text="formatCurrency(detailData?.customer?.balance??0)"></p>
                     </div>
-                    <div class="bg-gray-50 rounded-xl p-3 text-center">
-                        <p class="text-xs text-gray-400">Satış</p>
-                        <p class="font-bold text-lg mt-0.5 text-gray-900" x-text="detailData?.recent_sales?.length"></p>
+                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
+                        <p class="text-xs text-gray-400">Top. Satış</p>
+                        <p class="font-bold text-base mt-0.5 text-gray-900" x-text="formatCurrency(detailData?.recent_sales?.reduce((s,x)=>s+parseFloat(x.grand_total||0),0))"></p>
                     </div>
-                    <div class="bg-gray-50 rounded-xl p-3 text-center">
-                        <p class="text-xs text-gray-400">Hareket</p>
-                        <p class="font-bold text-lg mt-0.5 text-gray-900" x-text="detailData?.transactions?.length"></p>
+                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
+                        <p class="text-xs text-gray-400">Satış Adedi</p>
+                        <p class="font-bold text-base mt-0.5 text-gray-900" x-text="detailData?.recent_sales?.length"></p>
+                    </div>
+                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
+                        <p class="text-xs text-gray-400">Hesap Hareketi</p>
+                        <p class="font-bold text-base mt-0.5 text-gray-900" x-text="detailData?.transactions?.length"></p>
                     </div>
                 </div>
+
                 {{-- Aksiyon Butonları --}}
-                <div class="flex gap-2 px-4 pt-3 pb-3 border-b border-gray-100 flex-shrink-0">
+                <div class="flex gap-2 px-5 pt-3 pb-3 border-b border-gray-100 flex-shrink-0">
                     <button @click="openCollect(detailData.customer.id, detailData.customer.name, detailData.customer.balance); showDetailModal=false"
                             class="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-1.5 transition-colors">
                         <i class="fas fa-hand-holding-dollar"></i> Ödeme Al
@@ -330,47 +364,163 @@
                     </button>
                 </div>
 
-                {{-- Sekmeler --}}
-                <div class="flex gap-1 px-4 pt-3 flex-shrink-0">
+                {{-- Sekmeler + Detay Toggle --}}
+                <div class="flex items-center gap-1 px-5 pt-3 flex-shrink-0 border-b border-gray-100 pb-3">
+                    <button @click="detailTab='all'" :class="detailTab==='all'?'bg-brand-50 text-brand-700 border-brand-300':'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'"
+                            class="px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors">
+                        <i class="fas fa-list mr-1"></i> Tümü
+                    </button>
                     <button @click="detailTab='sales'" :class="detailTab==='sales'?'bg-brand-50 text-brand-700 border-brand-300':'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'"
-                            class="px-4 py-2 rounded-xl text-sm font-medium border transition-colors">
+                            class="px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors">
                         <i class="fas fa-shopping-cart mr-1"></i> Satışlar (<span x-text="detailData?.recent_sales?.length"></span>)
                     </button>
                     <button @click="detailTab='transactions'" :class="detailTab==='transactions'?'bg-brand-50 text-brand-700 border-brand-300':'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'"
-                            class="px-4 py-2 rounded-xl text-sm font-medium border transition-colors">
-                        <i class="fas fa-exchange-alt mr-1"></i> Hesap Hareketleri (<span x-text="detailData?.transactions?.length"></span>)
+                            class="px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors">
+                        <i class="fas fa-exchange-alt mr-1"></i> Hesap (<span x-text="detailData?.transactions?.length"></span>)
+                    </button>
+                    <div class="flex-1"></div>
+                    <button @click="detailExpanded = !detailExpanded"
+                            :class="detailExpanded?'bg-amber-50 text-amber-700 border-amber-300':'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'"
+                            class="px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors">
+                        <i :class="detailExpanded?'fas fa-compress-alt':'fas fa-expand-alt'" class="mr-1"></i>
+                        <span x-text="detailExpanded?'Özet':'Ayrıntılı'"></span>
                     </button>
                 </div>
 
                 {{-- İçerik --}}
-                <div class="flex-1 overflow-y-auto px-4 pb-4 pt-3">
+                <div class="flex-1 overflow-y-auto px-5 pb-5 pt-3">
 
-                    {{-- Satışlar --}}
-                    <div x-show="detailTab==='sales'">
-                        <template x-if="detailData?.recent_sales?.length === 0">
-                            <div class="text-center py-12 text-gray-400"><i class="fas fa-shopping-cart text-3xl mb-2"></i><p class="text-sm">Henüz satış yok</p></div>
+                    {{-- TÜMÜ GÖRÜNÜMÜ: Ağaç Zaman Çizelgesi --}}
+                    <div x-show="detailTab==='all'">
+                        <template x-if="(!detailData?.recent_sales?.length && !detailData?.transactions?.length)">
+                            <div class="text-center py-12 text-gray-400"><i class="fas fa-inbox text-3xl mb-2"></i><p class="text-sm">Henüz hareket yok</p></div>
                         </template>
-                        <template x-for="sale in (detailData?.recent_sales || [])" :key="sale.id">
-                            <div class="flex items-center justify-between py-3 border-b border-gray-50 hover:bg-gray-50 rounded-xl px-2 transition-colors">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs"
-                                         :class="sale.payment_method==='cash'?'bg-emerald-50 text-emerald-600':sale.payment_method==='card'?'bg-blue-50 text-blue-600':sale.payment_method==='credit'?'bg-amber-50 text-amber-600':'bg-purple-50 text-purple-600'">
-                                        <i :class="sale.payment_method==='cash'?'fas fa-money-bill-wave':sale.payment_method==='card'?'fas fa-credit-card':sale.payment_method==='credit'?'fas fa-user-clock':'fas fa-layer-group'"></i>
+                        {{-- Birleşik, tarih sıralı zaman çizelgesi --}}
+                        <template x-for="item in detailTimeline" :key="item._key">
+                            {{-- SATIŞ SATIRI --}}
+                            <div x-show="item._type==='sale'" class="mb-2">
+                                <div @click="item._open = !item._open"
+                                     class="flex items-center gap-3 p-3 rounded-xl border hover:bg-gray-50 cursor-pointer select-none transition-colors"
+                                     :class="item._open?'bg-blue-50/50 border-blue-200':'border-gray-100 bg-white'">
+                                    {{-- Expand icon --}}
+                                    <div class="w-6 flex-shrink-0 text-center">
+                                        <i :class="item._open?'fas fa-chevron-down text-brand-500':'fas fa-chevron-right text-gray-300'" class="text-xs transition-transform"></i>
                                     </div>
-                                    <div>
-                                        <p class="text-sm font-medium text-gray-900" x-text="'#' + (sale.receipt_no || sale.id)"></p>
-                                        <p class="text-xs text-gray-400" x-text="sale.sold_at ? new Date(sale.sold_at).toLocaleDateString('tr-TR', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-'"></p>
+                                    <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                                         :class="item.payment_method==='cash'?'bg-emerald-50 text-emerald-600':item.payment_method==='card'?'bg-blue-50 text-blue-600':item.payment_method==='credit'?'bg-amber-50 text-amber-600':'bg-purple-50 text-purple-600'">
+                                        <i :class="item.payment_method==='cash'?'fas fa-money-bill-wave':item.payment_method==='card'?'fas fa-credit-card':item.payment_method==='credit'?'fas fa-user-clock':'fas fa-layer-group'" class="text-sm"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-semibold text-sm text-gray-900" x-text="item.receipt_no || ('#' + item.id)"></span>
+                                            <span class="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                                                  :class="item.payment_method==='cash'?'bg-emerald-100 text-emerald-700':item.payment_method==='card'?'bg-blue-100 text-blue-700':item.payment_method==='credit'?'bg-amber-100 text-amber-700':'bg-purple-100 text-purple-700'"
+                                                  x-text="item.payment_method==='cash'?'Nakit':item.payment_method==='card'?'Kart':item.payment_method==='credit'?'Veresiye':'Karışık'">
+                                            </span>
+                                            <span x-show="item.items?.length" class="text-xs text-gray-400" x-text="(item.items?.length||0) + ' ürün'"></span>
+                                        </div>
+                                        <span class="text-xs text-gray-400" x-text="item.sold_at ? new Date(item.sold_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-'"></span>
+                                    </div>
+                                    <div class="text-right flex-shrink-0">
+                                        <p class="font-bold text-gray-900 text-sm" x-text="formatCurrency(item.grand_total)"></p>
+                                        <p class="text-xs text-gray-400">Satış</p>
                                     </div>
                                 </div>
-                                <div class="text-right">
-                                    <p class="font-bold text-gray-900" x-text="formatCurrency(sale.grand_total)"></p>
-                                    <p class="text-xs text-gray-400" x-text="sale.payment_method==='cash'?'Nakit':sale.payment_method==='card'?'Kart':sale.payment_method==='credit'?'Veresiye':'Karışık'"></p>
+                                {{-- Expandable ürün detayları --}}
+                                <div x-show="item._open || detailExpanded" x-transition class="ml-6 mt-1 border-l-2 border-blue-200 pl-3">
+                                    <template x-for="si in (item.items||[])" :key="si.id">
+                                        <div class="flex justify-between py-1.5 border-b border-gray-50 last:border-0">
+                                            <div class="flex items-center gap-2">
+                                                <span class="w-5 h-5 rounded bg-gray-100 text-gray-500 flex items-center justify-center text-xs" x-text="si.quantity"><br></span>
+                                                <span class="text-sm text-gray-700" x-text="si.product_name"></span>
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="text-xs text-gray-400" x-text="formatCurrency(si.unit_price) + ' x ' + si.quantity"></span>
+                                                <span class="text-sm font-medium text-gray-900 ml-2" x-text="formatCurrency(si.total)"></span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <template x-if="!item.items?.length">
+                                        <p class="text-xs text-gray-400 py-2">Ürün detayı yok</p>
+                                    </template>
+                                </div>
+                            </div>
+
+                            {{-- HESAP HAREKETİ SATIRI --}}
+                            <div x-show="item._type==='tx'" class="mb-2">
+                                <div class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white hover:bg-gray-50 transition-colors">
+                                    <div class="w-6 flex-shrink-0"></div>
+                                    <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                                         :class="item.amount>=0?'bg-emerald-50 text-emerald-600':'bg-red-50 text-red-500'">
+                                        <i :class="item.type==='payment'?'fas fa-hand-holding-dollar':item.type==='debt'?'fas fa-user-minus':'fas fa-exchange-alt'" class="text-sm"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-medium text-sm text-gray-900" x-text="item.description || (item.type==='payment'?'Tahsilat':item.type==='debt'?'Borç Eklendi':'Hesap Hareketi')"></span>
+                                            <span class="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                                                  :class="item.type==='payment'?'bg-emerald-100 text-emerald-700':item.type==='debt'?'bg-red-100 text-red-700':'bg-gray-100 text-gray-600'"
+                                                  x-text="item.type==='payment'?'Ödeme':item.type==='debt'?'Borç':'Hareket'">
+                                            </span>
+                                        </div>
+                                        <span class="text-xs text-gray-400" x-text="item.transaction_date ? new Date(item.transaction_date).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : new Date(item.created_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric'})"></span>
+                                    </div>
+                                    <div class="text-right flex-shrink-0">
+                                        <p class="font-bold text-sm" :class="item.amount>=0?'text-emerald-600':'text-red-500'" x-text="(item.amount>=0?'+':'') + formatCurrency(Math.abs(item.amount))"></p>
+                                        <p class="text-xs text-gray-400" x-text="'Bakiye: ' + formatCurrency(item.balance_after)"></p>
+                                    </div>
                                 </div>
                             </div>
                         </template>
                     </div>
 
-                    {{-- Hesap Hareketleri --}}
+                    {{-- SATIŞLAR --}}
+                    <div x-show="detailTab==='sales'">
+                        <template x-if="detailData?.recent_sales?.length === 0">
+                            <div class="text-center py-12 text-gray-400"><i class="fas fa-shopping-cart text-3xl mb-2"></i><p class="text-sm">Henüz satış yok</p></div>
+                        </template>
+                        <template x-for="sale in (detailData?.recent_sales || [])" :key="sale.id">
+                            <div class="mb-2">
+                                <div @click="sale._open = !sale._open"
+                                     class="flex items-center gap-3 p-3 rounded-xl border hover:bg-gray-50 cursor-pointer select-none transition-colors"
+                                     :class="sale._open?'bg-blue-50/50 border-blue-200':'border-gray-100'">
+                                    <div class="w-6 flex-shrink-0 text-center">
+                                        <i :class="sale._open?'fas fa-chevron-down text-brand-500':'fas fa-chevron-right text-gray-300'" class="text-xs"></i>
+                                    </div>
+                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs flex-shrink-0"
+                                         :class="sale.payment_method==='cash'?'bg-emerald-50 text-emerald-600':sale.payment_method==='card'?'bg-blue-50 text-blue-600':sale.payment_method==='credit'?'bg-amber-50 text-amber-600':'bg-purple-50 text-purple-600'">
+                                        <i :class="sale.payment_method==='cash'?'fas fa-money-bill-wave':sale.payment_method==='card'?'fas fa-credit-card':sale.payment_method==='credit'?'fas fa-user-clock':'fas fa-layer-group'"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-semibold text-sm text-gray-900" x-text="sale.receipt_no || ('#' + sale.id)"></span>
+                                            <span class="text-xs text-gray-400" x-text="(sale.items?.length||0) + ' ürün'"></span>
+                                        </div>
+                                        <span class="text-xs text-gray-400" x-text="sale.sold_at ? new Date(sale.sold_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-'"></span>
+                                    </div>
+                                    <div class="text-right flex-shrink-0">
+                                        <p class="font-bold text-sm text-gray-900" x-text="formatCurrency(sale.grand_total)"></p>
+                                        <p class="text-xs text-gray-400" x-text="sale.payment_method==='cash'?'Nakit':sale.payment_method==='card'?'Kart':sale.payment_method==='credit'?'Veresiye':'Karışık'"></p>
+                                    </div>
+                                </div>
+                                <div x-show="sale._open || detailExpanded" x-transition class="ml-6 mt-1 border-l-2 border-blue-200 pl-3">
+                                    <template x-for="si in (sale.items||[])" :key="si.id">
+                                        <div class="flex justify-between py-1.5 border-b border-gray-50 last:border-0">
+                                            <div class="flex items-center gap-2">
+                                                <span class="w-5 h-5 rounded bg-gray-100 text-gray-500 flex items-center justify-center text-xs" x-text="si.quantity"></span>
+                                                <span class="text-sm text-gray-700" x-text="si.product_name"></span>
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="text-xs text-gray-400" x-text="formatCurrency(si.unit_price) + ' × ' + si.quantity"></span>
+                                                <span class="text-sm font-medium text-gray-900 ml-2" x-text="formatCurrency(si.total)"></span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    {{-- HESAP HAREKETLERİ --}}
                     <div x-show="detailTab==='transactions'">
                         <template x-if="detailData?.transactions?.length === 0">
                             <div class="text-center py-12 text-gray-400"><i class="fas fa-exchange-alt text-3xl mb-2"></i><p class="text-sm">Henüz hareket yok</p></div>
@@ -380,15 +530,15 @@
                                 <div class="flex items-center gap-3">
                                     <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs"
                                          :class="tx.amount>=0?'bg-emerald-50 text-emerald-600':'bg-red-50 text-red-500'">
-                                        <i :class="tx.amount>=0?'fas fa-arrow-down':'fas fa-arrow-up'"></i>
+                                        <i :class="tx.type==='payment'?'fas fa-hand-holding-dollar':tx.type==='debt'?'fas fa-user-minus':'fas fa-exchange-alt'"></i>
                                     </div>
                                     <div>
-                                        <p class="text-sm font-medium text-gray-900" x-text="tx.description || (tx.type==='payment'?'Tahsilat':tx.type==='sale'?'Veresiye Alışveriş':'İşlem')"></p>
+                                        <p class="text-sm font-medium text-gray-900" x-text="tx.description || (tx.type==='payment'?'Tahsilat':tx.type==='debt'?'Borç Eklendi':'İşlem')"></p>
                                         <p class="text-xs text-gray-400" x-text="tx.transaction_date ? new Date(tx.transaction_date).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : new Date(tx.created_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric'})"></p>
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <p class="font-bold" :class="tx.amount>=0?'text-emerald-600':'text-red-500'" x-text="(tx.amount>=0?'+':'') + formatCurrency(tx.amount)"></p>
+                                    <p class="font-bold" :class="tx.amount>=0?'text-emerald-600':'text-red-500'" x-text="(tx.amount>=0?'+':'') + formatCurrency(Math.abs(tx.amount))"></p>
                                     <p class="text-xs text-gray-400" x-text="'Bakiye: ' + formatCurrency(tx.balance_after)"></p>
                                 </div>
                             </div>
@@ -535,20 +685,48 @@
                     </select>
                 </div>
 
-                {{-- Phone & Email --}}
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Telefon</label>
-                        <input type="tel" x-model="form.phone"
-                               class="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400"
-                               placeholder="0(5XX) XXX XX XX">
+                {{-- Multi-Phone --}}
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="text-sm font-medium text-gray-700">Telefon Numaraları</label>
+                        <button type="button" @click="addPhone()"
+                                class="text-xs text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1">
+                            <i class="fas fa-plus"></i> Telefon Ekle
+                        </button>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">E-posta</label>
-                        <input type="email" x-model="form.email"
-                               class="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400"
-                               placeholder="ornek@email.com">
+                    <div class="space-y-2">
+                        <template x-for="(p, idx) in form.phones" :key="idx">
+                            <div class="flex items-center gap-2">
+                                <select x-model="p.type"
+                                        class="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-xl px-2 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 w-28 flex-shrink-0">
+                                    <option value="mobile">Hareketli</option>
+                                    <option value="landline">Sabit</option>
+                                    <option value="other">Diğer</option>
+                                </select>
+                                <input type="tel" x-model="p.phone"
+                                       class="flex-1 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400"
+                                       placeholder="Telefon numarası">
+                                <button type="button" @click="setPrimaryPhone(idx)"
+                                        :title="p.is_primary ? 'Ana numara' : 'Ana numara yap'"
+                                        :class="p.is_primary ? 'text-yellow-500 bg-yellow-50' : 'text-gray-300 hover:text-yellow-400'"
+                                        class="p-2 rounded-xl border border-gray-200 flex-shrink-0">
+                                    <i class="fas fa-star text-xs"></i>
+                                </button>
+                                <button type="button" @click="removePhone(idx)" x-show="form.phones.length > 1"
+                                        class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl border border-gray-200 flex-shrink-0">
+                                    <i class="fas fa-times text-xs"></i>
+                                </button>
+                            </div>
+                        </template>
                     </div>
+                </div>
+
+                {{-- Email --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">E-posta</label>
+                    <input type="email" x-model="form.email"
+                           class="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400"
+                           placeholder="ornek@email.com">
                 </div>
 
                 {{-- Tax Number & Tax Office --}}
@@ -739,7 +917,8 @@ function customerManager() {
         showGroupForm: false,
         detailLoading: false,
         detailData: null,
-        detailTab: 'sales',
+        detailTab: 'all',
+        detailExpanded: false,
         editingId: null,
         saving: false,
         collecting: false,
@@ -759,7 +938,7 @@ function customerManager() {
         form: {
             name: '',
             customer_group_id: '',
-            phone: '',
+            phones: [{phone: '', type: 'mobile', is_primary: true}],
             email: '',
             tax_number: '',
             tax_office: '',
@@ -782,7 +961,7 @@ function customerManager() {
             this.form = {
                 name: '',
                 customer_group_id: '',
-                phone: '',
+                phones: [{phone: '', type: 'mobile', is_primary: true}],
                 email: '',
                 tax_number: '',
                 tax_office: '',
@@ -798,6 +977,21 @@ function customerManager() {
             this.collectCustomerId = null;
             this.collectCustomerName = '';
             this.collectCustomerBalance = 0;
+        },
+
+        // ─── Telefon yönetimi ────────────────────────────────
+        addPhone() {
+            this.form.phones.push({phone: '', type: 'mobile', is_primary: false});
+        },
+        removePhone(idx) {
+            const wasPrimary = this.form.phones[idx].is_primary;
+            this.form.phones.splice(idx, 1);
+            if (wasPrimary && this.form.phones.length > 0) {
+                this.form.phones[0].is_primary = true;
+            }
+        },
+        setPrimaryPhone(idx) {
+            this.form.phones.forEach((p, i) => p.is_primary = (i === idx));
         },
 
         openDebt(id, name, balance) {
@@ -831,10 +1025,14 @@ function customerManager() {
         async openDetail(id) {
             this.detailData = null;
             this.detailLoading = true;
-            this.detailTab = 'sales';
+            this.detailTab = 'all';
+            this.detailExpanded = false;
             this.showDetailModal = true;
             try {
                 const data = await posAjax('/customers/' + id, {}, 'GET');
+                // Her satışa _open ve _type ekle
+                (data.recent_sales || []).forEach(s => { s._open = false; s._type = 'sale'; s._key = 'sale_'+s.id; });
+                (data.transactions || []).forEach(t => { t._type = 'tx'; t._key = 'tx_'+t.id; });
                 this.detailData = data;
             } catch(e) {
                 showToast('Detay yüklenemedi.', 'error');
@@ -844,6 +1042,19 @@ function customerManager() {
             }
         },
 
+        get detailTimeline() {
+            if (!this.detailData) return [];
+            const sales = (this.detailData.recent_sales || []).map(s => ({...s, _type:'sale', _key:'sale_'+s.id}));
+            const txs   = (this.detailData.transactions || []).map(t => ({...t, _type:'tx',   _key:'tx_'+t.id}));
+            const all   = [...sales, ...txs];
+            all.sort((a, b) => {
+                const dA = new Date(a.sold_at || a.transaction_date || a.created_at);
+                const dB = new Date(b.sold_at || b.transaction_date || b.created_at);
+                return dB - dA;
+            });
+            return all;
+        },
+
         openCreate() {
             this.resetForm();
             this.showFormModal = true;
@@ -851,10 +1062,19 @@ function customerManager() {
 
         openEdit(customer) {
             this.editingId = customer.id;
+            // phones: mevcut telefon listesi yoksa legacy phone'dan oluştur
+            let phones = [];
+            if (customer.phones && customer.phones.length > 0) {
+                phones = customer.phones.map(p => ({phone: p.phone, type: p.type || 'mobile', is_primary: !!p.is_primary}));
+            } else if (customer.phone) {
+                phones = [{phone: customer.phone, type: 'mobile', is_primary: true}];
+            } else {
+                phones = [{phone: '', type: 'mobile', is_primary: true}];
+            }
             this.form = {
                 name: customer.name || '',
                 customer_group_id: customer.customer_group_id ? String(customer.customer_group_id) : '',
-                phone: customer.phone || '',
+                phones: phones,
                 email: customer.email || '',
                 tax_number: customer.tax_number || '',
                 tax_office: customer.tax_office || '',
