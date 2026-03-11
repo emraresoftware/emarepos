@@ -134,6 +134,10 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class, 'throttle:
     // Filtre Şablonları
     Route::post('/products/filter-templates', [ProductController::class, 'saveFilterTemplate'])->name('pos.products.filter-templates.store');
     Route::delete('/products/filter-templates/{template}', [ProductController::class, 'deleteFilterTemplate'])->name('pos.products.filter-templates.destroy');
+
+    // Barkod Üretici + Ürün Detay (Yönet Sekmesi)
+    Route::get('/products/generate-barcode', [ProductController::class, 'generateBarcode'])->name('pos.products.generate-barcode');
+    Route::get('/products/detail', [ProductController::class, 'getProductDetail'])->name('pos.products.detail');
     
     // Müşteriler (Customers)
     Route::get('/customers', [CustomerController::class, 'index'])->name('pos.customers');

@@ -190,7 +190,14 @@
                             </button>
                         </template>
                         <div x-show="barcodeSearching" class="px-3 py-2 text-xs text-gray-400">Araniyor...</div>
-                        <div x-show="!barcodeSearching && barcodeResults.length === 0" class="px-3 py-2 text-xs text-gray-400">Urun bulunamadi</div>
+                        <div x-show="!barcodeSearching && barcodeResults.length === 0" class="px-3 py-2.5 space-y-1.5">
+                            <div class="text-xs text-gray-400 text-center">Ürün bulunamadı</div>
+                            <button @click="openQuickProductWithBarcode()"
+                                    class="w-full py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium rounded-lg border border-emerald-200 flex items-center justify-center gap-1.5 transition-colors">
+                                <i class="fas fa-plus-circle text-[11px]"></i>
+                                "<span x-text="barcodeQuery"></span>" — Yeni ürün olarak ekle
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -460,23 +467,27 @@
             </div>
         </div>
 
-        {{-- Alt Bar: Son Fişler + İskonto + Yazdır + İade --}}
-        <div class="grid grid-cols-4 shrink-0 safe-bottom">
+        {{-- Alt Bar: Son Fişler + İskonto + Yazdır + İade + Ödeme Al --}}
+        <div class="grid grid-cols-5 shrink-0 safe-bottom">
             <button @click="loadRecentSales()"
-                    class="py-2.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium flex items-center justify-center gap-1.5 border-r border-gray-500 transition-colors">
-                <i class="fas fa-receipt text-[11px]"></i>Son Fişler
+                    class="py-2.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium flex items-center justify-center gap-1 border-r border-gray-500 transition-colors">
+                <i class="fas fa-receipt text-[11px]"></i><span class="hidden sm:inline">Son</span> Fişler
             </button>
             <button @click="showDiscountModal = true"
-                    class="py-2.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium flex items-center justify-center gap-1.5 border-r border-gray-500 transition-colors">
+                    class="py-2.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium flex items-center justify-center gap-1 border-r border-gray-500 transition-colors">
                 <i class="fas fa-percent text-[11px]"></i>İskonto
             </button>
             <button @click="printReceipt()"
-                    class="py-2.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium flex items-center justify-center gap-1.5 border-r border-gray-500 transition-colors">
+                    class="py-2.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium flex items-center justify-center gap-1 border-r border-gray-500 transition-colors">
                 <i class="fas fa-print text-[11px]"></i>Yazdır
             </button>
             <button @click="startRefund()"
-                    class="py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors">
+                    class="py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium flex items-center justify-center gap-1 border-r border-gray-500 transition-colors">
                 <i class="fas fa-undo text-[11px]"></i>İade
+            </button>
+            <button @click="openOdemeAl()"
+                    class="py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium flex items-center justify-center gap-1 transition-colors">
+                <i class="fas fa-hand-holding-usd text-[11px]"></i>Ödeme Al
             </button>
         </div>
     </div>
@@ -592,6 +603,209 @@
                     <button @click="refundSale(selectedSaleDetail?.id)"
                             class="w-full py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2">
                         <i class="fas fa-undo"></i> Bu Fişi İade Al
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ÖD  EME AL MODALI --}}
+    <div x-show="showOdemeAlModal" x-transition x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-auto max-h-[92vh] overflow-y-auto" @click.away="showOdemeAlModal = false">
+            <div class="flex items-center justify-between px-5 py-3 bg-emerald-700 rounded-t-2xl sticky top-0 z-10">
+                <h3 class="text-base font-bold text-white"><i class="fas fa-hand-holding-usd mr-2"></i>Ödeme Al / Hesap İşlemi</h3>
+                <button @click="showOdemeAlModal = false" class="text-white/70 hover:text-white"><i class="fas fa-times-circle text-lg"></i></button>
+            </div>
+            <div class="p-5 space-y-4">
+
+                {{-- ADIM 1: Müşteri Seç --}}
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 mb-2"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-xs mr-1.5">1</span>Müşteri</label>
+                    <div x-show="!odemeCustomer" class="space-y-2">
+                        <div class="flex gap-2">
+                            <div class="relative flex-1">
+                                <input type="text" x-model="odemeSearch"
+                                       @input.debounce.300ms="searchOdemeCustomers(odemeSearch)"
+                                       placeholder="Ad, telefon veya e-posta ile ara..."
+                                       class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20">
+                                <i class="fas fa-search absolute right-3 top-3 text-gray-400 text-xs"></i>
+                            </div>
+                            <button @click="odemeNewCustomerMode = !odemeNewCustomerMode"
+                                    class="px-3 py-2 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl text-xs font-medium hover:bg-blue-100 transition-colors whitespace-nowrap">
+                                <i class="fas fa-user-plus mr-1"></i>Yeni
+                            </button>
+                        </div>
+                        {{-- Sonuçlar --}}
+                        <div x-show="odemeCustomerResults.length > 0" class="border border-gray-100 rounded-xl divide-y divide-gray-50 max-h-40 overflow-y-auto shadow-sm">
+                            <template x-for="c in odemeCustomerResults" :key="c.id">
+                                <button @click="selectOdemeCustomer(c)"
+                                        class="w-full text-left px-3 py-2.5 hover:bg-emerald-50 transition-colors flex items-center justify-between">
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900" x-text="c.name"></div>
+                                        <div class="text-xs text-gray-400" x-text="c.phone || c.email || ''"></div>
+                                    </div>
+                                    <div class="text-right shrink-0 ml-3">
+                                        <div class="text-xs font-bold" :class="(c.balance ?? 0) < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCurrency(c.balance ?? 0)"></div>
+                                        <div class="text-[10px] text-gray-400" x-text="(c.balance ?? 0) < 0 ? 'Borçlu' : (c.balance ?? 0) > 0 ? 'Alacaklı' : 'Bakiye 0'"></div>
+                                    </div>
+                                </button>
+                            </template>
+                        </div>
+                        {{-- Sonuç yok → oluştur --}}
+                        <div x-show="odemeSearch.length > 1 && odemeCustomerResults.length === 0 && !odemeCustomerLoading" class="mt-1">
+                            <button @click="odemeNewCustomerMode = true; odemeNewName = odemeSearch"
+                                    class="w-full py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-medium border border-emerald-200 hover:bg-emerald-100 transition-colors">
+                                <i class="fas fa-user-plus mr-1"></i> "<span x-text="odemeSearch"></span>" — Yeni müşteri oluştur
+                            </button>
+                        </div>
+                        {{-- Yeni Müşteri Formu --}}
+                        <div x-show="odemeNewCustomerMode" x-transition class="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
+                            <p class="text-xs font-semibold text-blue-700"><i class="fas fa-user-plus mr-1"></i>Yeni Müşteri Oluştur</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" x-model="odemeNewName" placeholder="Ad Soyad *"
+                                       class="col-span-2 px-3 py-2 border border-blue-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500">
+                                <input type="text" x-model="odemeNewPhone" placeholder="Telefon"
+                                       class="px-3 py-2 border border-blue-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500">
+                                <select x-model="odemeNewType"
+                                        class="px-3 py-2 border border-blue-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500">
+                                    <option value="individual">Bireysel</option>
+                                    <option value="corporate">Kurumsal</option>
+                                </select>
+                            </div>
+                            <div class="flex gap-2">
+                                <button @click="odemeNewCustomerMode = false" class="flex-1 py-1.5 text-xs text-gray-600 bg-white border border-gray-200 rounded-lg">İptal</button>
+                                <button @click="createAndSelectOdemeCustomer()" :disabled="!odemeNewName.trim()"
+                                        class="flex-1 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-lg font-medium disabled:opacity-50">
+                                    <i class="fas fa-check mr-1"></i>Oluştur ve Seç
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {{-- Seçildi --}}
+                    <div x-show="odemeCustomer" class="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                        <div class="flex-1">
+                            <div class="text-sm font-bold text-gray-900" x-text="odemeCustomer?.name"></div>
+                            <div class="text-xs text-gray-500" x-text="odemeCustomer?.phone || ''"></div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs font-bold" :class="(odemeCustomer?.balance ?? 0) < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCurrency(odemeCustomer?.balance ?? 0)"></div>
+                            <div class="text-[10px] text-gray-400">Mevcut Bakiye</div>
+                        </div>
+                        <button @click="odemeCustomer = null; odemeSearch = ''" class="text-gray-400 hover:text-red-500 transition-colors">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- ADIM 2: İşlem Türü --}}
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 mb-2"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-xs mr-1.5">2</span>İşlem Türü</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button @click="odemeType = 'payment'"
+                                class="flex flex-col items-center py-3 rounded-xl border-2 transition-all"
+                                :class="odemeType === 'payment' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'">
+                            <i class="fas fa-coins text-xl mb-1"></i>
+                            <span class="text-xs font-semibold">Tahsilat</span>
+                            <span class="text-[10px] text-gray-400">Müşteriden para al</span>
+                        </button>
+                        <button @click="odemeType = 'debt'"
+                                class="flex flex-col items-center py-3 rounded-xl border-2 transition-all"
+                                :class="odemeType === 'debt' ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'">
+                            <i class="fas fa-file-invoice-dollar text-xl mb-1"></i>
+                            <span class="text-xs font-semibold">Borç Ekle</span>
+                            <span class="text-[10px] text-gray-400">Veresiye / alacak</span>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- ADIM 3: Ödeme Yöntemi (Tahsilatta) --}}
+                <div x-show="odemeType === 'payment'" x-transition>
+                    <label class="block text-sm font-semibold text-gray-800 mb-2"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-xs mr-1.5">3</span>Ödeme Yöntemi</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button @click="odemePaymentMethod = 'cash'"
+                                class="py-2 rounded-xl border-2 text-xs font-semibold transition-all"
+                                :class="odemePaymentMethod === 'cash' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'">
+                            <i class="fas fa-money-bill-wave block mb-0.5"></i>Nakit
+                        </button>
+                        <button @click="odemePaymentMethod = 'card'"
+                                class="py-2 rounded-xl border-2 text-xs font-semibold transition-all"
+                                :class="odemePaymentMethod === 'card' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'">
+                            <i class="fas fa-credit-card block mb-0.5"></i>Kart
+                        </button>
+                        <button @click="odemePaymentMethod = 'transfer'"
+                                class="py-2 rounded-xl border-2 text-xs font-semibold transition-all"
+                                :class="odemePaymentMethod === 'transfer' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'">
+                            <i class="fas fa-exchange-alt block mb-0.5"></i>Havale
+                        </button>
+                        <button @click="odemePaymentMethod = 'other'"
+                                class="py-2 rounded-xl border-2 text-xs font-semibold transition-all"
+                                :class="odemePaymentMethod === 'other' ? 'border-gray-700 bg-gray-100 text-gray-800' : 'border-gray-200 text-gray-600 hover:border-gray-300'">
+                            <i class="fas fa-ellipsis-h block mb-0.5"></i>Diğer
+                        </button>
+                    </div>
+                </div>
+
+                {{-- ADIM 3b: Borç Türü --}}
+                <div x-show="odemeType === 'debt'" x-transition>
+                    <label class="block text-sm font-semibold text-gray-800 mb-2"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-xs mr-1.5">3</span>Borç Türü</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button @click="odemeDebtType = 'veresiye'"
+                                class="py-2.5 text-xs rounded-xl border-2 font-semibold transition-all"
+                                :class="odemeDebtType === 'veresiye' ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'">
+                            <i class="fas fa-shopping-cart block mb-1"></i>Veresiye Satış
+                        </button>
+                        <button @click="odemeDebtType = 'avans'"
+                                class="py-2.5 text-xs rounded-xl border-2 font-semibold transition-all"
+                                :class="odemeDebtType === 'avans' ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'">
+                            <i class="fas fa-hand-holding-heart block mb-1"></i>Avans / Ön Ödeme
+                        </button>
+                    </div>
+                </div>
+
+                {{-- ADIM 4: Tutar + Açıklama --}}
+                <div class="border-t border-gray-100 pt-4 space-y-3">
+                    <label class="block text-sm font-semibold text-gray-800"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-xs mr-1.5">4</span>Tutar ve Açıklama</label>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Tutar (₺) *</label>
+                        <input type="number" step="0.01" min="0.01" x-model="odemeAmount"
+                               placeholder="0.00"
+                               class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-lg font-bold text-gray-900 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-right">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Açıklama</label>
+                        <input type="text" x-model="odemeDescription"
+                               placeholder="İşlem açıklaması (opsiyonel)"
+                               class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20">
+                    </div>
+                </div>
+
+                {{-- Sonuç Önizleme --}}
+                <div x-show="odemeCustomer && odemeAmount > 0" class="bg-gray-50 border border-gray-100 rounded-xl p-3 space-y-1.5">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Mevcut Bakiye</span>
+                        <span class="font-medium" :class="(odemeCustomer?.balance ?? 0) < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCurrency(odemeCustomer?.balance ?? 0)"></span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500" x-text="odemeType === 'payment' ? 'Tahsilat' : 'Borç'"></span>
+                        <span :class="odemeType === 'payment' ? 'text-emerald-600' : 'text-red-500'" x-text="(odemeType === 'payment' ? '+' : '-') + formatCurrency(odemeAmount || 0)"></span>
+                    </div>
+                    <div class="flex justify-between text-sm font-bold border-t border-gray-200 pt-1.5">
+                        <span class="text-gray-700">Yeni Bakiye</span>
+                        <span x-text="formatCurrency((odemeCustomer?.balance ?? 0) + (odemeType === 'payment' ? parseFloat(odemeAmount||0) : -parseFloat(odemeAmount||0)))"
+                              :class="((odemeCustomer?.balance ?? 0) + (odemeType === 'payment' ? parseFloat(odemeAmount||0) : -parseFloat(odemeAmount||0))) < 0 ? 'text-red-600' : 'text-emerald-700'"></span>
+                    </div>
+                </div>
+
+                {{-- Butonlar --}}
+                <div class="flex gap-3 pt-1">
+                    <button @click="showOdemeAlModal = false" class="flex-1 py-2.5 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors">İptal</button>
+                    <button @click="submitOdemeAl()"
+                            :disabled="!odemeCustomer || !odemeAmount || odemeAmount <= 0 || odemedSaving"
+                            class="flex-1 py-2.5 text-sm text-white rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                            :class="odemeType === 'payment' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'">
+                        <i :class="odemedSaving ? 'fas fa-spinner fa-spin' : (odemeType === 'payment' ? 'fas fa-check-circle' : 'fas fa-file-invoice')"></i>
+                        <span x-text="odemedSaving ? 'Kaydediliyor...' : (odemeType === 'payment' ? 'Tahsilatı Kaydet' : 'Borcu Kaydet')"></span>
                     </button>
                 </div>
             </div>
@@ -987,6 +1201,22 @@ function posScreen() {
         refundReceiptNo: '',
         refundReason: '',
         refundProcessing: false,
+        // Ödeme Al
+        showOdemeAlModal: false,
+        odemeCustomer: null,
+        odemeSearch: '',
+        odemeCustomerResults: [],
+        odemeCustomerLoading: false,
+        odemeType: 'payment',  // 'payment' | 'debt'
+        odemePaymentMethod: 'cash',
+        odemeDebtType: 'veresiye',
+        odemeAmount: '',
+        odemeDescription: '',
+        odemedSaving: false,
+        odemeNewCustomerMode: false,
+        odemeNewName: '',
+        odemeNewPhone: '',
+        odemeNewType: 'individual',
         // Çoklu fiyat seçim
         showPriceSelectModal: false,
         pendingProduct: null,
@@ -1014,7 +1244,7 @@ function posScreen() {
                 if (e.key === 'F3') { e.preventDefault(); this.checkPrice(); }
                 if (e.key === 'F5') { e.preventDefault(); this.processPayment('cash'); }
                 if (e.key === 'F6') { e.preventDefault(); this.processPayment('card'); }
-                if (e.key === 'Escape') { this.showMixedPayment = false; this.showReceipt = false; this.showDiscountModal = false; this.showRecentSales = false; this.showRefundModal = false; this.showPriceSelectModal = false; }
+                if (e.key === 'Escape') { this.showMixedPayment = false; this.showReceipt = false; this.showDiscountModal = false; this.showRecentSales = false; this.showRefundModal = false; this.showPriceSelectModal = false; this.showOdemeAlModal = false; }
             });
             window.addEventListener('resize', () => {
                 this.isDesktop = window.innerWidth >= 1024;
@@ -1386,6 +1616,18 @@ function posScreen() {
             this.$nextTick(() => this.$el.querySelector('[x-model="productForm.name"]')?.focus());
         },
 
+        openQuickProductWithBarcode() {
+            this.productForm = {
+                name: '',
+                sale_price: '',
+                category_id: '',
+                barcode: this.barcodeQuery.trim(),
+                unit: 'Adet',
+            };
+            this.showProductModal = true;
+            this.showBarcodeDropdown = false;
+        },
+
         async saveQuickProduct() {
             if (!this.productForm.name.trim() || !this.productForm.sale_price) return;
             this.productSaving = true;
@@ -1746,6 +1988,99 @@ function posScreen() {
             } catch(e) {
                 showToast(e.message || 'İade işlemi başarısız', 'error');
             }
+        },
+
+        // ---- Ödeme Al (Hesap İşlemi) ----
+        openOdemeAl() {
+            this.showOdemeAlModal = true;
+            this.odemeSearch = '';
+            this.odemeCustomerResults = [];
+            this.odemeAmount = '';
+            this.odemeDescription = '';
+            this.odemeType = 'payment';
+            this.odemePaymentMethod = 'cash';
+            this.odemeDebtType = 'veresiye';
+            this.odemeNewCustomerMode = false;
+            this.odemeNewName = '';
+            this.odemeNewPhone = '';
+            // selectedCustomer oturumda seçiliyse öntanımlı al
+            if (this.selectedCustomer) {
+                this.odemeCustomer = this.selectedCustomer;
+            } else {
+                this.odemeCustomer = null;
+            }
+        },
+
+        async searchOdemeCustomers(q) {
+            if (!q || q.length < 2) { this.odemeCustomerResults = []; return; }
+            this.odemeCustomerLoading = true;
+            try {
+                const res = await posAjax('{{ route("pos.customers.search") }}?q=' + encodeURIComponent(q), {}, 'GET');
+                this.odemeCustomerResults = res || [];
+            } catch(e) {
+                this.odemeCustomerResults = [];
+            } finally { this.odemeCustomerLoading = false; }
+        },
+
+        selectOdemeCustomer(c) {
+            this.odemeCustomer = c;
+            this.odemeSearch = c.name;
+            this.odemeCustomerResults = [];
+        },
+
+        async createAndSelectOdemeCustomer() {
+            if (!this.odemeNewName.trim()) return;
+            try {
+                const res = await posAjax('{{ route("pos.customers.store") }}', {
+                    name: this.odemeNewName.trim(),
+                    phone: this.odemeNewPhone.trim() || null,
+                    type: this.odemeNewType,
+                });
+                if (res.success) {
+                    this.odemeCustomer = res.customer;
+                    this.odemeNewCustomerMode = false;
+                    showToast('Müşteri oluşturuldu: ' + res.customer.name, 'success');
+                }
+            } catch(e) { showToast(e.message || 'Müşteri oluşturulamadı', 'error'); }
+        },
+
+        async submitOdemeAl() {
+            if (!this.odemeCustomer || !this.odemeAmount || parseFloat(this.odemeAmount) <= 0) return;
+            this.odemedSaving = true;
+            try {
+                const url = this.odemeType === 'payment'
+                    ? '/customers/' + this.odemeCustomer.id + '/payment'
+                    : '/customers/' + this.odemeCustomer.id + '/debt';
+                const description = this.odemeDescription.trim() ||
+                    (this.odemeType === 'payment'
+                        ? ('Tahsilat — ' + this.odemePaymentMethod)
+                        : ('Borç — ' + this.odemeDebtType));
+                const res = await posAjax(url, {
+                    amount: parseFloat(this.odemeAmount),
+                    description: description,
+                    payment_method: this.odemeType === 'payment' ? this.odemePaymentMethod : null,
+                });
+                if (res.success) {
+                    showToast(
+                        this.odemeType === 'payment'
+                            ? formatCurrency(this.odemeAmount) + ' tahsilat kaydedildi'
+                            : formatCurrency(this.odemeAmount) + ' borç kaydedildi',
+                        'success'
+                    );
+                    // Bakiyeyi güncelle
+                    if (res.customer) {
+                        this.odemeCustomer = { ...this.odemeCustomer, balance: res.customer.balance };
+                        if (this.selectedCustomer?.id === this.odemeCustomer.id) {
+                            this.selectedCustomer = { ...this.selectedCustomer, balance: res.customer.balance };
+                        }
+                    }
+                    this.odemeAmount = '';
+                    this.odemeDescription = '';
+                } else {
+                    showToast(res.message || 'İşlem başarısız', 'error');
+                }
+            } catch(e) { showToast(e.message || 'İşlem sırasında hata oluştu', 'error'); }
+            finally { this.odemedSaving = false; }
         },
 
         // ---- Çoklu Fiyat Seçimi (barkod okutunca) ----

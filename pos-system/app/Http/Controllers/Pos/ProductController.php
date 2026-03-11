@@ -1191,4 +1191,91 @@ class ProductController extends Controller
         $template->delete();
         return response()->json(['success' => true]);
     }
+
+    // ── Barkod Üretici ─────────────────────────────────────────
+
+    /**
+     * Benzersiz EAN-13 barkod üretir
+     */
+    public function generateBarcode()
+    {
+        $tenantId = session('tenant_id');
+        $attempts = 0;
+        do {
+            // 12 rasgele rakam + EAN-13 check digit
+            $digits = '';
+            for ($i = 0; $i < 12; $i++) {
+                $digits .= random_int(0, 9);
+            }
+            $sum = 0;
+            for ($i = 0; $i < 12; $i++) {
+                $sum += (int) $digits[$i] * ($i % 2 === 0 ? 1 : 3);
+            }
+            $check = (10 - ($sum % 10)) % 10;
+            $barcode = $digits . $check;
+            $attempts++;
+        } while (
+            Product::where('barcode', $barcode)->exists() && $attempts < 20
+        );
+
+        return response()->json(['success' => true, 'barcode' => $barcode]);
+    }
+
+    /**
+     * Tek ürünün detaylı hareketlerini döner (Ürünleri Yönet sekmesi)
+     */
+    public function getProductDetail(Request $request)
+    {
+        $barcode = $request->query('barcode');
+        $productId = $request->query('product_id');
+
+        $query = Product::where('is_active', true)
+            ->with(['category', 'firm', 'branches', 'prices']);
+
+        if ($barcode) {
+            $query->where('barcode', $barcode);
+        } elseif ($productId) {
+            $query->where('id', $productId);
+        } else {
+            return response()->json(['success' => false, 'message' => 'Barkod veya ürün ID gerekli'], 422);
+        }
+
+        $product = $query->first();
+        if (!$product) {
+            return response()->json(['success' => false, 'message' => 'Ürün bulunamadı']);
+        }
+
+        $movements = StockMovement::where('product_id', $product->id)
+            ->orderByDesc('movement_date')
+            ->take(100)
+            ->get(['type','transaction_code','note','firm_customer','payment_type','quantity','remaining','unit_price','total','movement_date']);
+
+        $branchData = $this->getBranches($product)->getData(true)['branches'] ?? [];
+
+        return response()->json([
+            'success' => true,
+            'product' => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'barcode' => $product->barcode,
+                'stock_code' => $product->stock_code,
+                'purchase_price' => $product->purchase_price,
+                'sale_price' => $product->sale_price,
+                'vat_rate' => $product->vat_rate,
+                'stock_quantity' => $product->stock_quantity,
+                'critical_stock' => $product->critical_stock,
+                'unit' => $product->unit,
+                'country_of_origin' => $product->country_of_origin,
+                'show_on_pos' => $product->show_on_pos,
+                'is_service' => $product->is_service,
+                'category_id' => $product->category_id,
+                'category_name' => $product->category?->name,
+                'firm_id' => $product->firm_id,
+                'firm_name' => $product->firm?->name,
+                'image_url' => $product->image_url ? asset('storage/' . $product->image_url) : null,
+            ],
+            'movements' => $movements,
+            'branches' => $branchData,
+        ]);
+    }
 }

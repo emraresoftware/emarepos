@@ -87,6 +87,22 @@
         Bu şubede fiyat düzenleme kilidi aktif veya yetkiniz yok. Fiyat alanları kilitlendi.
     </div>
 
+    {{-- Sekme Navigasyonu --}}
+    <div class="flex items-center gap-1 mb-3 bg-white border border-gray-100 rounded-2xl p-1 shadow-sm w-fit">
+        <button @click="activeTab = 'list'"
+                class="px-4 py-1.5 rounded-xl text-sm font-medium transition-all"
+                :class="activeTab === 'list' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'">
+            <i class="fas fa-list mr-1.5"></i>Ürün Listesi
+        </button>
+        <button @click="activeTab = 'manage'; manageBarcode = ''"
+                class="px-4 py-1.5 rounded-xl text-sm font-medium transition-all"
+                :class="activeTab === 'manage' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'">
+            <i class="fas fa-tools mr-1.5"></i>Ürünleri Yönet
+        </button>
+    </div>
+
+    {{-- ═══ SEKME: ÜRÜN LİSTESİ ══════════════════════════════════ --}}
+    <div x-show="activeTab === 'list'" x-transition>
     {{-- Detaylı Arama Çubuğu (BenimPOS Tarzı) --}}
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 mb-3">
         <div class="flex flex-wrap items-center gap-2">
@@ -410,8 +426,284 @@
         @endif
     </div>
 
-    {{-- ═══════════════════════════════════════════ --}}
-    {{-- SIDE PANEL: Ürün Oluştur / Düzenle --}}
+    </div>{{-- /activeTab === 'list' --}}
+
+    {{-- ═══ SEKME: ÜRÜNLERİ YÖNET ═══════════════════════════════ --}}
+    <div x-show="activeTab === 'manage'" x-transition>
+        {{-- Barkod Okuyucu --}}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+            <div class="flex items-center gap-3">
+                <div class="relative flex-1">
+                    <input type="text" x-model="manageBarcode"
+                           @keydown.enter.prevent="loadProductByBarcode()"
+                           @input.debounce.500ms="manageBarcode.length >= 3 && loadProductByBarcode()"
+                           placeholder="Ürün barkodunu okutunuz veya adını girin..."
+                           x-ref="manageBarcodeInput"
+                           class="w-full pl-10 pr-4 py-3 bg-gray-50 border-2 border-indigo-300 rounded-xl text-gray-900 text-sm font-medium focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 placeholder-gray-400">
+                    <i class="fas fa-barcode absolute left-3 top-3.5 text-indigo-400 text-lg"></i>
+                </div>
+                <button @click="loadProductByBarcode()" :disabled="manageLoading"
+                        class="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50">
+                    <i class="fas fa-search"></i> <span class="hidden sm:inline">Ara</span>
+                </button>
+                <button @click="openCreate()" :disabled="!priceEditAllowed"
+                        class="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50">
+                    <i class="fas fa-plus"></i> <span class="hidden sm:inline">Yeni</span>
+                </button>
+            </div>
+            <div x-show="manageLoading" class="mt-2 text-xs text-indigo-500 flex items-center gap-1.5">
+                <i class="fas fa-spinner fa-spin"></i> Aranıyor...
+            </div>
+            <div x-show="manageError" class="mt-2 text-xs text-red-500" x-text="manageError"></div>
+        </div>
+
+        {{-- Ürün Detay Bölümü --}}
+        <div x-show="manageProduct" x-transition>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                {{-- Sol: Ürün Formu --}}
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                            <i class="fas fa-box text-indigo-500"></i>
+                            <span x-text="manageProduct?.name"></span>
+                        </h3>
+                        <span x-show="manageProduct?.barcode" class="text-xs font-mono bg-gray-100 rounded px-2 py-1 text-gray-500" x-text="manageProduct?.barcode"></span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Ürün Adı</label>
+                            <input type="text" x-model="manageForm.name"
+                                   class="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Barkod</label>
+                            <div class="flex gap-1">
+                                <input type="text" x-model="manageForm.barcode"
+                                       class="flex-1 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400">
+                                <button type="button" @click="generateBarcode(true)"
+                                        class="px-2 bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-lg hover:bg-indigo-100 text-xs">
+                                    <i class="fas fa-magic"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Satış Fiyatı (KDV Dahil)</label>
+                            <input type="number" step="0.01" x-model="manageForm.sale_price"
+                                   @input="calcManageProfit()"
+                                   class="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Alış Fiyatı</label>
+                            <input type="number" step="0.01" x-model="manageForm.purchase_price"
+                                   @input="calcManageProfit()"
+                                   class="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Kalan Stok</label>
+                            <input type="number" step="0.01" x-model="manageForm.stock_quantity"
+                                   class="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Kritik Stok</label>
+                            <input type="number" step="0.01" x-model="manageForm.critical_stock"
+                                   class="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Kâr Oranı (%)</label>
+                            <div class="w-full bg-gray-100 border border-gray-200 text-sm rounded-lg px-3 py-2 font-mono"
+                                 :class="manageProfitRate >= 0 ? 'text-emerald-700' : 'text-red-600'"
+                                 x-text="manageProfitRate !== null ? '%' + manageProfitRate.toFixed(1) + ' — ' + formatMoney(manageProfitAmount) : '—'">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">KDV %</label>
+                            <select x-model="manageForm.vat_rate"
+                                    class="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400">
+                                <option value="0">%0</option>
+                                <option value="1">%1</option>
+                                <option value="10">%10</option>
+                                <option value="20">%20</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Ürün Birimi</label>
+                            <select x-model="manageForm.unit"
+                                    class="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400">
+                                <template x-for="u in ['Adet','Kg','Gram','Litre','Ml','Paket','Kutu','Metre','m²','m³','Porsiyon','Çift','Takım','Ton']" :key="u">
+                                    <option :value="u" :selected="manageForm.unit === u" x-text="u"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Menşe Ülke</label>
+                            <input type="text" x-model="manageForm.country_of_origin"
+                                   placeholder="TR, DE, CN..."
+                                   class="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400">
+                        </div>
+                    </div>
+
+                    {{-- Satış sayfasında göster --}}
+                    <div class="flex items-center gap-2 pt-1">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" x-model="manageForm.show_on_pos" class="sr-only peer" @change="">
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
+                        <span class="text-sm text-gray-600">Satış sayfasında göster</span>
+                    </div>
+
+                    {{-- Değişikliği şubelere uygula --}}
+                    <div class="border-t border-gray-100 pt-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-medium text-gray-600">Değişikliği şubelere uygula</span>
+                            <button @click="manageSelectAllBranches()" class="text-xs text-indigo-500 hover:text-indigo-700">Tümünü seç</button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1.5 max-h-32 overflow-y-auto">
+                            <template x-for="b in manageBranches" :key="b.branch_id">
+                                <label class="flex items-center gap-1.5 text-xs text-gray-700 cursor-pointer p-1.5 rounded-lg hover:bg-gray-50">
+                                    <input type="checkbox" :value="b.branch_id" x-model="manageSelectedBranches"
+                                           class="rounded text-indigo-500 border-gray-300 w-3.5 h-3.5">
+                                    <span x-text="b.branch_name" class="truncate"></span>
+                                    <span x-show="b.enabled" class="text-[10px] text-emerald-500 ml-auto shrink-0">✓</span>
+                                </label>
+                            </template>
+                        </div>
+                    </div>
+
+                    {{-- Şube Bilgisi --}}
+                    <div class="border-t border-gray-100 pt-3">
+                        <div class="relative" x-data="{ branchInfoOpen: false }">
+                            <button @click="branchInfoOpen = !branchInfoOpen"
+                                    class="w-full flex items-center justify-between px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-xl hover:bg-indigo-100 transition-colors text-sm font-medium">
+                                <span><i class="fas fa-store mr-1.5"></i>Şube Bilgisi</span>
+                                <i class="fas fa-chevron-down text-xs transition-transform" :class="branchInfoOpen ? 'rotate-180' : ''"></i>
+                            </button>
+                            <div x-show="branchInfoOpen" x-transition class="mt-2 space-y-1.5">
+                                <template x-for="b in manageBranches.filter(x => x.enabled)" :key="b.branch_id">
+                                    <div class="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 text-xs">
+                                        <span class="font-medium text-gray-700" x-text="b.branch_name"></span>
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-gray-500">Stok: <span class="font-mono text-gray-800" x-text="b.stock_quantity ?? '—'"></span></span>
+                                            <span class="text-gray-500">Fiyat: <span class="font-mono text-indigo-700 font-semibold" x-text="b.sale_price ? formatMoney(b.sale_price) : '—'"></span></span>
+                                        </div>
+                                    </div>
+                                </template>
+                                <div x-show="manageBranches.filter(x => x.enabled).length === 0" class="text-xs text-gray-400 text-center py-2">
+                                    Bu ürün henüz hiçbir şubeye atanmamış.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Kaydet Butonu --}}
+                    <div class="flex gap-2 pt-2">
+                        <button @click="saveManageProduct()" :disabled="manageSaving || !priceEditAllowed"
+                                class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                            <i class="fas fa-save" :class="manageSaving ? 'fa-spin fa-spinner' : 'fa-save'"></i>
+                            <span x-text="manageSaving ? 'Kaydediliyor...' : 'Kaydet'"></span>
+                        </button>
+                        <button @click="openHistoryModal(manageProduct)" title="Hareket geçmişi"
+                                class="px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm transition-colors">
+                            <i class="fas fa-history"></i>
+                        </button>
+                        <button @click="openPricesModal(manageProduct)" title="Fiyat listesi"
+                                class="px-3 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200 rounded-xl text-sm transition-colors">
+                            <i class="fas fa-tags"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Sağ: Özet Bilgiler + Son Hareketler --}}
+                <div class="space-y-4">
+                    {{-- Özet Kartlar --}}
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
+                            <div class="text-2xl font-bold text-indigo-700" x-text="manageProduct ? formatMoney(manageProduct.sale_price) : '—'"></div>
+                            <div class="text-xs text-gray-500 mt-0.5">Satış Fiyatı</div>
+                        </div>
+                        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
+                            <div class="text-2xl font-bold text-emerald-700" x-text="manageProduct ? formatMoney(manageProduct.purchase_price) : '—'"></div>
+                            <div class="text-xs text-gray-500 mt-0.5">Alış Fiyatı</div>
+                        </div>
+                        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center"
+                             :class="(manageProduct?.stock_quantity ?? 0) <= (manageProduct?.critical_stock ?? 0) && !manageProduct?.is_service ? 'border-red-200 bg-red-50' : ''">
+                            <div class="text-2xl font-bold" :class="(manageProduct?.stock_quantity ?? 0) <= (manageProduct?.critical_stock ?? 0) && !manageProduct?.is_service ? 'text-red-600' : 'text-gray-800'" x-text="manageProduct?.stock_quantity ?? 0"></div>
+                            <div class="text-xs text-gray-500 mt-0.5">Stok (<span x-text="manageProduct?.unit ?? 'Adet'"></span>)</div>
+                        </div>
+                        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
+                            <div class="text-2xl font-bold" :class="manageProfitRate >= 0 ? 'text-emerald-700' : 'text-red-600'"
+                                 x-text="manageProfitRate !== null ? '%' + manageProfitRate.toFixed(1) : '—'"></div>
+                            <div class="text-xs text-gray-500 mt-0.5">Kâr Oranı</div>
+                        </div>
+                    </div>
+
+                    {{-- Son 100 Hareket Tablosu --}}
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div class="bg-gray-50 border-b border-gray-100 px-4 py-2.5 flex items-center justify-between">
+                            <h4 class="text-sm font-bold text-gray-700"><i class="fas fa-history mr-1.5 text-gray-400"></i>Ürüne Ait Son 100 İşlem</h4>
+                            <span class="text-xs text-gray-400" x-text="manageMovements.length + ' kayıt'"></span>
+                        </div>
+                        <div class="overflow-x-auto max-h-96 overflow-y-auto">
+                            <table class="w-full text-xs text-left">
+                                <thead class="bg-gray-50 border-b border-gray-100 sticky top-0">
+                                    <tr>
+                                        <th class="px-3 py-2 text-gray-500 font-medium">#</th>
+                                        <th class="px-3 py-2 text-gray-500 font-medium">Tür</th>
+                                        <th class="px-3 py-2 text-gray-500 font-medium">Kod</th>
+                                        <th class="px-3 py-2 text-gray-500 font-medium">Tarih</th>
+                                        <th class="px-3 py-2 text-gray-500 font-medium">Firma/Müşteri</th>
+                                        <th class="px-3 py-2 text-gray-500 font-medium">Ödeme</th>
+                                        <th class="px-3 py-2 text-right text-gray-500 font-medium">Miktar</th>
+                                        <th class="px-3 py-2 text-right text-gray-500 font-medium">Birim Fiyat</th>
+                                        <th class="px-3 py-2 text-right text-gray-500 font-medium">Toplam</th>
+                                        <th class="px-3 py-2 text-right text-gray-500 font-medium">Kalan</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-50">
+                                    <template x-for="(m, i) in manageMovements" :key="i">
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-3 py-2 text-gray-400" x-text="i + 1"></td>
+                                            <td class="px-3 py-2">
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium"
+                                                      :class="{
+                                                        'bg-emerald-100 text-emerald-700': m.type === 'in' || m.type === 'purchase',
+                                                        'bg-red-100 text-red-700': m.type === 'out' || m.type === 'sale',
+                                                        'bg-blue-100 text-blue-700': m.type === 'transfer',
+                                                        'bg-gray-100 text-gray-700': !['in','purchase','out','sale','transfer'].includes(m.type)
+                                                      }"
+                                                      x-text="m.type === 'in' || m.type === 'purchase' ? 'GİRİŞ' : m.type === 'out' || m.type === 'sale' ? 'ÇIKIŞ' : m.type === 'transfer' ? 'TRANSFER' : (m.type || 'DİĞER').toUpperCase()">
+                                                </span>
+                                            </td>
+                                            <td class="px-3 py-2 font-mono text-gray-500" x-text="m.transaction_code ?? '—'"></td>
+                                            <td class="px-3 py-2 text-gray-600 whitespace-nowrap" x-text="m.movement_date ? new Date(m.movement_date).toLocaleDateString('tr-TR') : '—'"></td>
+                                            <td class="px-3 py-2 text-gray-700 max-w-[120px] truncate" x-text="m.firm_customer ?? '—'"></td>
+                                            <td class="px-3 py-2 text-gray-500" x-text="m.payment_type ?? '—'"></td>
+                                            <td class="px-3 py-2 text-right font-mono" :class="(m.quantity ?? 0) >= 0 ? 'text-emerald-700' : 'text-red-600'" x-text="m.quantity ?? 0"></td>
+                                            <td class="px-3 py-2 text-right font-mono text-gray-700" x-text="m.unit_price ? formatMoney(m.unit_price) : '—'"></td>
+                                            <td class="px-3 py-2 text-right font-mono text-gray-900 font-semibold" x-text="m.total ? formatMoney(m.total) : '—'"></td>
+                                            <td class="px-3 py-2 text-right font-mono text-gray-500" x-text="m.remaining ?? '—'"></td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="manageMovements.length === 0">
+                                        <td colspan="10" class="px-3 py-6 text-center text-gray-400">Hareket bulunamadı</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Ürün Bulunamadı --}}
+        <div x-show="!manageProduct && !manageLoading && manageBarcodeSearched" class="bg-white rounded-2xl border border-dashed border-gray-200 p-8 text-center">
+            <i class="fas fa-search text-4xl text-gray-200 mb-3"></i>
+            <p class="text-gray-500 text-sm">Ürün bulunamadı.</p>
+            <button @click="openCreate()" class="mt-3 px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors">
+                <i class="fas fa-plus mr-1.5"></i>Yeni Ürün Oluştur
+            </button>
+        </div>
+    </div>{{-- /activeTab === 'manage' --}}
     {{-- ═══════════════════════════════════════════ --}}
     <div x-show="showPanel"
          x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
@@ -465,9 +757,16 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Barkod</label>
-                        <input type="text" x-model="form.barcode"
-                               class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400"
-                               placeholder="Barkod numarası">
+                        <div class="flex gap-1">
+                            <input type="text" x-model="form.barcode"
+                                   class="flex-1 bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400"
+                                   placeholder="Barkod numarası">
+                            <button type="button" @click="generateBarcode()"
+                                    title="Otomatik EAN-13 barkod üret"
+                                    class="px-2.5 bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors flex items-center gap-1 text-xs font-medium shrink-0">
+                                <i class="fas fa-magic text-[10px]"></i> Üret
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Stok Kodu</label>
@@ -898,6 +1197,12 @@
                         <button @click="addPrice()" :disabled="!priceEditAllowed || !newPriceLabel.trim() || !newPriceValue" class="px-4 py-2 bg-gradient-to-r from-brand-500 to-purple-600 text-white text-sm font-medium rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
                             <i class="fas fa-plus mr-1"></i>Ekle
                         </button>
+                    </div>
+                    <div class="mt-2 flex items-center gap-2">
+                        <label class="flex items-center gap-1.5 cursor-pointer text-xs text-gray-600 select-none">
+                            <input type="checkbox" x-model="syncPriceToAllBranches" class="rounded text-indigo-500 border-gray-300 w-3.5 h-3.5">
+                            Tüm şubelerin satış fiyatını da güncelle
+                        </label>
                     </div>
                     <div class="flex flex-wrap gap-1.5 mt-3">
                         <template x-for="preset in ['Kredi Kartı', 'Nakit', 'Toptan', 'Perakende', 'Online', 'Personel']" :key="preset">
@@ -1760,6 +2065,7 @@ function productManager() {
         editingPriceId: null,
         editPriceLabel: '',
         editPriceValue: '',
+        syncPriceToAllBranches: false,
 
         // Şube
         showBranchSection: true,
@@ -1835,6 +2141,23 @@ function productManager() {
         showProductReportModal: false,
         productReportLoading: false,
         productReportData: null,
+
+        // Sekme
+        activeTab: 'list',
+
+        // Ürünleri Yönet sekmesi
+        manageBarcode: '',
+        manageLoading: false,
+        manageError: '',
+        manageProduct: null,
+        manageForm: {},
+        manageMovements: [],
+        manageBranches: [],
+        manageSelectedBranches: [],
+        manageSaving: false,
+        manageProfitRate: null,
+        manageProfitAmount: null,
+        manageBarcodeSearched: false,
 
         // Toplu Şube
         showBulkBranchModal: false,
@@ -2151,7 +2474,15 @@ function productManager() {
             if (!this.newPriceLabel.trim() || !this.newPriceValue) return;
             try {
                 const res = await posAjax('/products/' + this.pricesProductId + '/prices', { method: 'POST', body: JSON.stringify({ label: this.newPriceLabel, price: this.newPriceValue }) });
-                if (res.success) { this.pricesList.push(res.price); this.newPriceLabel = ''; this.newPriceValue = ''; showToast('Fiyat eklendi', 'success'); }
+                if (res.success) {
+                    this.pricesList.push(res.price);
+                    // Şubeleri de güncelle
+                    if (this.syncPriceToAllBranches) {
+                        await this.syncAllBranchesWithPrice(this.pricesProductId, parseFloat(this.newPriceValue));
+                    }
+                    this.newPriceLabel = ''; this.newPriceValue = '';
+                    showToast('Fiyat eklendi' + (this.syncPriceToAllBranches ? ' ve şubelere uygulandı' : ''), 'success');
+                }
             } catch(e) { showToast(e.message || 'Fiyat eklenemedi', 'error'); }
         },
 
@@ -2159,8 +2490,31 @@ function productManager() {
             if (!this.priceEditAllowed) { showToast('Fiyat düzenleme yetkiniz yok.', 'error'); return; }
             try {
                 const res = await posAjax('/products/' + this.pricesProductId + '/prices/' + priceId, { method: 'PUT', body: JSON.stringify({ label: this.editPriceLabel, price: this.editPriceValue }) });
-                if (res.success) { this.pricesList[idx] = res.price; this.editingPriceId = null; showToast('Fiyat güncellendi', 'success'); }
+                if (res.success) {
+                    this.pricesList[idx] = res.price;
+                    if (this.syncPriceToAllBranches) {
+                        await this.syncAllBranchesWithPrice(this.pricesProductId, parseFloat(this.editPriceValue));
+                    }
+                    this.editingPriceId = null;
+                    showToast('Fiyat güncellendi' + (this.syncPriceToAllBranches ? ' ve şubelere uygulandı' : ''), 'success');
+                }
             } catch(e) { showToast(e.message || 'Güncellenemedi', 'error'); }
+        },
+
+        async syncAllBranchesWithPrice(productId, price) {
+            try {
+                // Tüm şubeleri al ve fiyatı güncelle
+                const branchRes = await posAjax('/products/' + productId + '/branches', {}, 'GET');
+                const branches = (branchRes.branches || []).map(b => ({
+                    branch_id: b.branch_id,
+                    enabled: b.enabled,
+                    sale_price: price,
+                    stock_quantity: b.stock_quantity ?? 0,
+                }));
+                if (branches.length > 0) {
+                    await posAjax('/products/' + productId + '/branches', { branches }, 'POST');
+                }
+            } catch(e) { showToast('Şube fiyatları güncellenemedi: ' + (e.message || ''), 'error'); }
         },
 
         async deletePrice(priceId, idx) {
@@ -2502,6 +2856,121 @@ function productManager() {
                 if (this.importResult.success) showToast(this.importResult.message, 'success');
             } catch(e) { showToast('İçe aktarma hatası', 'error'); }
             finally { this.importLoading = false; }
+        },
+
+        // ── Barkod Üretici ───────────────────────
+        async generateBarcode(forManage = false) {
+            try {
+                const res = await posAjax('{{ route("pos.products.generate-barcode") }}', {}, 'GET');
+                if (res.success) {
+                    if (forManage) {
+                        this.manageForm.barcode = res.barcode;
+                    } else {
+                        this.form.barcode = res.barcode;
+                    }
+                    showToast('Barkod üretildi: ' + res.barcode, 'success');
+                }
+            } catch(e) { showToast('Barkod üretilemedi', 'error'); }
+        },
+
+        // ── Ürünleri Yönet Sekmesi ───────────────
+        async loadProductByBarcode() {
+            const q = this.manageBarcode.trim();
+            if (!q) return;
+            this.manageLoading = true;
+            this.manageError = '';
+            this.manageProduct = null;
+            this.manageBarcodeSearched = true;
+            try {
+                const params = /^\d+$/.test(q)
+                    ? '?barcode=' + encodeURIComponent(q)
+                    : '?product_id=' + encodeURIComponent(q);
+                // Try barcode first, then search by name via products search endpoint
+                let res = await posAjax('/products/detail' + params, {}, 'GET');
+                if (!res.success) {
+                    // Try name search
+                    const search = await posAjax('{{ route("pos.products.search") }}?q=' + encodeURIComponent(q), {}, 'GET');
+                    if (search && search.length > 0) {
+                        res = await posAjax('/products/detail?product_id=' + search[0].id, {}, 'GET');
+                    }
+                }
+                if (res.success && res.product) {
+                    this.manageProduct = res.product;
+                    this.manageForm = { ...res.product };
+                    this.manageMovements = res.movements || [];
+                    this.manageBranches = res.branches || [];
+                    this.manageSelectedBranches = (res.branches || []).filter(b => b.enabled).map(b => b.branch_id);
+                    this.calcManageProfit();
+                } else {
+                    this.manageError = 'Ürün bulunamadı: ' + q;
+                }
+            } catch(e) {
+                this.manageError = e.message || 'Arama sırasında hata oluştu';
+            } finally { this.manageLoading = false; }
+        },
+
+        calcManageProfit() {
+            const sale = parseFloat(this.manageForm.sale_price) || 0;
+            const purchase = parseFloat(this.manageForm.purchase_price) || 0;
+            if (sale > 0 && purchase > 0) {
+                this.manageProfitAmount = sale - purchase;
+                this.manageProfitRate = ((sale - purchase) / purchase) * 100;
+            } else {
+                this.manageProfitAmount = null;
+                this.manageProfitRate = null;
+            }
+        },
+
+        manageSelectAllBranches() {
+            this.manageSelectedBranches = this.manageBranches.map(b => b.branch_id);
+        },
+
+        async saveManageProduct() {
+            if (!this.manageProduct || !this.priceEditAllowed) return;
+            this.manageSaving = true;
+            try {
+                const payload = {
+                    name: this.manageForm.name,
+                    barcode: this.manageForm.barcode,
+                    sale_price: this.manageForm.sale_price,
+                    purchase_price: this.manageForm.purchase_price,
+                    stock_quantity: this.manageForm.stock_quantity,
+                    critical_stock: this.manageForm.critical_stock,
+                    vat_rate: this.manageForm.vat_rate,
+                    unit: this.manageForm.unit,
+                    country_of_origin: this.manageForm.country_of_origin,
+                    show_on_pos: this.manageForm.show_on_pos ? 1 : 0,
+                };
+                await posAjax('/products/' + this.manageProduct.id, { method: 'PUT', body: JSON.stringify(payload) });
+
+                // Seçili şubelere fiyat/stok güncelle
+                if (this.manageSelectedBranches.length > 0) {
+                    const branches = this.manageBranches.map(b => ({
+                        branch_id: b.branch_id,
+                        enabled: this.manageSelectedBranches.includes(b.branch_id) ? true : b.enabled,
+                        sale_price: this.manageSelectedBranches.includes(b.branch_id) ? parseFloat(this.manageForm.sale_price) || 0 : b.sale_price,
+                        stock_quantity: this.manageSelectedBranches.includes(b.branch_id) ? parseFloat(this.manageForm.stock_quantity) || 0 : b.stock_quantity,
+                    }));
+                    await posAjax('/products/' + this.manageProduct.id + '/branches', { branches }, 'POST');
+                }
+
+                showToast('Ürün güncellendi', 'success');
+                this.manageProduct = { ...this.manageProduct, ...payload };
+                this.calcManageProfit();
+            } catch(e) { showToast(e.message || 'Güncelleme başarısız', 'error'); }
+            finally { this.manageSaving = false; }
+        },
+
+        // Tarih geçmişi modal açma (yönet sekmesi için)
+        openHistoryModal(product) {
+            if (!product) return;
+            this.openHistory(product.id, product.name);
+        },
+
+        // Fiyat listesi modal açma (yönet sekmesi için)
+        openPricesModal(product) {
+            if (!product) return;
+            this.openPrices(product.id, product.name);
         },
     };
 }
