@@ -178,7 +178,7 @@
             </div>
 
             {{-- Tab İçerikleri --}}
-            <div class="flex-1 overflow-y-auto">
+            <div class="flex-1 overflow-y-auto min-h-0">
 
                 {{-- ── RAPOR ── --}}
                 <div x-show="detailTab==='rapor'" class="p-5 space-y-5">
