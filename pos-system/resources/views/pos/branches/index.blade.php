@@ -148,7 +148,7 @@
     ═══════════════════════════════════ --}}
     <div x-show="showDetailModal" x-transition.opacity class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style="display:none;">
         <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" @click="showDetailModal = false"></div>
-        <div class="relative bg-white w-full sm:rounded-2xl border border-gray-100 shadow-2xl max-w-5xl max-h-[95vh] flex flex-col" x-transition>
+        <div class="relative bg-white w-full sm:rounded-2xl border border-gray-100 shadow-2xl max-w-5xl h-full sm:h-auto max-h-[95vh] flex flex-col my-auto" x-transition @click.stop>
 
             {{-- Modal Başlık --}}
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
@@ -578,7 +578,7 @@ function branchManager() {
             this.editForm = { name:b.name||'', code:b.code||'', address:b.address||'', phone:b.phone||'',
                               city:b.city||'', district:b.district||'', is_active:!!b.is_active,
                               is_center:!!b.is_center, price_edit_locked:!!b.price_edit_locked };
-            this.showDetailModal = true;
+            this.showDetailModal = true; window.scrollTo({top: 0, behavior: "smooth"});
             this.setReportPeriod('30');
         },
 
