@@ -162,9 +162,25 @@
         <div class="w-full lg:flex-none flex flex-col bg-white border-l border-gray-200 flex-1 min-h-0 overflow-hidden relative"
             :style="panelStyle()"
             :class="{ 'hidden lg:flex': mobileTab !== 'cart' }">
+
            <div x-show="panelResizeEnabled" x-cloak
                class="hidden lg:block absolute left-0 top-0 h-full w-1.5 cursor-col-resize bg-transparent hover:bg-brand-200/40"
                @mousedown.prevent="startPanelResize($event)"></div>
+               
+           {{-- MULTI-CART TABS --}}
+           <div class="flex overflow-x-auto bg-gray-100 border-b border-gray-200 hide-scrollbar scroll-smooth">
+               <template x-for="tab in tabs" :key="tab.id">
+                   <button @click="switchTab(tab.id)"
+                           :class="{'bg-white border-t-2 border-brand-500 font-bold text-brand-700': activeTabId === tab.id, 'text-gray-500 hover:bg-gray-200 hover:text-gray-700': activeTabId !== tab.id}"
+                           class="flex-1 min-w-[70px] py-3 px-2 text-sm text-center border-r border-gray-200 whitespace-nowrap transition-colors focus:outline-none">
+                       Müşteri <span x-text="tab.id"></span>
+                       <div x-show="tab.cart.length > 0" class="text-xs font-normal" :class="activeTabId === tab.id ? 'text-brand-500' : 'text-gray-400'">
+                           <span x-text="tab.cart.length"></span> Ürün
+                       </div>
+                   </button>
+               </template>
+           </div>
+
 
         {{-- Koyu Header: Barkod + Toplam + KDV --}}
         <div class="bg-gray-100 shrink-0">
@@ -609,208 +625,120 @@
         </div>
     </div>
 
-    {{-- ÖD  EME AL MODALI --}}
+        {{-- HIZLI ÖDEME AL MODALI --}}
     <div x-show="showOdemeAlModal" x-transition x-cloak
-         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-auto max-h-[92vh] overflow-y-auto" @click.away="showOdemeAlModal = false">
-            <div class="flex items-center justify-between px-5 py-3 bg-emerald-700 rounded-t-2xl sticky top-0 z-10">
-                <h3 class="text-base font-bold text-white"><i class="fas fa-hand-holding-usd mr-2"></i>Ödeme Al / Hesap İşlemi</h3>
-                <button @click="showOdemeAlModal = false" class="text-white/70 hover:text-white"><i class="fas fa-times-circle text-lg"></i></button>
+         class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+         @keydown.escape.window="showOdemeAlModal = false">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-auto overflow-hidden flex flex-col" @click.stop>
+            
+            <div class="px-6 py-4 bg-blue-600 flex items-center justify-between text-white">
+                <h3 class="font-bold text-xl tracking-wide">MÜŞTERİ HIZLI ÖDEME EKLEME</h3>
+                <button @click="showOdemeAlModal = false" class="text-white hover:text-red-200 text-2xl leading-none">
+                    &times;
+                </button>
             </div>
-            <div class="p-5 space-y-4">
+            
+            <div class="p-6 flex flex-col gap-6 bg-gray-50">
+                <p class="text-gray-700 font-medium text-center bg-blue-50 py-2 rounded-lg border border-blue-100">
+                    <i class="fas fa-info-circle mr-2 text-blue-500"></i>
+                    Müşteriler sayfasına gitmeden satış esnasında hızlıca ödeme alın ve kaydedin!
+                </p>
+                
+                {{-- Müşteri Arama Kutusu --}}
+                <div class="relative w-full max-w-2xl mx-auto">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-gray-400 text-xl"></i>
+                    </div>
+                    <input type="text" x-model="odemeCustomerSearch" @input.debounce.300ms="searchOdemeCustomers()"
+                           class="w-full border-2 border-gray-300 rounded-xl pl-12 pr-4 py-4 text-center text-lg font-bold text-gray-700 uppercase focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all shadow-sm"
+                           placeholder="MÜŞTERİ ARA (EN AZ 3 KARAKTER)">
+                           
+                    {{-- Arama Sonuçları Listesi --}}
+                    <div x-show="odemeCustomerResults.length > 0 && !odemeSelectedCustomer" 
+                         class="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 shadow-2xl rounded-xl max-h-72 overflow-y-auto z-50 divide-y divide-gray-100">
+                        <table class="w-full text-left bg-white">
+                            <thead class="bg-gray-100 sticky top-0 text-gray-600 text-sm font-bold uppercase">
+                                <tr>
+                                    <th class="px-5 py-3 rounded-tl-xl">Müşteri Adı</th>
+                                    <th class="px-5 py-3">Telefon</th>
+                                    <th class="px-5 py-3 text-right rounded-tr-xl">Bakiye/Borç durumu</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-base">
+                                <template x-for="c in odemeCustomerResults" :key="c.id">
+                                    <tr @click="selectOdemeCustomer(c)" class="hover:bg-blue-50 cursor-pointer transition-colors group">
+                                        <td class="px-5 py-4 font-bold text-gray-800 group-hover:text-blue-700" x-text="c.name"></td>
+                                        <td class="px-5 py-4 text-gray-600" x-text="c.phone || '-'"></td>
+                                        <td class="px-5 py-4 text-right font-mono font-bold" :class="c.balance < 0 ? 'text-red-600' : 'text-emerald-600'" 
+                                            x-text="formatCurrency(Math.abs(c.balance || 0)) + (c.balance < 0 ? ' (Borç)' : ' (Alacak)')"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
-                {{-- ADIM 1: Müşteri Seç --}}
-                <div>
-                    <label class="block text-sm font-semibold text-gray-800 mb-2"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-xs mr-1.5">1</span>Müşteri</label>
-                    <div x-show="!odemeCustomer" class="space-y-2">
-                        <div class="flex gap-2">
-                            <div class="relative flex-1">
-                                <input type="text" x-model="odemeSearch"
-                                       @input.debounce.300ms="searchOdemeCustomers(odemeSearch)"
-                                       placeholder="Ad, telefon veya e-posta ile ara..."
-                                       class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20">
-                                <i class="fas fa-search absolute right-3 top-3 text-gray-400 text-xs"></i>
+                {{-- Seçili Müşteri Alanı --}}
+                <div x-show="odemeSelectedCustomer" class="space-y-6 w-full max-w-4xl mx-auto" x-cloak>
+                    {{-- Müşteri Adı Bantı --}}
+                    <div class="bg-gray-800 text-white text-center py-5 text-2xl font-black rounded-xl shadow-md relative overflow-hidden">
+                        <div class="absolute inset-0 bg-blue-600 opacity-20 transform -skew-x-12"></div>
+                        <span class="relative tracking-wider uppercase" x-text="odemeSelectedCustomer ? odemeSelectedCustomer.name : ''"></span>
+                        <button @click="resetOdemeCustomer()" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-300 hover:text-red-400 transition-colors bg-gray-700 hover:bg-gray-600 rounded-lg px-3 py-1 text-sm font-semibold flex items-center gap-2">
+                            <i class="fas fa-times"></i> İptal
+                        </button>
+                    </div>
+
+                    {{-- Giriş Alanları: Borç / Tutar / Ödeme Türü / Kaydet --}}
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        
+                        {{-- Mevcut Borç (Disabled) --}}
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-bold text-gray-500 uppercase px-1">Mevcut Borç</label>
+                            <div class="flex items-stretch h-14 w-full shadow-sm rounded-lg overflow-hidden">
+                                <div class="bg-gray-200 border-y border-l border-gray-300 px-4 flex items-center justify-center text-gray-600 font-bold text-xl">&#8378;</div>
+                                <input type="text" disabled :value="odemeSelectedCustomer && odemeSelectedCustomer.balance < 0 ? formatCurrency(Math.abs(odemeSelectedCustomer.balance)).replace('₺','') : '0.00'" 
+                                       class="w-full border border-gray-300 bg-gray-100 text-red-600 text-right pr-4 text-2xl font-black focus:outline-none">
                             </div>
-                            <button @click="odemeNewCustomerMode = !odemeNewCustomerMode"
-                                    class="px-3 py-2 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl text-xs font-medium hover:bg-blue-100 transition-colors whitespace-nowrap">
-                                <i class="fas fa-user-plus mr-1"></i>Yeni
+                        </div>
+
+                        {{-- Ödeme Tutarı --}}
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-bold text-gray-500 uppercase px-1">Ödeme Tutarı</label>
+                            <div class="flex items-stretch h-14 w-full shadow-sm rounded-lg overflow-hidden ring-2 ring-transparent focus-within:ring-emerald-400 transition-shadow">
+                                <div class="bg-emerald-50 border-y border-l border-emerald-200 px-4 flex items-center justify-center text-emerald-600 font-bold text-xl">&#8378;</div>
+                                <input type="number" x-model.number="odemeAmount" min="0" step="0.01" placeholder="0.00"
+                                       class="w-full border-y border-r border-emerald-200 bg-white text-emerald-600 text-right pr-4 text-2xl font-black focus:outline-none">
+                            </div>
+                        </div>
+
+                        {{-- Ödeme Türü Modal İçi Dropdown --}}
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-bold text-gray-500 uppercase px-1">Ödeme Türü</label>
+                            <select x-model="odemeMethod" class="w-full h-14 border border-gray-300 bg-white text-gray-700 text-center text-lg font-bold rounded-lg shadow-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer">
+                                <option value="cash">NAKİT</option>
+                                <option value="card">KART (POS)</option>
+                                <option value="transfer">HAVALE</option>
+                            </select>
+                        </div>
+
+                        {{-- Kaydet --}}
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-bold text-transparent select-none px-1">.</label>
+                            <button @click="submitHizliOdeme()" :disabled="odemeSaving" class="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white text-lg font-black rounded-lg shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed uppercase tracking-wide">
+                                <i class="fas fa-check-circle text-xl" x-show="!odemeSaving"></i>
+                                <i class="fas fa-spinner fa-spin text-xl" x-show="odemeSaving"></i>
+                                Kaydet
                             </button>
                         </div>
-                        {{-- Sonuçlar --}}
-                        <div x-show="odemeCustomerResults.length > 0" class="border border-gray-100 rounded-xl divide-y divide-gray-50 max-h-40 overflow-y-auto shadow-sm">
-                            <template x-for="c in odemeCustomerResults" :key="c.id">
-                                <button @click="selectOdemeCustomer(c)"
-                                        class="w-full text-left px-3 py-2.5 hover:bg-emerald-50 transition-colors flex items-center justify-between">
-                                    <div>
-                                        <div class="text-sm font-medium text-gray-900" x-text="c.name"></div>
-                                        <div class="text-xs text-gray-400" x-text="c.phone || c.email || ''"></div>
-                                    </div>
-                                    <div class="text-right shrink-0 ml-3">
-                                        <div class="text-xs font-bold" :class="(c.balance ?? 0) < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCurrency(c.balance ?? 0)"></div>
-                                        <div class="text-[10px] text-gray-400" x-text="(c.balance ?? 0) < 0 ? 'Borçlu' : (c.balance ?? 0) > 0 ? 'Alacaklı' : 'Bakiye 0'"></div>
-                                    </div>
-                                </button>
-                            </template>
-                        </div>
-                        {{-- Sonuç yok → oluştur --}}
-                        <div x-show="odemeSearch.length > 1 && odemeCustomerResults.length === 0 && !odemeCustomerLoading" class="mt-1">
-                            <button @click="odemeNewCustomerMode = true; odemeNewName = odemeSearch"
-                                    class="w-full py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-medium border border-emerald-200 hover:bg-emerald-100 transition-colors">
-                                <i class="fas fa-user-plus mr-1"></i> "<span x-text="odemeSearch"></span>" — Yeni müşteri oluştur
-                            </button>
-                        </div>
-                        {{-- Yeni Müşteri Formu --}}
-                        <div x-show="odemeNewCustomerMode" x-transition class="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
-                            <p class="text-xs font-semibold text-blue-700"><i class="fas fa-user-plus mr-1"></i>Yeni Müşteri Oluştur</p>
-                            <div class="grid grid-cols-2 gap-2">
-                                <input type="text" x-model="odemeNewName" placeholder="Ad Soyad *"
-                                       class="col-span-2 px-3 py-2 border border-blue-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500">
-                                <input type="text" x-model="odemeNewPhone" placeholder="Telefon"
-                                       class="px-3 py-2 border border-blue-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500">
-                                <select x-model="odemeNewType"
-                                        class="px-3 py-2 border border-blue-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500">
-                                    <option value="individual">Bireysel</option>
-                                    <option value="corporate">Kurumsal</option>
-                                </select>
-                            </div>
-                            <div class="flex gap-2">
-                                <button @click="odemeNewCustomerMode = false" class="flex-1 py-1.5 text-xs text-gray-600 bg-white border border-gray-200 rounded-lg">İptal</button>
-                                <button @click="createAndSelectOdemeCustomer()" :disabled="!odemeNewName.trim()"
-                                        class="flex-1 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-lg font-medium disabled:opacity-50">
-                                    <i class="fas fa-check mr-1"></i>Oluştur ve Seç
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    {{-- Seçildi --}}
-                    <div x-show="odemeCustomer" class="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
-                        <div class="flex-1">
-                            <div class="text-sm font-bold text-gray-900" x-text="odemeCustomer?.name"></div>
-                            <div class="text-xs text-gray-500" x-text="odemeCustomer?.phone || ''"></div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xs font-bold" :class="(odemeCustomer?.balance ?? 0) < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCurrency(odemeCustomer?.balance ?? 0)"></div>
-                            <div class="text-[10px] text-gray-400">Mevcut Bakiye</div>
-                        </div>
-                        <button @click="odemeCustomer = null; odemeSearch = ''" class="text-gray-400 hover:text-red-500 transition-colors">
-                            <i class="fas fa-times"></i>
-                        </button>
+
                     </div>
                 </div>
 
-                {{-- ADIM 2: İşlem Türü --}}
-                <div>
-                    <label class="block text-sm font-semibold text-gray-800 mb-2"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-xs mr-1.5">2</span>İşlem Türü</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button @click="odemeType = 'payment'"
-                                class="flex flex-col items-center py-3 rounded-xl border-2 transition-all"
-                                :class="odemeType === 'payment' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'">
-                            <i class="fas fa-coins text-xl mb-1"></i>
-                            <span class="text-xs font-semibold">Tahsilat</span>
-                            <span class="text-[10px] text-gray-400">Müşteriden para al</span>
-                        </button>
-                        <button @click="odemeType = 'debt'"
-                                class="flex flex-col items-center py-3 rounded-xl border-2 transition-all"
-                                :class="odemeType === 'debt' ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'">
-                            <i class="fas fa-file-invoice-dollar text-xl mb-1"></i>
-                            <span class="text-xs font-semibold">Borç Ekle</span>
-                            <span class="text-[10px] text-gray-400">Veresiye / alacak</span>
-                        </button>
-                    </div>
-                </div>
-
-                {{-- ADIM 3: Ödeme Yöntemi (Tahsilatta) --}}
-                <div x-show="odemeType === 'payment'" x-transition>
-                    <label class="block text-sm font-semibold text-gray-800 mb-2"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-xs mr-1.5">3</span>Ödeme Yöntemi</label>
-                    <div class="grid grid-cols-4 gap-2">
-                        <button @click="odemePaymentMethod = 'cash'"
-                                class="py-2 rounded-xl border-2 text-xs font-semibold transition-all"
-                                :class="odemePaymentMethod === 'cash' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'">
-                            <i class="fas fa-money-bill-wave block mb-0.5"></i>Nakit
-                        </button>
-                        <button @click="odemePaymentMethod = 'card'"
-                                class="py-2 rounded-xl border-2 text-xs font-semibold transition-all"
-                                :class="odemePaymentMethod === 'card' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'">
-                            <i class="fas fa-credit-card block mb-0.5"></i>Kart
-                        </button>
-                        <button @click="odemePaymentMethod = 'transfer'"
-                                class="py-2 rounded-xl border-2 text-xs font-semibold transition-all"
-                                :class="odemePaymentMethod === 'transfer' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'">
-                            <i class="fas fa-exchange-alt block mb-0.5"></i>Havale
-                        </button>
-                        <button @click="odemePaymentMethod = 'other'"
-                                class="py-2 rounded-xl border-2 text-xs font-semibold transition-all"
-                                :class="odemePaymentMethod === 'other' ? 'border-gray-700 bg-gray-100 text-gray-800' : 'border-gray-200 text-gray-600 hover:border-gray-300'">
-                            <i class="fas fa-ellipsis-h block mb-0.5"></i>Diğer
-                        </button>
-                    </div>
-                </div>
-
-                {{-- ADIM 3b: Borç Türü --}}
-                <div x-show="odemeType === 'debt'" x-transition>
-                    <label class="block text-sm font-semibold text-gray-800 mb-2"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-xs mr-1.5">3</span>Borç Türü</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button @click="odemeDebtType = 'veresiye'"
-                                class="py-2.5 text-xs rounded-xl border-2 font-semibold transition-all"
-                                :class="odemeDebtType === 'veresiye' ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'">
-                            <i class="fas fa-shopping-cart block mb-1"></i>Veresiye Satış
-                        </button>
-                        <button @click="odemeDebtType = 'avans'"
-                                class="py-2.5 text-xs rounded-xl border-2 font-semibold transition-all"
-                                :class="odemeDebtType === 'avans' ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'">
-                            <i class="fas fa-hand-holding-heart block mb-1"></i>Avans / Ön Ödeme
-                        </button>
-                    </div>
-                </div>
-
-                {{-- ADIM 4: Tutar + Açıklama --}}
-                <div class="border-t border-gray-100 pt-4 space-y-3">
-                    <label class="block text-sm font-semibold text-gray-800"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-xs mr-1.5">4</span>Tutar ve Açıklama</label>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Tutar (₺) *</label>
-                        <input type="number" step="0.01" min="0.01" x-model="odemeAmount"
-                               placeholder="0.00"
-                               class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-lg font-bold text-gray-900 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-right">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Açıklama</label>
-                        <input type="text" x-model="odemeDescription"
-                               placeholder="İşlem açıklaması (opsiyonel)"
-                               class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20">
-                    </div>
-                </div>
-
-                {{-- Sonuç Önizleme --}}
-                <div x-show="odemeCustomer && odemeAmount > 0" class="bg-gray-50 border border-gray-100 rounded-xl p-3 space-y-1.5">
-                    <div class="flex justify-between text-sm">
-                        <span class="text-gray-500">Mevcut Bakiye</span>
-                        <span class="font-medium" :class="(odemeCustomer?.balance ?? 0) < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCurrency(odemeCustomer?.balance ?? 0)"></span>
-                    </div>
-                    <div class="flex justify-between text-sm">
-                        <span class="text-gray-500" x-text="odemeType === 'payment' ? 'Tahsilat' : 'Borç'"></span>
-                        <span :class="odemeType === 'payment' ? 'text-emerald-600' : 'text-red-500'" x-text="(odemeType === 'payment' ? '+' : '-') + formatCurrency(odemeAmount || 0)"></span>
-                    </div>
-                    <div class="flex justify-between text-sm font-bold border-t border-gray-200 pt-1.5">
-                        <span class="text-gray-700">Yeni Bakiye</span>
-                        <span x-text="formatCurrency((odemeCustomer?.balance ?? 0) + (odemeType === 'payment' ? parseFloat(odemeAmount||0) : -parseFloat(odemeAmount||0)))"
-                              :class="((odemeCustomer?.balance ?? 0) + (odemeType === 'payment' ? parseFloat(odemeAmount||0) : -parseFloat(odemeAmount||0))) < 0 ? 'text-red-600' : 'text-emerald-700'"></span>
-                    </div>
-                </div>
-
-                {{-- Butonlar --}}
-                <div class="flex gap-3 pt-1">
-                    <button @click="showOdemeAlModal = false" class="flex-1 py-2.5 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors">İptal</button>
-                    <button @click="submitOdemeAl()"
-                            :disabled="!odemeCustomer || !odemeAmount || odemeAmount <= 0 || odemedSaving"
-                            class="flex-1 py-2.5 text-sm text-white rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                            :class="odemeType === 'payment' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'">
-                        <i :class="odemedSaving ? 'fas fa-spinner fa-spin' : (odemeType === 'payment' ? 'fas fa-check-circle' : 'fas fa-file-invoice')"></i>
-                        <span x-text="odemedSaving ? 'Kaydediliyor...' : (odemeType === 'payment' ? 'Tahsilatı Kaydet' : 'Borcu Kaydet')"></span>
-                    </button>
-                </div>
             </div>
         </div>
     </div>
+
 
     {{-- İADE MODALI --}}
     <div x-show="showRefundModal" x-transition x-cloak

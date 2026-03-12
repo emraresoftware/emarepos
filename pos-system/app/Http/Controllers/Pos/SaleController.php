@@ -125,7 +125,7 @@ class SaleController extends Controller
             'items.*.quantity' => 'required|numeric|min:0.01',
             'items.*.unit_price' => 'required|numeric|min:0',
             'customer_id' => ['nullable', 'integer', Rule::exists('customers', 'id')->where('tenant_id', session('tenant_id'))],
-            'payment_method' => ['required', 'string', 'regex:/^(cash|card|credit|mixed|transfer|other_.+)$/'],
+            'payment_method' => ['required', 'string', 'regex:/^(cash|card|credit|mixed|transfer|other_.+)(\_refund)?$/'],
         ]);
 
         try {

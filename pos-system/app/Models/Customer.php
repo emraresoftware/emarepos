@@ -25,6 +25,7 @@ class Customer extends Model
         'city',
         'district',
         'balance',
+        'credit_limit',
         'notes',
         'is_active',
     ];

@@ -53,6 +53,7 @@ class CustomerController extends Controller
             'city' => 'nullable|string',
             'district' => 'nullable|string',
             'notes' => 'nullable|string',
+            'credit_limit'      => 'nullable|numeric|min:0',
         ]);
         
         $data['tenant_id'] = session('tenant_id');
@@ -123,6 +124,7 @@ class CustomerController extends Controller
             'city' => 'nullable|string',
             'district' => 'nullable|string',
             'notes' => 'nullable|string',
+            'credit_limit'      => 'nullable|numeric|min:0',
         ]);
 
         $customer->update($data);
