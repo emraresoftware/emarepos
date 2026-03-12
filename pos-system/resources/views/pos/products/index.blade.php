@@ -759,7 +759,7 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Barkod</label>
                         <div class="flex gap-1">
                             <input type="text" x-model="form.barcode"
-                                   class="flex-1 bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400"
+                                   class="flex-1 min-w-0 bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-400"
                                    placeholder="Barkod numarası">
                             <button type="button" @click="generateBarcode()"
                                     title="Otomatik EAN-13 barkod üret"
