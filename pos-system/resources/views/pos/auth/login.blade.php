@@ -78,6 +78,7 @@
                                 <i class="fas fa-envelope text-brand-400 mr-1"></i> E-posta Adresi
                             </label>
                             <input type="email" name="email" value="{{ old('email') }}" required autofocus
+                                   onkeypress="if(event.key === 'Enter') this.form.submit();"
                                    class="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-800 placeholder-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all duration-300"
                                    placeholder="ornek@email.com">
                         </div>
@@ -87,6 +88,7 @@
                                 <i class="fas fa-lock text-brand-400 mr-1"></i> Şifre
                             </label>
                             <input type="password" name="password" required
+                                   onkeypress="if(event.key === 'Enter') this.form.submit();"
                                    class="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-800 placeholder-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all duration-300"
                                    placeholder="••••••••">
                         </div>

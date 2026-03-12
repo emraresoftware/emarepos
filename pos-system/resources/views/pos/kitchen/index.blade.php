@@ -51,6 +51,23 @@
                     <span class="ml-1 bg-black/20 px-1.5 py-0.5 rounded-full text-[10px]" x-text="counts.ready"></span>
                 </button>
             </div>
+
+            {{-- Personel Filtresi --}}
+            <div class="flex items-center">
+                @php
+                    $activeUsers = collect();
+                    foreach($orders as $o) {
+                        if($o->user) $activeUsers->push($o->user);
+                    }
+                    $activeUsers = $activeUsers->unique('id');
+                @endphp
+                <select x-model="userFilter" class="px-2 py-1.5 h-8 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-700 outline-none focus:border-brand-500 hover:bg-gray-50 transition-colors cursor-pointer" title="Siparişi Veren Personel">
+                    <option value="all">Tüm Personeller</option>
+                    @foreach($activeUsers as $u)
+                        <option value="{{ $u->id }}">{{ $u->name }}</option>
+                    @endforeach
+                </select>
+            </div>
         </div>
 
         <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
@@ -82,7 +99,7 @@
     <div class="flex-1 overflow-y-auto p-4">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             @foreach($orders as $order)
-            <div x-show="statusFilter === 'all' || statusFilter === '{{ $order->status }}'"
+            <div x-show="(statusFilter === 'all' || statusFilter === '{{ $order->status }}') && (userFilter === 'all' || userFilter == '{{ $order->user_id }}')"
                  x-transition:enter="transition ease-out duration-200"
                  x-transition:enter-start="opacity-0 scale-95"
                  x-transition:enter-end="opacity-100 scale-100"
@@ -200,6 +217,7 @@
 function kitchenScreen() {
     return {
         statusFilter: 'all',
+        userFilter: 'all',
         nameSource: 'order_user',
         countdown: 15,
         soundEnabled: false,
