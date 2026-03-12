@@ -384,43 +384,29 @@
                             <div class="space-y-2">
                                 <template x-for="item in detailTimeline" :key="item._key">
                                     <div>
-                                        {{-- Fatura Satırı (genişletilebilir) --}}
+                                        {{-- Fatura Satırı --}}
                                         <template x-if="item._type === 'invoice'">
-                                            <div class="rounded-xl border border-gray-100 overflow-hidden">
-                                                <button type="button" @click="item._open = !item._open"
-                                                        class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left">
-                                                    <div class="flex items-center gap-3">
-                                                        <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
-                                                            <i class="fas fa-file-invoice text-orange-500 text-xs"></i>
-                                                        </div>
-                                                        <div>
-                                                            <p class="text-sm font-semibold text-gray-800" x-text="item.invoice_no || ('Fatura #' + item.id)"></p>
-                                                            <p class="text-xs text-gray-400" x-text="item.invoice_date ? new Date(item.invoice_date).toLocaleDateString('tr-TR') : ''"></p>
-                                                        </div>
+                                            <button type="button" @click="openInvoiceModal(item)"
+                                                    class="w-full flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl hover:border-orange-200 hover:shadow-sm hover:shadow-orange-500/10 transition-all text-left group">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-9 h-9 rounded-full bg-orange-50 flex items-center justify-center group-hover:scale-110 group-hover:bg-orange-100 transition-transform shadow-sm">
+                                                        <i class="fas fa-file-invoice text-orange-500 text-sm"></i>
                                                     </div>
-                                                    <div class="flex items-center gap-3">
-                                                        <div class="text-right">
-                                                            <p class="text-sm font-bold text-gray-900" x-text="formatCur(item.grand_total)"></p>
-                                                            <p class="text-xs text-gray-400" x-text="item.payment_status || ''"></p>
-                                                        </div>
-                                                        <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform" :class="item._open ? 'rotate-180' : ''"></i>
-                                                    </div>
-                                                </button>
-                                                <div x-show="item._open" x-collapse class="border-t border-gray-100 bg-white p-3">
-                                                    <div class="space-y-1">
-                                                        <template x-for="line in (item.items||[])" :key="line.id">
-                                                            <div class="flex items-center justify-between text-xs py-1">
-                                                                <span class="text-gray-600" x-text="line.product_name || line.description"></span>
-                                                                <div class="flex items-center gap-3 text-gray-500">
-                                                                    <span x-text="(line.quantity||1) + ' x ' + formatCur(line.unit_price)"></span>
-                                                                    <span class="font-semibold text-gray-700" x-text="formatCur(line.total_price)"></span>
-                                                                </div>
-                                                            </div>
-                                                        </template>
-                                                        <div x-show="!(item.items||[]).length" class="text-xs text-gray-400 py-1">Kalem detayı yok</div>
+                                                    <div>
+                                                        <p class="text-[13px] font-bold text-gray-800" x-text="item.invoice_no || ('Fatura #' + item.id)"></p>
+                                                        <p class="text-[11px] text-gray-400" x-text="item.invoice_date ? new Date(item.invoice_date).toLocaleDateString('tr-TR', {day:'numeric',month:'short',year:'numeric'}) : ''"></p>
                                                     </div>
                                                 </div>
-                                            </div>
+                                                <div class="flex items-center gap-2">
+                                                    <div class="text-right">
+                                                        <p class="text-[15px] font-black text-gray-900" x-text="formatCur(item.grand_total)"></p>
+                                                        <p class="text-[10px] font-bold uppercase tracking-wider"
+                                                           :class="item.payment_status === 'paid' ? 'text-green-500' : 'text-orange-500'"
+                                                           x-text="item.payment_status === 'paid' ? 'Ödendi' : 'Bekliyor'"></p>
+                                                    </div>
+                                                    <i class="fas fa-chevron-right text-gray-300 text-xs group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all"></i>
+                                                </div>
+                                            </button>
                                         </template>
                                         {{-- İşlem Satırı --}}
                                         <template x-if="item._type === 'tx'">
@@ -449,39 +435,27 @@
                             <div x-show="(detailData.purchase_invoices||[]).length === 0" class="text-center py-8 text-gray-400 text-sm">Alış faturası bulunamadı</div>
                             <div class="space-y-2">
                                 <template x-for="inv in (detailData.purchase_invoices||[])" :key="inv.id">
-                                    <div class="rounded-xl border border-gray-100 overflow-hidden">
-                                        <button type="button" @click="inv._open = !inv._open"
-                                                class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left">
-                                            <div class="flex items-center gap-3">
-                                                <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
-                                                    <i class="fas fa-file-invoice text-orange-500 text-xs"></i>
-                                                </div>
-                                                <div>
-                                                    <p class="text-sm font-semibold text-gray-800" x-text="inv.invoice_no || ('Fatura #' + inv.id)"></p>
-                                                    <p class="text-xs text-gray-400" x-text="inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('tr-TR') : ''"></p>
+                                    <button type="button" @click="openInvoiceModal(inv)"
+                                            class="w-full flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl hover:border-orange-200 hover:shadow-sm hover:shadow-orange-500/10 transition-all text-left group">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-9 h-9 rounded-full bg-orange-50 flex items-center justify-center group-hover:scale-110 group-hover:bg-orange-100 transition-transform shadow-sm">
+                                                <i class="fas fa-file-invoice text-orange-500 text-sm"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-[13px] font-bold text-gray-800" x-text="inv.invoice_no || ('Fatura #' + inv.id)"></p>
+                                                <div class="flex items-center gap-2 mt-0.5">
+                                                    <span class="text-[11px] text-gray-400" x-text="inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('tr-TR',{day:'numeric',month:'short',year:'numeric'}) : ''"></span>
+                                                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
+                                                          :class="inv.payment_status === 'paid' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'"
+                                                          x-text="inv.payment_status === 'paid' ? 'Ödendi' : 'Bekliyor'"></span>
                                                 </div>
                                             </div>
-                                            <div class="flex items-center gap-3">
-                                                <div class="text-right">
-                                                    <p class="text-sm font-bold text-gray-900" x-text="formatCur(inv.grand_total)"></p>
-                                                    <p class="text-xs" :class="inv.payment_status === 'paid' ? 'text-emerald-600' : 'text-orange-500'" x-text="inv.payment_status || ''"></p>
-                                                </div>
-                                                <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform" :class="inv._open ? 'rotate-180' : ''"></i>
-                                            </div>
-                                        </button>
-                                        <div x-show="inv._open" x-collapse class="border-t border-gray-100 bg-white p-3">
-                                            <template x-for="line in (inv.items||[])" :key="line.id">
-                                                <div class="flex justify-between text-xs py-1 border-b border-gray-50">
-                                                    <span class="text-gray-600" x-text="line.product_name || line.description || 'Kalem'"></span>
-                                                    <div class="flex gap-3">
-                                                        <span class="text-gray-400" x-text="(line.quantity||1) + ' x ' + formatCur(line.unit_price)"></span>
-                                                        <span class="font-semibold text-gray-700" x-text="formatCur(line.total_price)"></span>
-                                                    </div>
-                                                </div>
-                                            </template>
-                                            <div x-show="!(inv.items||[]).length" class="text-xs text-gray-400 py-1">Kalem yok</div>
                                         </div>
-                                    </div>
+                                        <div class="flex items-center gap-2">
+                                            <p class="text-[15px] font-black text-gray-900" x-text="formatCur(inv.grand_total)"></p>
+                                            <i class="fas fa-chevron-right text-gray-300 text-xs group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all"></i>
+                                        </div>
+                                    </button>
                                 </template>
                             </div>
                         </div>
@@ -555,6 +529,139 @@
             </form>
         </div>
     </div>
+    {{-- Alım Faturası Detay Modalı --}}
+    <div x-show="showInvoiceDetailModal"
+         class="fixed inset-0 z-[60] flex justify-end bg-gray-900/60 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         style="display:none;" @click="showInvoiceDetailModal = false">
+        <div class="w-full max-w-lg bg-white h-full shadow-2xl flex flex-col"
+             x-transition:enter="transition ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+             x-transition:leave="transition ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
+             @click.stop>
+            {{-- Header --}}
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0 bg-white">
+                <div class="flex items-center gap-3">
+                    <button @click="showInvoiceDetailModal = false"
+                            class="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors">
+                        <i class="fas fa-arrow-left text-sm"></i>
+                    </button>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900">Alım Faturası Detayı</h3>
+                        <p class="text-xs text-gray-500 font-medium" x-text="selectedInvoice ? (selectedInvoice.invoice_no || ('#' + selectedInvoice.id)) : ''"></p>
+                    </div>
+                </div>
+                <button @click="printInvoice()"
+                        class="px-4 py-1.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors">
+                    <i class="fas fa-print"></i> Yazdır
+                </button>
+            </div>
+            {{-- Body --}}
+            <div class="flex-1 overflow-y-auto bg-gray-50/50 p-5" id="firmInvoicePrintArea">
+                <template x-if="selectedInvoice">
+                    <div class="space-y-5">
+                        {{-- Özet Kart --}}
+                        <div class="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm relative overflow-hidden">
+                            <div class="absolute top-0 right-0 w-28 h-28 bg-orange-50 rounded-bl-full opacity-50 -z-0"></div>
+                            <div class="relative flex items-start justify-between">
+                                <div>
+                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1" x-text="detailData?.firm?.name"></p>
+                                    <div class="text-3xl font-black text-gray-900 tracking-tight" x-text="formatCur(selectedInvoice.grand_total)"></div>
+                                    <div class="mt-2 flex items-center gap-2">
+                                        <span class="text-[11px] px-2 py-0.5 rounded-lg font-bold"
+                                              :class="selectedInvoice.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'"
+                                              x-text="selectedInvoice.payment_status === 'paid' ? 'Ödendi' : 'Ödenmedi'">
+                                        </span>
+                                        <span class="text-xs text-gray-400" x-text="selectedInvoice.invoice_date ? new Date(selectedInvoice.invoice_date).toLocaleString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : (selectedInvoice.created_at ? new Date(selectedInvoice.created_at).toLocaleString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : '')"></span>
+                                    </div>
+                                </div>
+                                <div class="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center flex-shrink-0 shadow-inner">
+                                    <i class="fas fa-file-invoice text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Kalemler --}}
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-800 mb-2 px-1 flex items-center gap-2">
+                                <i class="fas fa-box-open text-gray-400"></i> Fatura Kalemleri
+                            </h4>
+                            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                                <div class="divide-y divide-gray-50">
+                                    <template x-for="line in (selectedInvoice.items||[])" :key="line.id">
+                                        <div class="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                                            <div class="flex items-center gap-3 flex-1 min-w-0">
+                                                <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0" x-text="line.quantity||1"></div>
+                                                <div class="min-w-0">
+                                                    <div class="text-[13px] font-bold text-gray-800 truncate" x-text="line.product_name || line.description || 'Kalem'"></div>
+                                                    <div class="text-[11px] text-gray-400 mt-0.5" x-text="'Birim: ' + formatCur(line.unit_price)"></div>
+                                                </div>
+                                            </div>
+                                            <div class="text-right ml-3 flex-shrink-0">
+                                                <div class="text-[14px] font-black text-gray-900" x-text="formatCur(line.total_price || (line.unit_price * (line.quantity||1)))"></div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <div x-show="!(selectedInvoice.items||[]).length" class="p-8 text-center text-gray-400 text-sm">
+                                        <i class="fas fa-inbox text-2xl mb-2"></i>
+                                        <p>Kalem detayı bulunamadı</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Fatura Özeti --}}
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-800 mb-2 px-1 flex items-center gap-2">
+                                <i class="fas fa-calculator text-gray-400"></i> Fatura Özeti
+                            </h4>
+                            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-gray-500">Ara Toplam</span>
+                                    <span class="font-bold text-gray-900" x-text="formatCur(selectedInvoice.subtotal || selectedInvoice.grand_total)"></span>
+                                </div>
+                                <template x-if="selectedInvoice.tax_total > 0">
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="text-gray-500">KDV</span>
+                                        <span class="font-bold text-gray-900" x-text="formatCur(selectedInvoice.tax_total)"></span>
+                                    </div>
+                                </template>
+                                <template x-if="selectedInvoice.discount_amount > 0">
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="text-gray-500">İndirim</span>
+                                        <span class="text-red-500 font-bold" x-text="'-' + formatCur(selectedInvoice.discount_amount)"></span>
+                                    </div>
+                                </template>
+                                <div class="pt-3 border-t border-gray-100 flex justify-between items-center">
+                                    <span class="text-base font-bold text-gray-800">Genel Toplam</span>
+                                    <span class="text-xl font-black text-gray-900" x-text="formatCur(selectedInvoice.grand_total)"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Ödeme Durumu --}}
+                        <template x-if="selectedInvoice.paid_amount > 0">
+                            <div>
+                                <h4 class="text-sm font-bold text-gray-800 mb-2 px-1 flex items-center gap-2">
+                                    <i class="fas fa-wallet text-gray-400"></i> Ödeme Durumu
+                                </h4>
+                                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-2">
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="text-gray-500">Ödenen</span>
+                                        <span class="text-emerald-600 font-bold" x-text="formatCur(selectedInvoice.paid_amount)"></span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-sm" x-show="selectedInvoice.grand_total - selectedInvoice.paid_amount > 0">
+                                        <span class="text-gray-500">Kalan</span>
+                                        <span class="text-orange-500 font-bold" x-text="formatCur(selectedInvoice.grand_total - selectedInvoice.paid_amount)"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
 
 </div>
 @endsection
@@ -566,6 +673,8 @@ function firmManager() {
         showFormModal: false, showPaymentModal: false, showDetailModal: false,
         showDebtModal: false,
         showGroupPanel: false, showGroupForm: false,
+        showInvoiceDetailModal: false,
+        selectedInvoice: null,
         editingId: null, saving: false, paying: false, addingDebt: false, detailLoading: false,
         detailData: null,
         detailTab: 'timeline',
@@ -629,6 +738,39 @@ function firmManager() {
                 this.detailData = data;
             } catch(e) { showToast('Detay yüklenemedi', 'error'); this.showDetailModal = false; }
             finally { this.detailLoading = false; }
+        },
+
+        openInvoiceModal(inv) {
+            this.selectedInvoice = inv;
+            this.showInvoiceDetailModal = true;
+        },
+
+        printInvoice() {
+            if (!this.selectedInvoice) return;
+            const printArea = document.getElementById('firmInvoicePrintArea');
+            if (!printArea) return;
+            const printWindow = window.open('', '', 'width=850,height=700');
+            printWindow.document.write(`<!DOCTYPE html><html lang="tr"><head>
+                <meta charset="UTF-8"><title>Alım Faturası</title>
+                <style>
+                    * { box-sizing: border-box; margin: 0; padding: 0; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 20px; color: #111; background: #fff; }
+                    .space-y-5 > * + * { margin-top: 20px; }
+                    h4 { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: #374151; }
+                    .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; background: #fff; margin-bottom: 16px; }
+                    .row { display: flex; justify-content: space-between; align-items: center; padding: 10px 8px; border-bottom: 1px solid #f3f4f6; }
+                    .row:last-child { border-bottom: none; }
+                    .total-row { border-top: 2px solid #e5e7eb; padding-top: 12px; margin-top: 8px; display: flex; justify-content: space-between; }
+                    .text-xs { font-size: 12px; color: #6b7280; }
+                    .font-black { font-weight: 900; }
+                    .text-3xl { font-size: 28px; }
+                    .text-right { text-align: right; }
+                    footer { text-align: center; margin-top: 30px; font-size: 11px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 16px; }
+                    @media print { body { padding: 5mm; } }
+                </style>
+            </head><body>${printArea.innerHTML}</body></html>`);
+            printWindow.document.close();
+            setTimeout(() => { printWindow.focus(); printWindow.print(); }, 600);
         },
 
         get detailTimeline() {
