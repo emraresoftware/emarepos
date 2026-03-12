@@ -148,7 +148,7 @@
     ═══════════════════════════════════ --}}
     <div x-show="showDetailModal" x-transition.opacity class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style="display:none;">
         <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" @click="showDetailModal = false"></div>
-        <div class="relative bg-white w-full sm:rounded-2xl border border-gray-100 shadow-2xl max-w-5xl max-h-[95vh] flex flex-col m-auto" x-transition @click.stop>
+        <div class="relative bg-white w-full sm:rounded-2xl border border-gray-100 shadow-2xl max-w-5xl h-full sm:h-auto max-h-[95vh] flex flex-col my-auto" x-transition @click.stop>
 
             {{-- Modal Başlık --}}
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
@@ -527,12 +527,8 @@ function branchManager() {
 
         modulesLoading: false, modulesSaving: false, modulesList: [],
         deviceLoading: false, deviceSaving: false,
-        deviceOptions: { printers:[], cash_drawers:[], terminals:[] },
+        deviceOptions: { printers:[], cash_drawers:[] },
         deviceSettings: { receipt_printer_id:'', kitchen_printer_id:'', cash_drawer_device_id:'' },
-        
-        terminalFormOpen: false,
-        terminalSaving: false,
-        terminalForm: { id: '', name: '', receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_id: '' },
 
         editSaving: false, editForm: {},
 
@@ -582,7 +578,7 @@ function branchManager() {
             this.editForm = { name:b.name||'', code:b.code||'', address:b.address||'', phone:b.phone||'',
                               city:b.city||'', district:b.district||'', is_active:!!b.is_active,
                               is_center:!!b.is_center, price_edit_locked:!!b.price_edit_locked };
-            this.showDetailModal = true; window.scrollTo({top: 0, behavior: "smooth"});
+            this.showDetailModal = true;
             this.setReportPeriod('30');
         },
 
@@ -642,7 +638,6 @@ function branchManager() {
                 const r = await posAjax('/branches/'+this.detail.id+'/devices', {}, 'GET');
                 this.deviceOptions.printers = r.printers||[];
                 this.deviceOptions.cash_drawers = r.cash_drawers||[];
-                this.deviceOptions.terminals = r.terminals||[];
                 this.deviceSettings.receipt_printer_id = r.settings?.receipt_printer_id ? String(r.settings.receipt_printer_id) : '';
                 this.deviceSettings.kitchen_printer_id = r.settings?.kitchen_printer_id ? String(r.settings.kitchen_printer_id) : '';
                 this.deviceSettings.cash_drawer_device_id = r.settings?.cash_drawer_device_id ? String(r.settings.cash_drawer_device_id) : '';
@@ -657,34 +652,6 @@ function branchManager() {
                 showToast('Cihazlar kaydedildi','success');
             } catch(e) { showToast(e.message||'Hata','error'); }
             finally { this.deviceSaving=false; }
-        },
-
-        openTerminalForm(term = null) {
-            if (term) {
-                this.terminalForm = { id: term.id, name: term.name, receipt_printer_id: String(term.receipt_printer_id || ''), kitchen_printer_id: String(term.kitchen_printer_id || ''), cash_drawer_id: String(term.cash_drawer_id || '') };
-            } else {
-                this.terminalForm = { id: '', name: '', receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_id: '' };
-            }
-            this.terminalFormOpen = true;
-        },
-        async saveTerminal() {
-            if (!this.terminalForm.name) return showToast('Terminal adı zorunlu', 'warning');
-            this.terminalSaving = true;
-            try {
-                const r = await posAjax('/branches/'+this.detail.id+'/terminals', {method:'POST', body:JSON.stringify(this.terminalForm)});
-                showToast('Terminal kaydedildi', 'success');
-                this.terminalFormOpen = false;
-                await this.loadDeviceOptions();
-            } catch(e) { showToast(e.message||'Hata', 'error'); }
-            finally { this.terminalSaving = false; }
-        },
-        async deleteTerminal(termId) {
-            if (!confirm('Bu terminali silmek istediğinize emin misiniz?')) return;
-            try {
-                await posAjax('/branches/'+this.detail.id+'/terminals/'+termId, {method:'DELETE'});
-                showToast('Terminal silindi.', 'success');
-                await this.loadDeviceOptions();
-            } catch(e) { showToast(e.message||'Hata', 'error'); }
         },
 
         async submitEdit() {

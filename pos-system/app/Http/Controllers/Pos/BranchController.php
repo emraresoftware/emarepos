@@ -184,16 +184,22 @@ class BranchController extends Controller
             return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
         }
 
-        $devices = HardwareDevice::where('tenant_id', session('tenant_id'))
+        $devices = \App\Models\HardwareDevice::where('tenant_id', session('tenant_id'))
             ->where('branch_id', $branch->id)
             ->orderBy('type')
             ->orderByDesc('is_default')
+            ->get();
+            
+        $terminals = \App\Models\PosTerminal::where('tenant_id', session('tenant_id'))
+            ->where('branch_id', $branch->id)
+            ->orderBy('name')
             ->get();
 
         return response()->json([
             'success' => true,
             'printers' => $devices->where('type', 'printer')->values(),
             'cash_drawers' => $devices->where('type', 'cash_drawer')->values(),
+            'terminals' => $terminals,
             'settings' => [
                 'receipt_printer_id' => $branch->settings['receipt_printer_id'] ?? null,
                 'kitchen_printer_id' => $branch->settings['kitchen_printer_id'] ?? null,
@@ -237,6 +243,53 @@ class BranchController extends Controller
 
         $branch->update(['settings' => $settings]);
 
+        return response()->json(['success' => true]);
+    }
+
+    public function saveTerminal(Request $request, Branch $branch)
+    {
+        if ($branch->tenant_id !== (int) session('tenant_id')) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+
+        $data = $request->validate([
+            'id' => 'nullable|integer',
+            'name' => 'required|string|max:255',
+            'receipt_printer_id' => 'nullable|integer',
+            'kitchen_printer_id' => 'nullable|integer',
+            'cash_drawer_id' => 'nullable|integer',
+            'is_active' => 'boolean'
+        ]);
+
+        $terminal = null;
+        if (!empty($data['id'])) {
+            $terminal = \App\Models\PosTerminal::where('tenant_id', session('tenant_id'))
+                ->where('branch_id', $branch->id)
+                ->findOrFail($data['id']);
+        } else {
+            $terminal = new \App\Models\PosTerminal();
+            $terminal->tenant_id = session('tenant_id');
+            $terminal->branch_id = $branch->id;
+        }
+
+        $terminal->fill([
+            'name' => $data['name'],
+            'receipt_printer_id' => $data['receipt_printer_id'],
+            'kitchen_printer_id' => $data['kitchen_printer_id'],
+            'cash_drawer_id' => $data['cash_drawer_id'],
+            'is_active' => $data['is_active'] ?? true,
+        ]);
+        $terminal->save();
+
+        return response()->json(['success' => true, 'terminal' => $terminal]);
+    }
+
+    public function deleteTerminal(Branch $branch, \App\Models\PosTerminal $terminal)
+    {
+        if ($branch->tenant_id !== (int) session('tenant_id') || $terminal->tenant_id !== (int) session('tenant_id') || $terminal->branch_id !== $branch->id) {
+            return response()->json(['success' => false, 'message' => 'Yetkiniz yok.'], 403);
+        }
+        $terminal->delete();
         return response()->json(['success' => true]);
     }
 

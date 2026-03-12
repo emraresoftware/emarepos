@@ -184,6 +184,8 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class, 'throttle:
     Route::post('/branches/{branch}/modules', [BranchController::class, 'updateModules'])->name('pos.branches.modules.update');
     Route::get('/branches/{branch}/devices', [BranchController::class, 'devices'])->name('pos.branches.devices');
     Route::post('/branches/{branch}/device-settings', [BranchController::class, 'updateDeviceSettings'])->name('pos.branches.device-settings');
+    Route::post('/branches/{branch}/terminals', [BranchController::class, 'saveTerminal'])->name('pos.branches.terminals.save');
+    Route::delete('/branches/{branch}/terminals/{terminal}', [BranchController::class, 'deleteTerminal'])->name('pos.branches.terminals.delete');
     Route::get('/branches/{branch}/stats', [BranchController::class, 'stats'])->name('pos.branches.stats');
     Route::get('/branches/{branch}/report', [BranchController::class, 'report'])->name('pos.branches.report');
     Route::delete('/branches/{branch}', [BranchController::class, 'destroy'])->name('pos.branches.destroy');
