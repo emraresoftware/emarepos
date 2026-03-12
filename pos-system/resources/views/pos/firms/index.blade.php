@@ -116,7 +116,7 @@
                     </tr>                </thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse($firms as $firm)
-                        <tr class="hover:bg-gray-50 transition-colors cursor-pointer" @click="openDetail({{ $firm->id }})">
+                        <tr class="hover:bg-gray-50 transition-colors cursor-pointer" @click.stop="openDetail({{ $firm->id }})">
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-3">
                                     <div class="w-9 h-9 rounded-full bg-purple-500/10 flex items-center justify-center text-sm font-semibold text-purple-600">

@@ -138,7 +138,8 @@
                         <th class="px-4 py-3.5">Telefon</th>
                         <th class="px-4 py-3.5 hidden md:table-cell">E-posta</th>
                         <th class="px-4 py-3.5 hidden lg:table-cell">Vergi No</th>
-                        <th class="px-4 py-3.5 text-right">Bakiye</th>
+                        <th class="px-4 py-3.5 text-right">Kredi Limiti</th>
+                                    <th class="px-4 py-3.5 text-right">Bakiye</th>
                         <th class="px-4 py-3.5 text-right hidden md:table-cell">Toplam Satış</th>
                         <th class="px-4 py-3.5 hidden lg:table-cell">Son İşlem</th>
                         <th class="px-4 py-3.5 text-center">İşlemler</th>
@@ -146,7 +147,7 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse($customers as $customer)
-                        <tr class="hover:bg-gray-50 transition-colors">
+                        <tr class="hover:bg-gray-50 transition-colors cursor-pointer" @click.stop="openDetail({{ $customer->id }})">
                             {{-- Name --}}
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-3">
@@ -227,7 +228,7 @@
                             <td class="px-4 py-3 text-center">
                                 <div class="flex items-center justify-center gap-1">
                                     {{-- View Detail --}}
-                                    <button @click="openDetail({{ $customer->id }})"
+                                    <button @click.stop="openDetail({{ $customer->id }})"
                                        class="p-2 text-gray-500 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-colors"
                                        title="Detay">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -940,7 +941,7 @@ function customerManager() {
             customer_group_id: '',
             phones: [{phone: '', type: 'mobile', is_primary: true}],
             email: '',
-            tax_number: '',
+            tax_number: '', credit_limit: null,
             tax_office: '',
             address: '',
             type: 'individual',
@@ -963,7 +964,7 @@ function customerManager() {
                 customer_group_id: '',
                 phones: [{phone: '', type: 'mobile', is_primary: true}],
                 email: '',
-                tax_number: '',
+                tax_number: '', credit_limit: null,
                 tax_office: '',
                 address: '',
                 type: 'individual',
