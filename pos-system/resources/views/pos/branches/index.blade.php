@@ -148,7 +148,7 @@
     ═══════════════════════════════════ --}}
     <div x-show="showDetailModal" x-transition.opacity class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style="display:none;">
         <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" @click="showDetailModal = false"></div>
-        <div class="relative bg-white w-full sm:rounded-2xl border border-gray-100 shadow-2xl max-w-5xl h-full sm:h-auto max-h-[95vh] flex flex-col my-auto" x-transition @click.stop>
+        <div class="relative bg-white w-full sm:rounded-2xl border border-gray-100 shadow-2xl max-w-5xl max-h-[95vh] flex flex-col m-auto" x-transition @click.stop>
 
             {{-- Modal Başlık --}}
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
