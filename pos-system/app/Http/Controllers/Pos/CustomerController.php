@@ -89,13 +89,13 @@ class CustomerController extends Controller
 
         $transactions = AccountTransaction::where('customer_id', $customer->id)
             ->orderBy('created_at', 'desc')
-            ->limit(100)
+            
             ->get();
 
         $sales = $customer->sales()
             ->with('items')
             ->orderBy('sold_at', 'desc')
-            ->limit(50)
+            
             ->get();
 
         return response()->json([
