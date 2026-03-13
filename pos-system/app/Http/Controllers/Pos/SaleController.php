@@ -37,6 +37,7 @@ class SaleController extends Controller
             'receipt_footer' => $tenant?->meta['receipt_footer'] ?? '',
             'auto_print_receipt' => $tenant?->meta['auto_print_receipt'] ?? false,
             'kitchen_print' => $tenant?->meta['kitchen_print'] ?? false,
+            'service_fee_percentage' => (float) ($tenant?->meta['service_fee_percentage'] ?? 0),
         ];
         
         return view('pos.sales.index', compact('categories', 'paymentTypes', 'receiptSettings'));
@@ -127,6 +128,7 @@ class SaleController extends Controller
             'items.*.unit_price' => 'required|numeric|min:0',
             'customer_id' => ['nullable', 'integer', Rule::exists('customers', 'id')->where('tenant_id', session('tenant_id'))],
             'payment_method' => ['required', 'string', 'regex:/^(cash|card|credit|mixed|transfer|other_.+)(\_refund)?$/'],
+            'service_fee' => 'nullable|numeric|min:0',
         ]);
 
         $creditAmount = (float) ($request->credit_amount ?? 0);
@@ -154,6 +156,7 @@ class SaleController extends Controller
                 'payment_method' => $request->payment_method,
                 'items' => $request->items,
                 'discount' => $request->discount ?? 0,
+                'service_fee' => $request->service_fee ?? 0,
                 'cash_amount' => $request->cash_amount ?? 0,
                 'card_amount' => $request->card_amount ?? 0,
                 'credit_amount' => $request->credit_amount ?? 0,

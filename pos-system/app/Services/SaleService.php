@@ -79,7 +79,7 @@ class SaleService
             
             // Calculate totals from items
             $items = $data['items'] ?? [];
-            $calculated = $this->calculateTotals($items, $data['discount'] ?? 0);
+            $calculated = $this->calculateTotals($items, $data['discount'] ?? 0, $data['service_fee'] ?? 0);
             $paymentBreakdown = $this->odemeDagiliminiDogrula($data, (float) $calculated['grand_total']);
             
             // Create sale record
@@ -95,6 +95,7 @@ class SaleService
                 'vat_total' => $calculated['vat_total'],
                 'additional_tax_total' => $calculated['additional_tax_total'],
                 'discount_total' => $calculated['discount_total'],
+                'service_fee' => $calculated['service_fee'],
                 'grand_total' => $calculated['grand_total'],
                 'discount' => $data['discount'] ?? 0,
                 'cash_amount' => $paymentBreakdown['cash_amount'],
@@ -394,7 +395,7 @@ class SaleService
     /**
      * Calculate totals from items array
      */
-    public function calculateTotals(array $items, float $generalDiscount = 0): array
+    public function calculateTotals(array $items, float $generalDiscount = 0, float $serviceFee = 0): array
     {
         $subtotal = 0;
         $vatTotal = 0;
@@ -420,12 +421,15 @@ class SaleService
             $discountTotal += $itemDiscount;
         }
         
+        $serviceFee = round(max(0, $serviceFee), 2);
+
         return [
             'subtotal' => round($subtotal, 2),
             'vat_total' => round($vatTotal, 2),
             'additional_tax_total' => round($additionalTaxTotal, 2),
             'discount_total' => round($discountTotal, 2),
-            'grand_total' => round($subtotal + $vatTotal + $additionalTaxTotal - $generalDiscount, 2),
+            'service_fee' => $serviceFee,
+            'grand_total' => round($subtotal + $vatTotal + $additionalTaxTotal - $generalDiscount + $serviceFee, 2),
             'items' => $items,
         ];
     }

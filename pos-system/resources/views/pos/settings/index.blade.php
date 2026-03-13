@@ -95,6 +95,14 @@
                     <label class="block text-sm text-gray-500 mb-1">Para Birimi Sembolü</label>
                     <input type="text" name="currency_symbol" value="{{ $tenant->meta['currency_symbol'] ?? '₺' }}" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
                 </div>
+                <div>
+                    <label class="block text-sm text-gray-500 mb-1">Hizmet Bedeli Yüzdesi</label>
+                    <div class="relative">
+                        <input type="number" name="service_fee_percentage" min="0" max="100" step="0.01" value="{{ $tenant->meta['service_fee_percentage'] ?? 0 }}" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 pr-10 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">%</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Hızlı satış ekranındaki Diğer menüsünden açılan hizmet bedeli bu orana göre toplama eklenir.</p>
+                </div>
             </div>
 
             <div class="border-t border-gray-100 pt-5 space-y-4">

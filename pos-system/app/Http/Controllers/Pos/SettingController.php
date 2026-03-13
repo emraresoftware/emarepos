@@ -52,12 +52,17 @@ class SettingController extends Controller
         $tenant = Tenant::findOrFail(session('tenant_id'));
         $meta = $tenant->meta ?? [];
 
+        $request->validate([
+            'service_fee_percentage' => 'nullable|numeric|min:0|max:100',
+        ]);
+
         $meta['receipt_header'] = $request->input('receipt_header', '');
         $meta['receipt_footer'] = $request->input('receipt_footer', '');
         $meta['currency_symbol'] = $request->input('currency_symbol', '₺');
         $meta['tax_included'] = $request->boolean('tax_included');
         $meta['auto_print_receipt'] = $request->boolean('auto_print_receipt');
         $meta['kitchen_print'] = $request->boolean('kitchen_print');
+        $meta['service_fee_percentage'] = round((float) $request->input('service_fee_percentage', 0), 2);
 
         $tenant->update(['meta' => $meta]);
 

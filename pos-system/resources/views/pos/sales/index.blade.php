@@ -202,6 +202,9 @@
             <div class="bg-slate-900 px-4 py-2 text-center">
                 <span class="text-2xl sm:text-3xl font-bold text-white" x-text="formatCurrency(totals.grand_total)"></span>
             </div>
+            <div x-show="refundMode" class="bg-red-600 px-4 py-1.5 text-center text-[11px] font-semibold text-white uppercase tracking-[0.18em]">
+                İade modu aktif
+            </div>
             {{-- KDV Satırı --}}
             <div class="grid grid-cols-4 divide-x divide-gray-200 text-center py-1 bg-gray-100">
                 <div class="px-1">
@@ -315,6 +318,10 @@
             <div class="flex justify-between text-xs sm:text-sm text-gray-600">
                 <span>KDV</span>
                 <span class="font-medium" x-text="formatCurrency(totals.vat_total)"></span>
+            </div>
+            <div x-show="totals.service_fee > 0" class="flex justify-between text-xs sm:text-sm text-gray-600">
+                <span x-text="'Hizmet Bedeli (%' + serviceFeePercentage + ')'">Hizmet Bedeli</span>
+                <span class="font-medium text-orange-600" x-text="formatCurrency(totals.service_fee)"></span>
             </div>
             {{-- Ayırıcı --}}
             <div class="border-t border-gray-200 pt-1 sm:pt-2">
@@ -878,6 +885,60 @@
         </div>
     </div>
 
+    {{-- TERAZİ MODALI --}}
+    <div x-show="showScaleModal" x-transition x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-auto" @click.away="showScaleModal = false">
+            <div class="flex items-center justify-between px-5 py-3 bg-amber-600 rounded-t-2xl">
+                <h3 class="text-base font-bold text-white"><i class="fas fa-weight-scale mr-2"></i>Terazi</h3>
+                <button @click="showScaleModal = false" class="text-white/70 hover:text-white"><i class="fas fa-times-circle text-lg"></i></button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Ürün Ara</label>
+                    <input type="text" x-model="scaleProductSearch" @input.debounce.200ms="searchScaleProducts(scaleProductSearch)" placeholder="Ürün adı veya barkod..."
+                           class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20">
+                </div>
+                <div class="border border-gray-100 rounded-2xl overflow-hidden bg-white shadow-sm min-h-[180px] max-h-[260px] overflow-y-auto">
+                    <template x-for="product in scaleProductResults" :key="product.id">
+                        <button @click="selectScaleProduct(product)" class="w-full px-3 py-3 text-left border-b border-gray-100 last:border-b-0 transition-colors"
+                                :class="selectedScaleProduct?.id === product.id ? 'bg-amber-50' : 'hover:bg-gray-50'">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="text-sm font-semibold text-gray-900 truncate" x-text="product.name"></div>
+                                    <div class="text-xs text-gray-400 truncate" x-text="(product.barcode || 'Barkod yok') + ' • ' + (product.unit || 'Adet')"></div>
+                                </div>
+                                <div class="text-sm font-bold text-amber-600" x-text="formatCurrency(product.sale_price)"></div>
+                            </div>
+                        </button>
+                    </template>
+                    <div x-show="scaleProductResults.length === 0" class="min-h-[180px] flex items-center justify-center px-6 text-center text-sm text-gray-400">
+                        Tartılı ürün seçmek için arama yapın.
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1.5">Ağırlık / Miktar</label>
+                        <input type="number" x-model.number="scaleWeight" min="0.001" step="0.001" placeholder="0.000"
+                               class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20">
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+                        <div class="text-xs text-amber-700 font-semibold mb-1">Tutar</div>
+                        <div class="text-lg font-bold text-amber-800" x-text="formatCurrency(scalePreviewTotal())"></div>
+                        <div class="text-[11px] text-amber-600 mt-1" x-text="selectedScaleProduct ? ((selectedScaleProduct.unit || 'Adet') + ' baz alınır') : 'Önce ürün seçin'"></div>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button @click="showScaleModal = false" class="flex-1 py-2.5 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors">İptal</button>
+                    <button @click="addScaleItemToCart()" :disabled="!selectedScaleProduct || !scaleWeight || scaleWeight <= 0"
+                            class="flex-1 py-2.5 text-sm text-white bg-amber-600 hover:bg-amber-700 rounded-xl font-semibold transition-colors disabled:opacity-50">
+                        Sepete Ekle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Fiyat Seçim Modalı (Barkod okutunca çoklu fiyat varsa) --}}
     <div x-show="showPriceSelectModal" x-transition x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -1012,43 +1073,43 @@
     {{-- Alt Aksiyon Alanı --}}
     <div class="shrink-0 border-t border-gray-200 bg-white px-3 pt-2.5 pb-3 safe-bottom shadow-[0_-6px_20px_rgba(15,23,42,0.06)]">
         <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5">
-            <button @click="cart.length ? processPayment('cash') : showToast('Önce sepete ürün ekleyin.', 'warning')"
+            <button @click="refundMode ? startRefund() : (cart.length ? processPayment('cash') : showToast('Önce sepete ürün ekleyin.', 'warning'))"
                     class="flex items-center gap-3 px-3 py-3 min-h-[74px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
-                    style="background: linear-gradient(135deg, #43b692, #39a583);">
+                    :style="refundMode ? 'background: linear-gradient(135deg, #ef4444, #dc2626);' : 'background: linear-gradient(135deg, #43b692, #39a583);'">
                 <span class="w-10 h-10 rounded-2xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
-                    <i class="fas fa-money-bill-wave text-lg leading-none"></i>
+                    <i class="fas text-lg leading-none" :class="refundMode ? 'fa-rotate-left' : 'fa-money-bill-wave'"></i>
                 </span>
-                <span class="leading-tight"><span class="block">Nakit</span><span class="block text-[11px] font-semibold text-white/80">Hızlı tahsilat</span></span>
+                <span class="leading-tight"><span class="block" x-text="refundMode ? 'Nakit İade' : 'Nakit'"></span><span class="block text-[11px] font-semibold text-white/80" x-text="refundMode ? 'İade fişi bul' : 'Hızlı tahsilat'"></span></span>
             </button>
-            <button @click="cart.length ? processPayment('card') : showToast('Önce sepete ürün ekleyin.', 'warning')"
+            <button @click="refundMode ? startRefund() : (cart.length ? processPayment('card') : showToast('Önce sepete ürün ekleyin.', 'warning'))"
                     class="flex items-center gap-3 px-3 py-3 min-h-[74px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
-                    style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                    :style="refundMode ? 'background: linear-gradient(135deg, #f97316, #ea580c);' : 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);'">
                 <span class="w-10 h-10 rounded-2xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
-                    <i class="fas fa-credit-card text-lg leading-none"></i>
+                    <i class="fas text-lg leading-none" :class="refundMode ? 'fa-receipt' : 'fa-credit-card'"></i>
                 </span>
-                <span class="leading-tight"><span class="block">Kart</span><span class="block text-[11px] font-semibold text-white/80">POS çekimi</span></span>
+                <span class="leading-tight"><span class="block" x-text="refundMode ? 'Kart İade' : 'Kart'"></span><span class="block text-[11px] font-semibold text-white/80" x-text="refundMode ? 'İade fişi bul' : 'POS çekimi'"></span></span>
             </button>
-            <button @click="cart.length ? (showMixedPayment = true, mixedRemaining = totals.grand_total) : showToast('Önce sepete ürün ekleyin.', 'warning')"
+            <button @click="refundMode ? startRefund() : (cart.length ? (showMixedPayment = true, mixedRemaining = totals.grand_total) : showToast('Önce sepete ürün ekleyin.', 'warning'))"
                     class="flex items-center gap-3 px-3 py-3 min-h-[74px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
-                    style="background: linear-gradient(135deg, #a855f7, #7c3aed);">
+                    :style="refundMode ? 'background: linear-gradient(135deg, #fb7185, #e11d48);' : 'background: linear-gradient(135deg, #a855f7, #7c3aed);'">
                 <span class="w-10 h-10 rounded-2xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
-                    <i class="fas fa-layer-group text-lg leading-none"></i>
+                    <i class="fas text-lg leading-none" :class="refundMode ? 'fa-reply-all' : 'fa-layer-group'"></i>
                 </span>
-                <span class="leading-tight"><span class="block">Parçalı</span><span class="block text-[11px] font-semibold text-white/80">Karışık ödeme</span></span>
+                <span class="leading-tight"><span class="block" x-text="refundMode ? 'İade Akışı' : 'Parçalı'"></span><span class="block text-[11px] font-semibold text-white/80" x-text="refundMode ? 'Fişten iade yap' : 'Karışık ödeme'"></span></span>
             </button>
-            <button @click="!cart.length ? showToast('Önce sepete ürün ekleyin.', 'warning') : !selectedCustomer ? showToast('Veresiye için müşteri seçiniz.', 'error') : processPayment('credit')"
+            <button @click="refundMode ? startRefund() : (!cart.length ? showToast('Önce sepete ürün ekleyin.', 'warning') : !selectedCustomer ? showToast('Veresiye için müşteri seçiniz.', 'error') : processPayment('credit'))"
                     class="flex items-center gap-3 px-3 py-3 min-h-[74px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
-                    :class="!cart.length || !selectedCustomer ? 'opacity-55' : ''"
-                    style="background: linear-gradient(135deg, #f4a84b, #e8913a);">
+                    :class="refundMode ? '' : (!cart.length || !selectedCustomer ? 'opacity-55' : '')"
+                    :style="refundMode ? 'background: linear-gradient(135deg, #b91c1c, #991b1b);' : 'background: linear-gradient(135deg, #f4a84b, #e8913a);'">
                 <span class="w-10 h-10 rounded-2xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
-                    <i class="fas fa-file-invoice-dollar text-lg leading-none"></i>
+                    <i class="fas text-lg leading-none" :class="refundMode ? 'fa-file-circle-xmark' : 'fa-file-invoice-dollar'"></i>
                 </span>
-                <span class="leading-tight"><span class="block">Veresiye</span><span class="block text-[11px] font-semibold text-white/80">Müşteriye yaz</span></span>
+                <span class="leading-tight"><span class="block" x-text="refundMode ? 'İade Fişi' : 'Veresiye'"></span><span class="block text-[11px] font-semibold text-white/80" x-text="refundMode ? 'Numara ile ara' : 'Müşteriye yaz'"></span></span>
             </button>
             <div class="relative" @click.away="showOtherPayments = false">
-                <button @click="cart.length ? showOtherPayments = !showOtherPayments : showToast('Önce sepete ürün ekleyin.', 'warning')"
+                <button @click="showOtherPayments = !showOtherPayments"
                         class="w-full h-full flex items-center gap-3 px-3 py-3 min-h-[74px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
-                        :class="!cart.length ? 'opacity-55' : ''"
+                        :class="refundMode ? 'ring-2 ring-red-200' : ''"
                         style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
                     <span class="w-10 h-10 rounded-2xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
                         <i class="fas fa-ellipsis-h text-lg leading-none"></i>
@@ -1056,8 +1117,27 @@
                     <span class="leading-tight"><span class="block">Diğer</span><span class="block text-[11px] font-semibold text-white/80">Ek aksiyonlar</span></span>
                 </button>
                 <div x-show="showOtherPayments" x-transition
-                     class="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-2xl z-30 p-2 space-y-1 min-w-[180px]">
-                    <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider px-2 mb-1">Diğer Ödeme Türleri</div>
+                     class="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-2xl z-30 p-2 space-y-1 min-w-[220px]">
+                    <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider px-2 mb-1">Hızlı Aksiyonlar</div>
+                    <button @click="openScaleModal(); showOtherPayments = false"
+                            class="w-full py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-700 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors">
+                        <i class="fas fa-weight-scale text-[12px]"></i>
+                        <span>Terazi</span>
+                    </button>
+                    <button @click="toggleServiceFee(); showOtherPayments = false"
+                            class="w-full py-2 px-3 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors"
+                            :class="serviceFeeEnabled ? 'bg-orange-100 text-orange-800' : 'bg-orange-50 hover:bg-orange-100 text-orange-700'">
+                        <i class="fas fa-bell-concierge text-[12px]"></i>
+                        <span x-text="serviceFeeEnabled ? 'Hizmet Bedelini Kaldır' : 'Hizmet Bedeli Ekle'"></span>
+                        <span class="ml-auto text-[10px] font-bold" x-text="serviceFeePercentage > 0 ? '%' + serviceFeePercentage : 'ayar yok'"></span>
+                    </button>
+                    <button @click="toggleRefundMode(); showOtherPayments = false"
+                            class="w-full py-2 px-3 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors"
+                            :class="refundMode ? 'bg-red-100 text-red-800' : 'bg-red-50 hover:bg-red-100 text-red-700'">
+                        <i class="fas fa-rotate-left text-[12px]"></i>
+                        <span x-text="refundMode ? 'İade Modunu Kapat' : 'İade Modu'"></span>
+                    </button>
+                    <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider px-2 pt-2 mb-1 border-t border-gray-100">Diğer Ödeme Türleri</div>
                     <template x-for="pt in customPaymentTypes" :key="pt.id">
                         <button @click="processPayment('other_' + pt.code); showOtherPayments = false"
                                 class="w-full py-2 px-3 bg-gray-50 hover:bg-blue-50 text-gray-700 hover:text-blue-700 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors">
@@ -1325,7 +1405,7 @@ function posScreen() {
         mixedRemaining: 0,
         lastSale: null,
         loading: false,
-        totals: { subtotal: 0, vat_total: 0, discount_total: 0, grand_total: 0 },
+        totals: { subtotal: 0, vat_total: 0, discount_total: 0, service_fee: 0, grand_total: 0 },
         // Kategori modal
         showCatModal: false,
         newCatName: '',
@@ -1343,12 +1423,18 @@ function posScreen() {
         showPaymentMenu: false,
         showOtherPayments: false,
         customPaymentTypes: @json($paymentTypes ?? []),
+        refundMode: false,
         customerPanelOpen: false,
         customerPickerCreateMode: false,
         quickCustomerForm: { name: '', phone: '' },
         quickCustomerSaving: false,
         showManualItemModal: false,
         manualItemForm: { name: 'Muhtelif', note: '', amount: '', vat_rate: 20 },
+        showScaleModal: false,
+        scaleProductSearch: '',
+        scaleProductResults: [],
+        selectedScaleProduct: null,
+        scaleWeight: '',
         // İskonto modal
         showDiscountModal: false,
         manualDiscountInput: 0,
@@ -1384,6 +1470,8 @@ function posScreen() {
         pendingPriceCallback: null,
         // Fiş ayarları
         receiptSettings: @json($receiptSettings),
+        serviceFeeEnabled: false,
+        serviceFeePercentage: @json((float) ($receiptSettings['service_fee_percentage'] ?? 0)),
         isDesktop: window.innerWidth >= 1024,
         panelWidth: 360,
         panelMinWidth: 300,
@@ -1407,7 +1495,7 @@ function posScreen() {
                 if (e.key === 'F3') { e.preventDefault(); this.checkPrice(); }
                 if (e.key === 'F5') { e.preventDefault(); this.processPayment('cash'); }
                 if (e.key === 'F6') { e.preventDefault(); this.processPayment('card'); }
-                if (e.key === 'Escape') { this.showMixedPayment = false; this.showReceipt = false; this.showDiscountModal = false; this.showRecentSales = false; this.showRefundModal = false; this.showPriceSelectModal = false; this.showOdemeAlModal = false; this.customerPanelOpen = false; this.showManualItemModal = false; }
+                if (e.key === 'Escape') { this.showMixedPayment = false; this.showReceipt = false; this.showDiscountModal = false; this.showRecentSales = false; this.showRefundModal = false; this.showPriceSelectModal = false; this.showOdemeAlModal = false; this.customerPanelOpen = false; this.showManualItemModal = false; this.showScaleModal = false; }
             });
             window.addEventListener('resize', () => {
                 this.isDesktop = window.innerWidth >= 1024;
@@ -1450,6 +1538,7 @@ function posScreen() {
                 selectedCustomer: null,
                 generalDiscount: 0,
                 generalDiscountType: 'TL',
+                serviceFeeEnabled: false,
                 paidAmount: '',
             };
         },
@@ -1465,6 +1554,7 @@ function posScreen() {
             slot.selectedCustomer = this.selectedCustomer;
             slot.generalDiscount = this.generalDiscount;
             slot.generalDiscountType = this.generalDiscountType;
+            slot.serviceFeeEnabled = this.serviceFeeEnabled;
             slot.paidAmount = this.paidAmount;
         },
 
@@ -1477,6 +1567,7 @@ function posScreen() {
             this.selectedCustomer = slot.selectedCustomer || null;
             this.generalDiscount = slot.generalDiscount ?? 0;
             this.generalDiscountType = slot.generalDiscountType || 'TL';
+            this.serviceFeeEnabled = !!slot.serviceFeeEnabled;
             this.paidAmount = slot.paidAmount || '';
             this.customerPanelOpen = false;
             this.recalcTotals();
@@ -1488,12 +1579,23 @@ function posScreen() {
             this.selectedCustomer = null;
             this.generalDiscount = 0;
             this.generalDiscountType = 'TL';
+            this.serviceFeeEnabled = false;
             this.paidAmount = '';
         },
 
         slotToplami(slot) {
             const items = slot?.cart || [];
-            return items.reduce((sum, item) => sum + parseFloat(item.total || 0), 0);
+            const araToplam = items.reduce((sum, item) => sum + parseFloat(item.total || 0), 0);
+            const genelIskonto = parseFloat(slot?.generalDiscount || 0);
+            const genelIskontoTipi = slot?.generalDiscountType || 'TL';
+            const iskontoTutari = genelIskontoTipi === '%'
+                ? Math.round(araToplam * genelIskonto / 100 * 100) / 100
+                : genelIskonto;
+            const netToplam = Math.max(0, araToplam - iskontoTutari);
+            const servis = slot?.serviceFeeEnabled && this.serviceFeePercentage > 0
+                ? Math.round(netToplam * this.serviceFeePercentage / 100 * 100) / 100
+                : 0;
+            return netToplam + servis;
         },
 
         kalanKrediLimiti(customer = null) {
@@ -1709,6 +1811,98 @@ function posScreen() {
             this.showManualItemModal = true;
         },
 
+        openScaleModal() {
+            this.scaleProductSearch = '';
+            this.scaleWeight = '';
+            this.selectedScaleProduct = null;
+            this.searchScaleProducts('');
+            this.showScaleModal = true;
+        },
+
+        searchScaleProducts(query = '') {
+            const arama = (query || '').trim().toLowerCase();
+            this.scaleProductResults = (this.products || [])
+                .filter(product => !product.is_service)
+                .filter(product => {
+                    if (!arama) {
+                        return ['kg', 'g', 'gram'].includes(String(product.unit || '').toLowerCase()) || !!product.barcode;
+                    }
+                    return String(product.name || '').toLowerCase().includes(arama)
+                        || String(product.barcode || '').toLowerCase().includes(arama);
+                })
+                .slice(0, 20);
+        },
+
+        selectScaleProduct(product) {
+            this.selectedScaleProduct = product;
+            if (!this.scaleWeight || this.scaleWeight <= 0) {
+                this.scaleWeight = 1;
+            }
+        },
+
+        scalePreviewTotal() {
+            const birimFiyat = parseFloat(this.selectedScaleProduct?.sale_price || 0);
+            const miktar = parseFloat(this.scaleWeight || 0);
+            return birimFiyat * miktar;
+        },
+
+        addScaleItemToCart() {
+            if (!this.selectedScaleProduct) return;
+            const miktar = parseFloat(this.scaleWeight || 0);
+            if (miktar <= 0) return;
+
+            const product = this.selectedScaleProduct;
+            const existing = this.cart.find(i => i.product_id === product.id && i.price_label === 'Standart');
+            if (existing) {
+                existing.quantity = Math.round((parseFloat(existing.quantity || 0) + miktar) * 1000) / 1000;
+                this.recalcItem(this.cart.indexOf(existing));
+            } else {
+                this.cart.push({
+                    product_id: product.id,
+                    product_name: product.name,
+                    barcode: product.barcode,
+                    unit_price: product.sale_price,
+                    price_label: 'Standart',
+                    price_options: this.buildPriceOptions(product),
+                    quantity: miktar,
+                    discount: 0,
+                    discountType: 'TL',
+                    discountAmount: 0,
+                    vat_rate: product.vat_rate || 20,
+                    vat_amount: 0,
+                    additional_tax_amount: 0,
+                    total: product.sale_price * miktar,
+                    showDiscount: false,
+                });
+                this.recalcItem(this.cart.length - 1);
+            }
+
+            this.showScaleModal = false;
+            this.recalcTotals();
+            if (window.innerWidth < 1024) this.mobileTab = 'cart';
+            showToast('Terazi ürünü sepete eklendi.', 'success');
+        },
+
+        toggleServiceFee() {
+            if (this.serviceFeePercentage <= 0) {
+                showToast('Önce genel ayarlardan hizmet bedeli yüzdesi tanımlayın.', 'warning');
+                return;
+            }
+            this.serviceFeeEnabled = !this.serviceFeeEnabled;
+            this.recalcTotals();
+            showToast(this.serviceFeeEnabled ? 'Hizmet bedeli eklendi.' : 'Hizmet bedeli kaldırıldı.', 'success');
+        },
+
+        toggleRefundMode() {
+            this.refundMode = !this.refundMode;
+            this.showOtherPayments = false;
+            if (this.refundMode) {
+                showToast('İade modu aktif. Ödeme butonları iade akışına yönlendirildi.', 'warning');
+            } else {
+                showToast('İade modu kapatıldı.', 'success');
+            }
+        },
+
         addManualItemToCart() {
             const amount = parseFloat(this.manualItemForm.amount || 0);
             if (amount <= 0) return;
@@ -1804,12 +1998,17 @@ function posScreen() {
             const genDiscAmt = this.generalDiscountType === '%'
                 ? Math.round((subtotal + vatTotal) * (this.generalDiscount || 0) / 100 * 100) / 100
                 : (this.generalDiscount || 0);
+            const araToplam = Math.max(0, subtotal + vatTotal - genDiscAmt);
+            const serviceFee = this.serviceFeeEnabled && this.serviceFeePercentage > 0
+                ? Math.round(araToplam * this.serviceFeePercentage / 100 * 100) / 100
+                : 0;
             discountTotal += genDiscAmt;
             this.totals = {
                 subtotal: Math.round(subtotal * 100) / 100,
                 vat_total: Math.round(vatTotal * 100) / 100,
                 discount_total: Math.round(discountTotal * 100) / 100,
-                grand_total: Math.round((subtotal + vatTotal - genDiscAmt) * 100) / 100,
+                service_fee: serviceFee,
+                grand_total: Math.round((araToplam + serviceFee) * 100) / 100,
             };
             this.saveCart();
         },
@@ -1865,6 +2064,7 @@ function posScreen() {
                 this.selectedCustomer = slot?.selectedCustomer || null;
                 this.generalDiscount = slot?.generalDiscount ?? 0;
                 this.generalDiscountType = slot?.generalDiscountType || 'TL';
+                this.serviceFeeEnabled = !!slot?.serviceFeeEnabled;
                 this.paidAmount = slot?.paidAmount || '';
                 this.recalcTotals();
             } catch (e) { /* ignore */ }
@@ -1965,6 +2165,10 @@ function posScreen() {
 
         async processPayment(method) {
             if (this.cart.length === 0) return;
+            if (this.refundMode) {
+                this.startRefund();
+                return;
+            }
             if (method === 'credit' && !this.selectedCustomer) {
                 showToast('Veresiye satış için müşteri seçiniz.', 'error');
                 return;
@@ -2000,6 +2204,7 @@ function posScreen() {
                 payment_method: actualMethod,
                 customer_id: this.selectedCustomer?.id,
                 discount: genDiscTL,
+                service_fee: this.totals.service_fee || 0,
                 cash_amount: method === 'cash' ? this.totals.grand_total : 0,
                 card_amount: method === 'card' ? this.totals.grand_total : 0,
                 credit_amount: method === 'credit' ? this.totals.grand_total : 0,
@@ -2104,6 +2309,7 @@ function posScreen() {
                 payment_method: 'mixed',
                 customer_id: this.selectedCustomer?.id,
                 discount: genDiscTL,
+                service_fee: this.totals.service_fee || 0,
                 cash_amount: this.mixedCash || 0,
                 card_amount: this.mixedCard || 0,
                 credit_amount: this.mixedCredit || 0,
@@ -2181,6 +2387,7 @@ function posScreen() {
             const isLastSale = this.cart.length === 0 && this.lastSale;
             const receiptNo = isLastSale ? this.lastSale.receipt_no : 'ÖNİZLEME';
             const grandTotal = isLastSale ? this.lastSale.grand_total : this.totals.grand_total;
+            const serviceFee = isLastSale ? (this.lastSale?.service_fee || 0) : (this.totals.service_fee || 0);
             const paymentMethod = isLastSale ? this.lastSale.payment_method : '-';
             const now = new Date().toLocaleString('tr-TR');
 
@@ -2220,6 +2427,7 @@ function posScreen() {
                 </table>
                 <div class="line"></div>
                 <table>
+                    ${serviceFee > 0 ? `<tr><td>Hizmet Bedeli</td><td colspan="3" style="text-align:right">${formatCurrency(serviceFee)}</td></tr>` : ''}
                     <tr class="total-row"><td>TOPLAM</td><td colspan="3" style="text-align:right">${formatCurrency(grandTotal)}</td></tr>
                     <tr><td>Ödeme</td><td colspan="3" style="text-align:right;text-transform:capitalize">${paymentMethod}</td></tr>
                 </table>
