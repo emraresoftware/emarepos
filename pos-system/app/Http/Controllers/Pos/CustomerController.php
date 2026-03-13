@@ -17,7 +17,6 @@ class CustomerController extends Controller
     {
         $query = Customer::where('is_active', true)
             ->with(['group', 'phones'])
-            ->withSum('sales', 'grand_total')
             ->withMax('sales', 'sold_at')
             ->orderBy('name');
         
@@ -35,8 +34,17 @@ class CustomerController extends Controller
         }
         
         $customers = $query->paginate(50)->withQueryString();
+        $statsAgg = Customer::where('is_active', true)
+            ->selectRaw('COUNT(*) as total_customers, COALESCE(SUM(CASE WHEN balance < 0 THEN balance ELSE 0 END), 0) as total_debt, COALESCE(SUM(CASE WHEN balance > 0 THEN balance ELSE 0 END), 0) as total_credit, COALESCE(SUM(balance), 0) as total_balance')
+            ->first();
+        $stats = [
+            'total_customers' => (int) ($statsAgg->total_customers ?? 0),
+            'total_debt' => (float) ($statsAgg->total_debt ?? 0),
+            'total_credit' => (float) ($statsAgg->total_credit ?? 0),
+            'total_balance' => (float) ($statsAgg->total_balance ?? 0),
+        ];
         $groups = CustomerGroup::where('is_active', true)->withCount('customers')->orderBy('name')->get();
-        return view('pos.customers.index', compact('customers', 'groups'));
+        return view('pos.customers.index', compact('customers', 'groups', 'stats'));
     }
 
     public function store(Request $request)

@@ -41,6 +41,7 @@ class FirmController extends Controller
             'total_firms'  => (int) ($statsAgg->total_firms ?? 0),
             'total_debt'   => (float) ($statsAgg->total_debt ?? 0),
             'total_credit' => (float) ($statsAgg->total_credit ?? 0),
+            'total_balance' => (float) (($statsAgg->total_credit ?? 0) + ($statsAgg->total_debt ?? 0)),
         ];
 
         $groups = FirmGroup::where('is_active', true)->withCount('firms')->orderBy('name')->get();

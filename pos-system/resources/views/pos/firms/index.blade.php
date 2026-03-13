@@ -9,17 +9,6 @@
         <div class="bg-white rounded-xl border border-gray-100 p-5">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-gray-500">Toplam Cari</p>
-                    <p class="text-2xl font-bold text-gray-900 mt-1">{{ $stats['total_firms'] }}</p>
-                </div>
-                <div class="w-11 h-11 rounded-lg bg-brand-500/10 flex items-center justify-center">
-                    <svg class="w-6 h-6 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/></svg>
-                </div>
-            </div>
-        </div>
-        <div class="bg-white rounded-xl border border-gray-100 p-5">
-            <div class="flex items-center justify-between">
-                <div>
                     <p class="text-sm text-gray-500">Toplam Borç</p>
                     <p class="text-2xl font-bold text-red-500 mt-1">{{ formatCurrency(abs($stats['total_debt'])) }}</p>
                 </div>
@@ -36,6 +25,17 @@
                 </div>
                 <div class="w-11 h-11 rounded-lg bg-green-500/10 flex items-center justify-center">
                     <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Net Bakiye</p>
+                    <p class="text-2xl font-bold mt-1 {{ $stats['total_balance'] < 0 ? 'text-red-500' : ($stats['total_balance'] > 0 ? 'text-emerald-600' : 'text-gray-900') }}">{{ formatCurrency($stats['total_balance']) }}</p>
+                </div>
+                <div class="w-11 h-11 rounded-lg bg-brand-500/10 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-3.314 0-6 1.79-6 4s2.686 4 6 4 6-1.79 6-4-2.686-4-6-4zm0 0V4m0 12v4"/></svg>
                 </div>
             </div>
         </div>
@@ -111,11 +111,14 @@
                         <th class="px-4 py-3.5">Telefon</th>
                         <th class="px-4 py-3.5">E-posta</th>
                         <th class="px-4 py-3.5">Vergi No</th>
+                        <th class="px-4 py-3.5 text-right">Borç</th>
+                        <th class="px-4 py-3.5 text-right">Alacak</th>
                         <th class="px-4 py-3.5 text-right">Bakiye</th>
                         <th class="px-4 py-3.5 text-center">İşlemler</th>
                     </tr>                </thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse($firms as $firm)
+                        @php $bal = $firm->balance ?? 0; @endphp
                         <tr class="hover:bg-gray-50 transition-colors cursor-pointer" @click.stop="openDetail({{ $firm->id }})">
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-3">
@@ -150,8 +153,13 @@
                             </td>
                             <td class="px-4 py-3 text-gray-500">{{ $firm->email ?? '-' }}</td>
                             <td class="px-4 py-3 font-mono text-xs text-gray-500">{{ $firm->tax_number ?? '-' }}</td>
+                            <td class="px-4 py-3 text-right text-red-500 font-mono font-medium">
+                                {{ formatCurrency(max(abs(min($bal, 0)), 0)) }}
+                            </td>
+                            <td class="px-4 py-3 text-right text-emerald-600 font-mono font-medium">
+                                {{ formatCurrency(max($bal, 0)) }}
+                            </td>
                             <td class="px-4 py-3 text-right">
-                                @php $bal = $firm->balance ?? 0; @endphp
                                 <span class="font-mono font-medium {{ $bal < 0 ? 'text-red-500' : ($bal > 0 ? 'text-emerald-600' : 'text-gray-500') }}">
                                     {{ formatCurrency($bal) }}
                                 </span>
@@ -179,7 +187,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-4 py-12 text-center">
+                            <td colspan="9" class="px-4 py-12 text-center">
                                 <p class="text-gray-500 text-sm">Henüz cari kaydı eklenmemiş</p>
                                 <button @click="openCreate()" class="text-brand-500 hover:text-brand-600 text-sm font-medium mt-2">+ İlk cariyi ekle</button>
                             </td>
@@ -306,20 +314,20 @@
                         {{-- Özet Kartlar --}}
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Borç</p>
+                                <p class="text-lg font-bold text-red-500" x-text="formatCur(Math.max(Math.abs(Math.min(detailData.firm.balance || 0, 0)), 0))"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Alacak</p>
+                                <p class="text-lg font-bold text-emerald-600" x-text="formatCur(Math.max(detailData.firm.balance || 0, 0))"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Bakiye</p>
-                                <p class="text-lg font-bold" :class="(detailData.firm.balance||0) < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCur(detailData.firm.balance)"></p>
+                                <p class="text-lg font-bold" :class="(detailData.firm.balance||0) < 0 ? 'text-red-500' : ((detailData.firm.balance||0) > 0 ? 'text-emerald-600' : 'text-gray-800')" x-text="formatCur(detailData.firm.balance)"></p>
                             </div>
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
-                                <p class="text-xs text-gray-500 mb-1">Toplam Alış</p>
-                                <p class="text-lg font-bold text-gray-800" x-text="formatCur(detailData.total_purchase)"></p>
-                            </div>
-                            <div class="bg-gray-50 rounded-xl p-3 text-center">
-                                <p class="text-xs text-gray-500 mb-1">Toplam Ödeme</p>
-                                <p class="text-lg font-bold text-emerald-600" x-text="formatCur(detailData.total_payment)"></p>
-                            </div>
-                            <div class="bg-gray-50 rounded-xl p-3 text-center">
-                                <p class="text-xs text-gray-500 mb-1">Fatura Sayısı</p>
-                                <p class="text-lg font-bold text-gray-800" x-text="(detailData.purchase_invoices||[]).length"></p>
+                                <p class="text-xs text-gray-500 mb-1">Hareket Sayısı</p>
+                                <p class="text-lg font-bold text-gray-800" x-text="(detailData.transactions||[]).length"></p>
                             </div>
                         </div>
 

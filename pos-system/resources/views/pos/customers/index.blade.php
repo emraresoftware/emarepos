@@ -6,26 +6,12 @@
 <div x-data="customerManager()" x-cloak>
     {{-- Summary Cards --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {{-- Toplam Müşteri --}}
-        <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-lg shadow-gray-100/50">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-500">Toplam Müşteri</p>
-                    <p class="text-2xl font-bold text-gray-900 mt-1">{{ $customers->total() }}</p>
-                </div>
-                <div class="w-11 h-11 rounded-xl bg-brand-50 flex items-center justify-center">
-                    <svg class="w-6 h-6 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
         {{-- Toplam Borç --}}
         <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-lg shadow-gray-100/50">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500">Toplam Borç</p>
-                    <p class="text-2xl font-bold text-red-500 mt-1">{{ formatCurrency($customers->getCollection()->where('balance', '<', 0)->sum('balance')) }}</p>
+                    <p class="text-2xl font-bold text-red-500 mt-1">{{ formatCurrency(abs($stats['total_debt'])) }}</p>
                 </div>
                 <div class="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center">
                     <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,11 +25,25 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500">Toplam Alacak</p>
-                    <p class="text-2xl font-bold text-emerald-600 mt-1">{{ formatCurrency($customers->getCollection()->where('balance', '>', 0)->sum('balance')) }}</p>
+                    <p class="text-2xl font-bold text-emerald-600 mt-1">{{ formatCurrency($stats['total_credit']) }}</p>
                 </div>
                 <div class="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center">
                     <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        {{-- Net Bakiye --}}
+        <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-lg shadow-gray-100/50">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Net Bakiye</p>
+                    <p class="text-2xl font-bold mt-1 {{ $stats['total_balance'] < 0 ? 'text-red-500' : ($stats['total_balance'] > 0 ? 'text-emerald-600' : 'text-gray-900') }}">{{ formatCurrency($stats['total_balance']) }}</p>
+                </div>
+                <div class="w-11 h-11 rounded-xl bg-brand-50 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-3.314 0-6 1.79-6 4s2.686 4 6 4 6-1.79 6-4-2.686-4-6-4zm0 0V4m0 12v4"/>
                     </svg>
                 </div>
             </div>
@@ -53,7 +53,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500">Aktif Müşteri</p>
-                    <p class="text-2xl font-bold text-gray-900 mt-1">{{ $customers->getCollection()->where('is_active', true)->count() }}</p>
+                    <p class="text-2xl font-bold text-gray-900 mt-1">{{ $stats['total_customers'] }}</p>
                 </div>
                 <div class="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center">
                     <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,9 +138,10 @@
                         <th class="px-4 py-3.5">Telefon</th>
                         <th class="px-4 py-3.5 hidden md:table-cell">E-posta</th>
                         <th class="px-4 py-3.5 hidden lg:table-cell">Vergi No</th>
+                        <th class="px-4 py-3.5 text-right hidden md:table-cell">Borç</th>
+                        <th class="px-4 py-3.5 text-right hidden md:table-cell">Alacak</th>
+                        <th class="px-4 py-3.5 text-right">Bakiye</th>
                         <th class="px-4 py-3.5 text-right">Kredi Limiti</th>
-                                    <th class="px-4 py-3.5 text-right">Bakiye</th>
-                        <th class="px-4 py-3.5 text-right hidden md:table-cell">Toplam Satış</th>
                         <th class="px-4 py-3.5 hidden lg:table-cell">Son İşlem</th>
                         <th class="px-4 py-3.5 text-center">İşlemler</th>
                     </tr>
@@ -200,15 +201,17 @@
                             <td class="px-4 py-3 hidden lg:table-cell">
                                 <span class="font-mono text-xs text-gray-500">{{ $customer->tax_number ?? '-' }}</span>
                             </td>
-                            {{-- Credit Limit --}}
-                            <td class="px-4 py-3 text-right">
-                                <span class="font-mono font-medium text-sky-600">
-                                    {{ formatCurrency($customer->credit_limit ?? 0) }}
-                                </span>
+                            @php $balance = $customer->balance ?? 0; @endphp
+                            {{-- Debt --}}
+                            <td class="px-4 py-3 text-right font-mono hidden md:table-cell text-red-500">
+                                {{ formatCurrency(max(abs(min($balance, 0)), 0)) }}
+                            </td>
+                            {{-- Credit --}}
+                            <td class="px-4 py-3 text-right font-mono hidden md:table-cell text-emerald-600">
+                                {{ formatCurrency(max($balance, 0)) }}
                             </td>
                             {{-- Balance --}}
                             <td class="px-4 py-3 text-right">
-                                @php $balance = $customer->balance ?? 0; @endphp
                                 <span class="font-mono font-medium {{ $balance < 0 ? 'text-red-500' : ($balance > 0 ? 'text-emerald-600' : 'text-gray-500') }}">
                                     {{ formatCurrency($balance) }}
                                 </span>
@@ -218,9 +221,11 @@
                                     <p class="text-xs text-emerald-500 mt-0.5">Alacaklı</p>
                                 @endif
                             </td>
-                            {{-- Total Sales --}}
-                            <td class="px-4 py-3 text-right font-mono hidden md:table-cell">
-                                {{ formatCurrency($customer->sales_sum_grand_total ?? 0) }}
+                            {{-- Credit Limit --}}
+                            <td class="px-4 py-3 text-right">
+                                <span class="font-mono font-medium text-sky-600">
+                                    {{ formatCurrency($customer->credit_limit ?? 0) }}
+                                </span>
                             </td>
                             {{-- Last Transaction --}}
                             <td class="px-4 py-3 hidden lg:table-cell">
@@ -281,7 +286,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-4 py-12 text-center">
+                            <td colspan="11" class="px-4 py-12 text-center">
                                 <div class="flex flex-col items-center gap-3">
                                     <svg class="w-12 h-12 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -329,20 +334,20 @@
                     <div>
                         <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Borç</p>
+                                <p class="text-lg font-bold text-red-500" x-text="formatCurrency(Math.max(Math.abs(Math.min(detailData.customer.balance || 0, 0)), 0))"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Alacak</p>
+                                <p class="text-lg font-bold text-emerald-600" x-text="formatCurrency(Math.max(detailData.customer.balance || 0, 0))"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Bakiye</p>
                                 <p class="text-lg font-bold" :class="(detailData.customer.balance||0) < 0 ? 'text-red-500' : ((detailData.customer.balance||0) > 0 ? 'text-emerald-600' : 'text-gray-800')" x-text="formatCurrency(detailData.customer.balance || 0)"></p>
                             </div>
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Kredi Limiti</p>
                                 <p class="text-lg font-bold text-sky-600" x-text="formatCurrency(detailData.customer.credit_limit || 0)"></p>
-                            </div>
-                            <div class="bg-gray-50 rounded-xl p-3 text-center">
-                                <p class="text-xs text-gray-500 mb-1">Toplam Satış</p>
-                                <p class="text-lg font-bold text-gray-800" x-text="formatCurrency((detailData.recent_sales||[]).reduce((sum, sale) => sum + parseFloat(sale.grand_total || 0), 0))"></p>
-                            </div>
-                            <div class="bg-gray-50 rounded-xl p-3 text-center">
-                                <p class="text-xs text-gray-500 mb-1">Satış Sayısı</p>
-                                <p class="text-lg font-bold text-gray-800" x-text="(detailData.recent_sales||[]).length"></p>
                             </div>
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Hareket Sayısı</p>
