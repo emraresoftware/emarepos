@@ -303,93 +303,96 @@
     {{-- Müşteri Detay Modalı --}}
     <div x-show="showDetailModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;" x-cloak>
         <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showDetailModal = false"></div>
-        <div x-show="showDetailModal"
-             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
-             class="relative bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col">
-
-            {{-- Header --}}
-            <div class="border-b border-gray-100 px-6 py-4 flex items-start justify-between flex-shrink-0 bg-gradient-to-r from-gray-50 to-white">
-                <div x-show="!detailLoading && detailData">
-                    <h2 class="text-lg font-bold text-gray-900" x-text="detailData?.customer?.name"></h2>
-                    <div class="flex flex-wrap gap-2 mt-1">
-                        {{-- Telefon numaraları --}}
-                        <template x-for="ph in (detailData?.phones || [])" :key="ph.id">
-                            <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border"
-                                  :class="ph.type==='mobile'?'bg-blue-50 text-blue-700 border-blue-200':ph.type==='landline'?'bg-gray-50 text-gray-600 border-gray-200':'bg-purple-50 text-purple-700 border-purple-200'">
-                                <i :class="ph.type==='mobile'?'fas fa-mobile-alt':ph.type==='landline'?'fas fa-phone':'fas fa-circle-dot'" class="text-[9px]"></i>
-                                <span x-text="ph.phone"></span>
-                                <span x-text="ph.type==='mobile'?'H':ph.type==='landline'?'S':'D'" class="opacity-60"></span>
-                                <i x-show="ph.is_primary" class="fas fa-star text-[9px] text-yellow-400"></i>
-                            </span>
-                        </template>
-                        <span x-show="detailData?.customer?.email" class="text-xs text-gray-400" x-text="detailData?.customer?.email"></span>
-                    </div>
-                </div>
-                <div x-show="detailLoading" class="text-sm text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i>Yükleniyor...</div>
-                <button @click="showDetailModal = false" class="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl ml-4 flex-shrink-0">
+        <div class="relative bg-white rounded-xl border border-gray-100 shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col"
+             x-show="showDetailModal"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
+            <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between shrink-0">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <i class="fas fa-user-group text-brand-500"></i>
+                    <span x-text="detailData?.customer?.name || 'Müşteri Detayı'"></span>
+                </h2>
+                <button @click="showDetailModal = false" class="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-lg">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
 
-            <div x-show="!detailLoading && detailData" class="flex flex-col overflow-hidden flex-1">
-                {{-- Özet Bakiye Kartları --}}
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 px-5 pt-4 flex-shrink-0">
-                    <div class="rounded-xl p-3 text-center border"
-                         :class="(detailData?.customer?.balance??0)<0?'bg-red-50 border-red-200':'(detailData?.customer?.balance??0)>0?bg-emerald-50 border-emerald-200:bg-gray-50 border-gray-200'">
-                        <p class="text-xs text-gray-400">Bakiye</p>
-                        <p class="font-bold text-base mt-0.5" :class="(detailData?.customer?.balance??0)<0?'text-red-500':((detailData?.customer?.balance??0)>0?'text-emerald-600':'text-gray-700')" x-text="formatCurrency(detailData?.customer?.balance??0)"></p>
-                    </div>
-                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
-                        <p class="text-xs text-gray-400">Top. Satış</p>
-                        <p class="font-bold text-base mt-0.5 text-gray-900" x-text="formatCurrency(detailData?.recent_sales?.reduce((s,x)=>s+parseFloat(x.grand_total||0),0))"></p>
-                    </div>
-                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
-                        <p class="text-xs text-gray-400">Satış Adedi</p>
-                        <p class="font-bold text-base mt-0.5 text-gray-900" x-text="detailData?.recent_sales?.length"></p>
-                    </div>
-                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
-                        <p class="text-xs text-gray-400">Hesap Hareketi</p>
-                        <p class="font-bold text-base mt-0.5 text-gray-900" x-text="detailData?.transactions?.length"></p>
-                    </div>
+            <div class="flex-1 overflow-y-auto p-6">
+                <div x-show="detailLoading" class="flex items-center justify-center py-16">
+                    <i class="fas fa-spinner fa-spin text-2xl text-brand-500"></i>
                 </div>
 
-                {{-- Aksiyon Butonları --}}
-                <div class="flex gap-2 px-5 pt-3 pb-3 border-b border-gray-100 flex-shrink-0">
-                    <button @click="openCollect(detailData.customer.id, detailData.customer.name, detailData.customer.balance); showDetailModal=false"
-                            class="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-1.5 transition-colors">
-                        <i class="fas fa-hand-holding-dollar"></i> Ödeme Al
-                    </button>
-                    <button @click="openDebt(detailData.customer.id, detailData.customer.name, detailData.customer.balance); showDetailModal=false"
-                            class="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-1.5 transition-colors">
-                        <i class="fas fa-user-minus"></i> Borç Ekle
-                    </button>
-                </div>
+                <template x-if="detailData && !detailLoading">
+                    <div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Bakiye</p>
+                                <p class="text-lg font-bold" :class="(detailData.customer.balance||0) < 0 ? 'text-red-500' : ((detailData.customer.balance||0) > 0 ? 'text-emerald-600' : 'text-gray-800')" x-text="formatCurrency(detailData.customer.balance || 0)"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Toplam Satış</p>
+                                <p class="text-lg font-bold text-gray-800" x-text="formatCurrency((detailData.recent_sales||[]).reduce((sum, sale) => sum + parseFloat(sale.grand_total || 0), 0))"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Satış Sayısı</p>
+                                <p class="text-lg font-bold text-gray-800" x-text="(detailData.recent_sales||[]).length"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Hareket Sayısı</p>
+                                <p class="text-lg font-bold text-gray-800" x-text="(detailData.transactions||[]).length"></p>
+                            </div>
+                        </div>
 
-                {{-- Sekmeler + Detay Toggle --}}
-                <div class="flex items-center gap-1 px-5 pt-3 flex-shrink-0 border-b border-gray-100 pb-3">
-                    <button @click="detailTab='all'" :class="detailTab==='all'?'bg-brand-50 text-brand-700 border-brand-300':'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'"
-                            class="px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors">
-                        <i class="fas fa-list mr-1"></i> Tümü
-                    </button>
-                    <button @click="detailTab='sales'" :class="detailTab==='sales'?'bg-brand-50 text-brand-700 border-brand-300':'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'"
-                            class="px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors">
-                        <i class="fas fa-shopping-cart mr-1"></i> Satışlar (<span x-text="detailData?.recent_sales?.length"></span>)
-                    </button>
-                    <button @click="detailTab='transactions'" :class="detailTab==='transactions'?'bg-brand-50 text-brand-700 border-brand-300':'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'"
-                            class="px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors">
-                        <i class="fas fa-exchange-alt mr-1"></i> Hesap (<span x-text="detailData?.transactions?.length"></span>)
-                    </button>
-                    <div class="flex-1"></div>
-                    <button @click="detailExpanded = !detailExpanded"
-                            :class="detailExpanded?'bg-amber-50 text-amber-700 border-amber-300':'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'"
-                            class="px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors">
-                        <i :class="detailExpanded?'fas fa-compress-alt':'fas fa-expand-alt'" class="mr-1"></i>
-                        <span x-text="detailExpanded?'Özet':'Ayrıntılı'"></span>
-                    </button>
-                </div>
+                        <div class="bg-gray-50 rounded-xl border border-gray-100 p-3 mb-4">
+                            <div class="flex flex-wrap gap-3 items-center">
+                                <template x-for="(ph, i) in (detailData.phones||[])" :key="i">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[10px] font-bold rounded px-1.5 py-0.5"
+                                              :class="ph.type === 'mobile' ? 'bg-blue-100 text-blue-700' : (ph.type === 'landline' ? 'bg-gray-200 text-gray-600' : 'bg-purple-100 text-purple-700')"
+                                              x-text="ph.type === 'mobile' ? 'H' : (ph.type === 'landline' ? 'S' : 'D')"></span>
+                                        <span class="text-sm text-gray-800" x-text="ph.phone"></span>
+                                        <span x-show="ph.is_primary" class="text-yellow-500 text-xs">★</span>
+                                    </div>
+                                </template>
+                                <template x-if="!(detailData.phones||[]).length">
+                                    <span class="text-xs text-gray-400">Telefon yok</span>
+                                </template>
+                                <span class="text-gray-300">|</span>
+                                <span class="text-xs text-gray-500" x-text="detailData.customer.email || ''"></span>
+                                <span x-show="detailData.customer.tax_number" class="text-xs text-gray-500">VN: <span x-text="detailData.customer.tax_number" class="font-mono"></span></span>
+                            </div>
+                        </div>
 
-                {{-- İçerik --}}
-                <div class="flex-1 overflow-y-auto px-5 pb-5 pt-3">
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <button @click="detailTab = 'all'" class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+                                    :class="detailTab === 'all' ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'">
+                                <i class="fas fa-stream mr-1"></i>Tüm Hareketler
+                            </button>
+                            <button @click="detailTab = 'sales'" class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+                                    :class="detailTab === 'sales' ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'">
+                                <i class="fas fa-shopping-cart mr-1"></i>Satışlar
+                                <span class="ml-1 bg-gray-200 text-gray-600 rounded-full px-1.5 py-0.5 text-[10px]" x-text="(detailData.recent_sales||[]).length"></span>
+                            </button>
+                            <button @click="detailTab = 'transactions'" class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+                                    :class="detailTab === 'transactions' ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'">
+                                <i class="fas fa-coins mr-1"></i>Hesap Hareketleri
+                                <span class="ml-1 bg-gray-200 text-gray-600 rounded-full px-1.5 py-0.5 text-[10px]" x-text="(detailData.transactions||[]).length"></span>
+                            </button>
+                            <button @click="detailTab = 'notes'" class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+                                    :class="detailTab === 'notes' ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'">
+                                Notlar
+                            </button>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <button @click="openCollect(detailData.customer.id, detailData.customer.name, detailData.customer.balance); showDetailModal=false"
+                                    class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium rounded-lg flex items-center gap-1.5">
+                                <i class="fas fa-hand-holding-dollar"></i> Ödeme Al
+                            </button>
+                            <button @click="openDebt(detailData.customer.id, detailData.customer.name, detailData.customer.balance); showDetailModal=false"
+                                    class="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg flex items-center gap-1.5">
+                                <i class="fas fa-user-minus"></i> Borç Ekle
+                            </button>
+                        </div>
 
                     {{-- TÜMÜ GÖRÜNÜMÜ: Ağaç Zaman Çizelgesi --}}
                     <div x-show="detailTab==='all'">
@@ -454,7 +457,6 @@
                         </template>
                     </div>
 
-                    {{-- SATIŞLAR --}}
                     <div x-show="detailTab==='sales'">
                         <template x-if="detailData?.recent_sales?.length === 0">
                             <div class="text-center py-12 text-gray-400"><i class="fas fa-shopping-cart text-3xl mb-2"></i><p class="text-sm">Henüz satış yok</p></div>
@@ -487,7 +489,6 @@
                         </template>
                     </div>
 
-                    {{-- HESAP HAREKETLERİ --}}
                     <div x-show="detailTab==='transactions'">
                         <template x-if="detailData?.transactions?.length === 0">
                             <div class="text-center py-12 text-gray-400"><i class="fas fa-exchange-alt text-3xl mb-2"></i><p class="text-sm">Henüz hareket yok</p></div>
@@ -512,7 +513,10 @@
                         </template>
                     </div>
 
-                </div>
+                    <div x-show="detailTab==='notes'">
+                        <div class="bg-gray-50 rounded-xl border border-gray-100 p-4 text-sm text-gray-700 whitespace-pre-line min-h-[80px]" x-text="detailData.customer.notes || 'Not bulunmuyor.'"></div>
+                    </div>
+                </template>
             </div>
         </div>
     </div>
