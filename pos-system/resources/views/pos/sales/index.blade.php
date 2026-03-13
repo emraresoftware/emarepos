@@ -160,6 +160,7 @@
 
     {{-- SAĞ PANEL: Sepet --}}
         <div class="w-full lg:flex-none flex flex-col bg-white border-l border-gray-200 flex-1 min-h-0 overflow-hidden relative"
+            style="width:360px"
             :style="panelStyle()"
             :class="{ 'hidden lg:flex': mobileTab !== 'cart' }">
 
@@ -345,43 +346,43 @@
             </div>
         </div>
 
-        {{-- Ödeme Butonları --}}
-        <div class="px-2 py-1.5 sm:px-3 sm:py-3 bg-white border-t border-gray-100 shrink-0 space-y-1 sm:space-y-2.5">
-            {{-- Satır 1: Nakit | Kart | Parçalı Ödeme --}}
-            <div class="grid grid-cols-3 gap-1 sm:gap-2.5">
+        {{-- Ödeme Butonları - Kompakt --}}
+        <div class="px-2 py-2 bg-white border-t border-gray-100 shrink-0 space-y-1">
+            {{-- Ana Ödemeler: Nakit | Kart | Parçalı --}}
+            <div class="grid grid-cols-3 gap-1">
                 <button @click="processPayment('cash')" :disabled="cart.length === 0"
-                        class="flex flex-col items-center justify-center gap-0.5 sm:gap-2 py-2 sm:py-4 rounded-xl sm:rounded-2xl text-white font-semibold text-[11px] sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95"
+                        class="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
                         style="background: linear-gradient(135deg, #43b692, #39a583);">
-                    <i class="fas fa-money-bill-wave text-base sm:text-2xl"></i>
+                    <i class="fas fa-money-bill-wave text-sm"></i>
                     <span>Nakit</span>
                 </button>
                 <button @click="processPayment('card')" :disabled="cart.length === 0"
-                        class="flex flex-col items-center justify-center gap-0.5 sm:gap-2 py-2 sm:py-4 rounded-xl sm:rounded-2xl text-white font-semibold text-[11px] sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95"
+                        class="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
                         style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
-                    <i class="fas fa-credit-card text-base sm:text-2xl"></i>
+                    <i class="fas fa-credit-card text-sm"></i>
                     <span>Kart</span>
                 </button>
                 <button @click="showMixedPayment = true; mixedRemaining = totals.grand_total" :disabled="cart.length === 0"
-                        class="flex flex-col items-center justify-center gap-0.5 sm:gap-2 py-2 sm:py-4 rounded-xl sm:rounded-2xl text-white font-semibold text-[11px] sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95"
+                        class="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
                         style="background: linear-gradient(135deg, #a855f7, #7c3aed);">
-                    <i class="fas fa-layer-group text-base sm:text-2xl"></i>
+                    <i class="fas fa-layer-group text-sm"></i>
                     <span>Parçalı</span>
                 </button>
             </div>
-            {{-- Satır 2: Veresiye | Diğer | Temizle --}}
-            <div class="grid grid-cols-3 gap-1 sm:gap-2.5">
+            {{-- İkincil: Veresiye | Diğer | Temizle --}}
+            <div class="grid grid-cols-3 gap-1">
                 <button @click="processPayment('credit')" :disabled="cart.length === 0 || !selectedCustomer"
-                        class="flex flex-col items-center justify-center gap-0.5 sm:gap-1.5 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-white font-semibold text-[11px] sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95"
+                        class="flex items-center justify-center gap-1.5 py-2 rounded-xl text-white font-semibold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
                         style="background: linear-gradient(135deg, #f4a84b, #e8913a);">
-                    <i class="fas fa-file-invoice-dollar text-base sm:text-lg"></i>
+                    <i class="fas fa-file-invoice-dollar text-xs"></i>
                     <span>Veresiye</span>
                 </button>
                 {{-- Diğer Buton + Dropdown --}}
                 <div class="relative" @click.away="showOtherPayments = false">
                     <button @click="showOtherPayments = !showOtherPayments" :disabled="cart.length === 0"
-                            class="w-full flex flex-col items-center justify-center gap-0.5 sm:gap-1.5 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-white font-semibold text-[11px] sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95"
+                            class="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-white font-semibold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
                             style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
-                        <i class="fas fa-ellipsis-h text-base sm:text-lg"></i>
+                        <i class="fas fa-ellipsis-h text-xs"></i>
                         <span>Diğer</span>
                     </button>
                     {{-- Diğer Ödeme Türleri Dropdown --}}
@@ -402,9 +403,9 @@
                     </div>
                 </div>
                 <button @click="clearCart()" :disabled="cart.length === 0"
-                        class="flex flex-col items-center justify-center gap-0.5 sm:gap-1.5 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-white font-semibold text-[11px] sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95"
+                        class="flex items-center justify-center gap-1.5 py-2 rounded-xl text-white font-semibold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
                         style="background: linear-gradient(135deg, #f87171, #ef4444);">
-                    <i class="fas fa-trash text-base sm:text-lg"></i>
+                    <i class="fas fa-trash text-xs"></i>
                     <span>Temizle</span>
                 </button>
             </div>
@@ -1228,9 +1229,9 @@ function posScreen() {
         // Fiş ayarları
         receiptSettings: @json($receiptSettings),
         isDesktop: window.innerWidth >= 1024,
-        panelWidth: 520,
-        panelMinWidth: 420,
-        panelMaxWidth: 720,
+        panelWidth: 360,
+        panelMinWidth: 300,
+        panelMaxWidth: 600,
         panelResizing: false,
         panelResizeEnabled: {{ auth()->user()->is_super_admin ? 'true' : 'false' }},
         panelResizeStorageKey: 'pos_cart_width',
