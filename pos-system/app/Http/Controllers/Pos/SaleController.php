@@ -35,9 +35,21 @@ class SaleController extends Controller
         $receiptSettings = [
             'receipt_header' => $tenant?->meta['receipt_header'] ?? '',
             'receipt_footer' => $tenant?->meta['receipt_footer'] ?? '',
+            'receipt_business_title' => $tenant?->meta['receipt_business_title'] ?? config('app.name', 'EMARE POS'),
+            'receipt_paper_width' => (string) ($tenant?->meta['receipt_paper_width'] ?? '80'),
+            'receipt_font_size' => (int) ($tenant?->meta['receipt_font_size'] ?? 12),
             'auto_print_receipt' => $tenant?->meta['auto_print_receipt'] ?? false,
             'kitchen_print' => $tenant?->meta['kitchen_print'] ?? false,
             'service_fee_percentage' => (float) ($tenant?->meta['service_fee_percentage'] ?? 0),
+            'receipt_show_datetime' => (bool) ($tenant?->meta['receipt_show_datetime'] ?? true),
+            'receipt_show_receipt_no' => (bool) ($tenant?->meta['receipt_show_receipt_no'] ?? true),
+            'receipt_show_customer_name' => (bool) ($tenant?->meta['receipt_show_customer_name'] ?? true),
+            'receipt_show_customer_balance' => (bool) ($tenant?->meta['receipt_show_customer_balance'] ?? false),
+            'receipt_show_staff_name' => (bool) ($tenant?->meta['receipt_show_staff_name'] ?? true),
+            'receipt_show_payment_breakdown' => (bool) ($tenant?->meta['receipt_show_payment_breakdown'] ?? true),
+            'receipt_show_tax_breakdown' => (bool) ($tenant?->meta['receipt_show_tax_breakdown'] ?? false),
+            'receipt_show_service_fee' => (bool) ($tenant?->meta['receipt_show_service_fee'] ?? true),
+            'receipt_show_notes' => (bool) ($tenant?->meta['receipt_show_notes'] ?? true),
         ];
         
         return view('pos.sales.index', compact('categories', 'paymentTypes', 'receiptSettings'));
@@ -171,7 +183,7 @@ class SaleController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Satış başarıyla kaydedildi.',
-                'sale' => $sale->load('items'),
+                'sale' => $sale->load('items', 'customer', 'user'),
             ]);
         } catch (\Exception $e) {
             ActivityLog::log('sale_error', 'Satış kaydedilemedi: ' . $e->getMessage());

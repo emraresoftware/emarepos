@@ -2389,16 +2389,33 @@ function posScreen() {
             const grandTotal = isLastSale ? this.lastSale.grand_total : this.totals.grand_total;
             const serviceFee = isLastSale ? (this.lastSale?.service_fee || 0) : (this.totals.service_fee || 0);
             const paymentMethod = isLastSale ? this.lastSale.payment_method : '-';
+            const vatTotal = isLastSale ? (this.lastSale?.vat_total || 0) : (this.totals.vat_total || 0);
+            const saleNotes = isLastSale ? (this.lastSale?.notes || '') : '';
+            const customer = isLastSale ? this.lastSale?.customer : this.selectedCustomer;
+            const staffName = isLastSale ? (this.lastSale?.user?.name || this.lastSale?.staff_name || '') : @json(auth()->user()?->name ?? '');
+            const paperWidth = String(this.receiptSettings.receipt_paper_width || '80');
+            const bodyWidth = paperWidth === '58' ? 220 : 300;
+            const fontSize = Number(this.receiptSettings.receipt_font_size || 12);
             const now = new Date().toLocaleString('tr-TR');
 
             let rows = '';
             items.forEach(item => {
-                const name = item.product_name || item.name || '';
+                const name = this.escapeReceiptHtml(item.product_name || item.name || '');
                 const qty = item.quantity || item.qty || 1;
                 const price = item.unit_price || item.sale_price || item.price || 0;
                 const total = item.total || (qty * price);
                 rows += `<tr><td style="text-align:left">${name}</td><td style="text-align:center">${qty}</td><td style="text-align:right">${formatCurrency(price)}</td><td style="text-align:right">${formatCurrency(total)}</td></tr>`;
             });
+
+            const paymentRows = this.receiptPaymentRows(paymentMethod, isLastSale ? this.lastSale : null);
+            const customerBalance = this.receiptCustomerBalance(customer);
+            const businessTitle = this.escapeReceiptHtml(this.receiptSettings.receipt_business_title || '{{ config('app.name', 'EMARE POS') }}');
+            const receiptHeader = this.receiptSettings.receipt_header
+                ? `<div class="center" style="font-size:${Math.max(fontSize - 2, 10)}px;white-space:pre-line;margin-bottom:4px">${this.escapeReceiptHtml(this.receiptSettings.receipt_header)}</div>`
+                : '';
+            const receiptFooter = this.receiptSettings.receipt_footer
+                ? `<div class="center" style="font-size:${Math.max(fontSize - 2, 10)}px;margin-top:8px;white-space:pre-line">${this.escapeReceiptHtml(this.receiptSettings.receipt_footer)}</div>`
+                : '<div class="center" style="font-size:10px;margin-top:8px">Teşekkür ederiz!</div>';
 
             const printWindow = window.open('', '_blank', 'width=320,height=600');
             if (!printWindow) {
@@ -2407,32 +2424,40 @@ function posScreen() {
             }
             const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Fiş</title>
             <style>
-                body{font-family:'Courier New',monospace;font-size:12px;margin:0;padding:8px;width:280px}
+                body{font-family:'Courier New',monospace;font-size:${fontSize}px;margin:0;padding:8px;width:${bodyWidth}px}
                 .center{text-align:center}
                 .bold{font-weight:bold}
                 .line{border-top:1px dashed #000;margin:6px 0}
                 table{width:100%;border-collapse:collapse}
-                td{padding:2px 0;font-size:11px}
-                .total-row td{font-weight:bold;font-size:13px;padding-top:4px}
-                @media print { @page { margin: 2mm; size: 80mm auto; } }
+                td{padding:2px 0;font-size:${Math.max(fontSize - 1, 10)}px;vertical-align:top}
+                .meta-row{display:flex;justify-content:space-between;gap:12px;margin:2px 0;font-size:${Math.max(fontSize - 1, 10)}px}
+                .total-row td{font-weight:bold;font-size:${fontSize + 1}px;padding-top:4px}
+                .note{margin-top:8px;padding:6px;border:1px dashed #999;font-size:${Math.max(fontSize - 1, 10)}px}
+                @media print { @page { margin: 2mm; size: ${paperWidth}mm auto; } }
             </style></head><body>
-                ${this.receiptSettings.receipt_header ? '<div class="center" style="font-size:10px;white-space:pre-line;margin-bottom:4px">' + this.receiptSettings.receipt_header.replace(/</g,'&lt;') + '</div>' : ''}
-                <div class="center bold" style="font-size:14px">{{ config('app.name', 'EMARE POS') }}</div>
-                <div class="center" style="font-size:10px">${now}</div>
-                <div class="center" style="font-size:10px">Fiş: ${receiptNo}</div>
+                ${receiptHeader}
+                <div class="center bold" style="font-size:${fontSize + 2}px">${businessTitle}</div>
+                ${this.receiptSettings.receipt_show_datetime ? `<div class="center" style="font-size:${Math.max(fontSize - 2, 10)}px">${now}</div>` : ''}
+                ${this.receiptSettings.receipt_show_receipt_no ? `<div class="center" style="font-size:${Math.max(fontSize - 2, 10)}px">Fiş: ${this.escapeReceiptHtml(receiptNo)}</div>` : ''}
                 <div class="line"></div>
+                ${this.receiptSettings.receipt_show_customer_name && customer?.name ? `<div class="meta-row"><span>Müşteri</span><strong>${this.escapeReceiptHtml(customer.name)}</strong></div>` : ''}
+                ${this.receiptSettings.receipt_show_customer_balance && customerBalance ? `<div class="meta-row"><span>${customerBalance.label}</span><strong>${customerBalance.value}</strong></div>` : ''}
+                ${this.receiptSettings.receipt_show_staff_name && staffName ? `<div class="meta-row"><span>Kasiyer</span><strong>${this.escapeReceiptHtml(staffName)}</strong></div>` : ''}
+                ${(this.receiptSettings.receipt_show_customer_name && customer?.name) || (this.receiptSettings.receipt_show_customer_balance && customerBalance) || (this.receiptSettings.receipt_show_staff_name && staffName) ? '<div class="line"></div>' : ''}
                 <table>
                     <tr style="font-weight:bold;border-bottom:1px solid #000"><td>Ürün</td><td style="text-align:center">Ad.</td><td style="text-align:right">Fiyat</td><td style="text-align:right">Tutar</td></tr>
                     ${rows}
                 </table>
                 <div class="line"></div>
                 <table>
-                    ${serviceFee > 0 ? `<tr><td>Hizmet Bedeli</td><td colspan="3" style="text-align:right">${formatCurrency(serviceFee)}</td></tr>` : ''}
+                    ${this.receiptSettings.receipt_show_tax_breakdown && vatTotal > 0 ? `<tr><td>KDV</td><td colspan="3" style="text-align:right">${formatCurrency(vatTotal)}</td></tr>` : ''}
+                    ${this.receiptSettings.receipt_show_service_fee && serviceFee > 0 ? `<tr><td>Hizmet Bedeli</td><td colspan="3" style="text-align:right">${formatCurrency(serviceFee)}</td></tr>` : ''}
                     <tr class="total-row"><td>TOPLAM</td><td colspan="3" style="text-align:right">${formatCurrency(grandTotal)}</td></tr>
-                    <tr><td>Ödeme</td><td colspan="3" style="text-align:right;text-transform:capitalize">${paymentMethod}</td></tr>
+                    ${this.receiptSettings.receipt_show_payment_breakdown ? paymentRows : `<tr><td>Ödeme</td><td colspan="3" style="text-align:right">${this.escapeReceiptHtml(this.paymentMethodLabel(paymentMethod))}</td></tr>`}
                 </table>
+                ${this.receiptSettings.receipt_show_notes && saleNotes ? `<div class="note">Not: ${this.escapeReceiptHtml(saleNotes)}</div>` : ''}
                 <div class="line"></div>
-                <div class="center" style="font-size:10px;margin-top:8px">${this.receiptSettings.receipt_footer || 'Teşekkür ederiz!'}</div>
+                ${receiptFooter}
             </body></html>`;
             printWindow.document.write(htmlContent);
             printWindow.document.close();
@@ -2441,6 +2466,71 @@ function posScreen() {
                 printWindow.focus();
                 printWindow.print();
             }, 300);
+        },
+
+        escapeReceiptHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        },
+
+        paymentMethodLabel(method) {
+            const labels = {
+                cash: 'Nakit',
+                card: 'Kart',
+                credit: 'Veresiye',
+                mixed: 'Karışık',
+                transfer: 'Havale',
+                cash_refund: 'Nakit İade',
+                card_refund: 'Kart İade',
+                credit_refund: 'Veresiye İade',
+                mixed_refund: 'Karışık İade',
+                transfer_refund: 'Havale İade',
+            };
+
+            if (labels[method]) {
+                return labels[method];
+            }
+
+            if (String(method || '').startsWith('other_')) {
+                return String(method).replace(/^other_/, '').replace(/_refund$/, '').replace(/_/g, ' ');
+            }
+
+            return method || '-';
+        },
+
+        receiptCustomerBalance(customer) {
+            if (!customer || typeof customer.balance === 'undefined' || customer.balance === null) {
+                return null;
+            }
+
+            const balance = Number(customer.balance || 0);
+            if (balance < 0) {
+                return { label: 'Borç', value: formatCurrency(Math.abs(balance)) };
+            }
+
+            return { label: 'Bakiye', value: formatCurrency(balance) };
+        },
+
+        receiptPaymentRows(paymentMethod, sale = null) {
+            const rows = [];
+            const amounts = [
+                { label: 'Nakit', amount: Number(sale?.cash_amount || 0) },
+                { label: 'Kart', amount: Number(sale?.card_amount || 0) },
+                { label: 'Veresiye', amount: Number(sale?.credit_amount || 0) },
+                { label: 'Havale', amount: Number(sale?.transfer_amount || 0) },
+            ].filter(item => item.amount > 0);
+
+            if (amounts.length === 0) {
+                rows.push({ label: 'Ödeme', amount: this.paymentMethodLabel(paymentMethod) });
+            } else {
+                amounts.forEach(item => rows.push({ label: item.label, amount: formatCurrency(item.amount) }));
+            }
+
+            return rows.map(item => `<tr><td>${this.escapeReceiptHtml(item.label)}</td><td colspan="3" style="text-align:right">${this.escapeReceiptHtml(item.amount)}</td></tr>`).join('');
         },
 
         // ---- İskonto Oranı Uygula ----

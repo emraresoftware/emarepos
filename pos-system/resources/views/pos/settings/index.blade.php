@@ -79,17 +79,35 @@
     </div>
 
     {{-- General Settings Tab --}}
-    <div x-show="activeTab === 'general'" x-transition>
-        <form method="POST" action="{{ url('/settings/general') }}" class="bg-white rounded-xl border border-gray-100 p-6 space-y-5">
+    @php
+        $receiptDesignerState = [
+            'receipt_business_title' => $tenant->meta['receipt_business_title'] ?? config('app.name', 'EMARE POS'),
+            'receipt_header' => $tenant->meta['receipt_header'] ?? '',
+            'receipt_footer' => $tenant->meta['receipt_footer'] ?? '',
+            'receipt_paper_width' => (string) ($tenant->meta['receipt_paper_width'] ?? '80'),
+            'receipt_font_size' => (int) ($tenant->meta['receipt_font_size'] ?? 12),
+            'receipt_show_datetime' => (bool) ($tenant->meta['receipt_show_datetime'] ?? true),
+            'receipt_show_receipt_no' => (bool) ($tenant->meta['receipt_show_receipt_no'] ?? true),
+            'receipt_show_customer_name' => (bool) ($tenant->meta['receipt_show_customer_name'] ?? true),
+            'receipt_show_customer_balance' => (bool) ($tenant->meta['receipt_show_customer_balance'] ?? false),
+            'receipt_show_staff_name' => (bool) ($tenant->meta['receipt_show_staff_name'] ?? true),
+            'receipt_show_payment_breakdown' => (bool) ($tenant->meta['receipt_show_payment_breakdown'] ?? true),
+            'receipt_show_tax_breakdown' => (bool) ($tenant->meta['receipt_show_tax_breakdown'] ?? false),
+            'receipt_show_service_fee' => (bool) ($tenant->meta['receipt_show_service_fee'] ?? true),
+            'receipt_show_notes' => (bool) ($tenant->meta['receipt_show_notes'] ?? true),
+        ];
+    @endphp
+    <div x-show="activeTab === 'general'" x-transition x-data='receiptDesigner(@json($receiptDesignerState))'>
+        <form method="POST" action="{{ url('/settings/general') }}" class="bg-white rounded-xl border border-gray-100 p-6 space-y-6">
             @csrf @method('PUT')
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                     <label class="block text-sm text-gray-500 mb-1">Fiş Üst Yazı</label>
-                    <textarea name="receipt_header" rows="3" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">{{ $tenant->meta['receipt_header'] ?? '' }}</textarea>
+                    <textarea x-model="form.receipt_header" name="receipt_header" rows="3" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">{{ $tenant->meta['receipt_header'] ?? '' }}</textarea>
                 </div>
                 <div>
                     <label class="block text-sm text-gray-500 mb-1">Fiş Alt Yazı</label>
-                    <textarea name="receipt_footer" rows="3" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">{{ $tenant->meta['receipt_footer'] ?? '' }}</textarea>
+                    <textarea x-model="form.receipt_footer" name="receipt_footer" rows="3" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">{{ $tenant->meta['receipt_footer'] ?? '' }}</textarea>
                 </div>
                 <div>
                     <label class="block text-sm text-gray-500 mb-1">Para Birimi Sembolü</label>
@@ -102,6 +120,154 @@
                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">%</span>
                     </div>
                     <p class="text-xs text-gray-500 mt-1">Hızlı satış ekranındaki Diğer menüsünden açılan hizmet bedeli bu orana göre toplama eklenir.</p>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-100 pt-5 space-y-5">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-800">Fiş Tasarım Aracı</h3>
+                        <p class="text-xs text-gray-500 mt-1">Fişte hangi alanların görüneceğini seçin, kağıt genişliğini belirleyin ve önizlemeyi anında görün.</p>
+                    </div>
+                    <div class="rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-[11px] font-medium text-amber-700">
+                        Canlı önizleme aktif
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] gap-6 items-start">
+                    <div class="space-y-5">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-sm text-gray-500 mb-1">Fiş Başlığı</label>
+                                <input type="text" x-model="form.receipt_business_title" name="receipt_business_title" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-500 mb-1">Kağıt Genişliği</label>
+                                <select x-model="form.receipt_paper_width" name="receipt_paper_width" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
+                                    <option value="58">58 mm</option>
+                                    <option value="80">80 mm</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm text-gray-500 mb-1">Yazı Boyutu</label>
+                            <div class="flex items-center gap-3">
+                                <input type="range" x-model="form.receipt_font_size" name="receipt_font_size" min="10" max="16" step="1" class="w-full accent-brand-500">
+                                <span class="w-12 text-right text-sm font-semibold text-gray-700" x-text="form.receipt_font_size + ' px'"></span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <label class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 cursor-pointer hover:border-brand-200 hover:bg-brand-50/40">
+                                <span>Tarih ve saat</span>
+                                <input x-model="form.receipt_show_datetime" type="checkbox" name="receipt_show_datetime" value="1" class="w-4 h-4 rounded bg-white border-gray-200 text-blue-600 focus:ring-brand-500/20">
+                            </label>
+                            <label class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 cursor-pointer hover:border-brand-200 hover:bg-brand-50/40">
+                                <span>Fiş numarası</span>
+                                <input x-model="form.receipt_show_receipt_no" type="checkbox" name="receipt_show_receipt_no" value="1" class="w-4 h-4 rounded bg-white border-gray-200 text-blue-600 focus:ring-brand-500/20">
+                            </label>
+                            <label class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 cursor-pointer hover:border-brand-200 hover:bg-brand-50/40">
+                                <span>Müşteri adı</span>
+                                <input x-model="form.receipt_show_customer_name" type="checkbox" name="receipt_show_customer_name" value="1" class="w-4 h-4 rounded bg-white border-gray-200 text-blue-600 focus:ring-brand-500/20">
+                            </label>
+                            <label class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 cursor-pointer hover:border-brand-200 hover:bg-brand-50/40">
+                                <span>Müşteri borç/bakiye</span>
+                                <input x-model="form.receipt_show_customer_balance" type="checkbox" name="receipt_show_customer_balance" value="1" class="w-4 h-4 rounded bg-white border-gray-200 text-blue-600 focus:ring-brand-500/20">
+                            </label>
+                            <label class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 cursor-pointer hover:border-brand-200 hover:bg-brand-50/40">
+                                <span>Kasiyer adı</span>
+                                <input x-model="form.receipt_show_staff_name" type="checkbox" name="receipt_show_staff_name" value="1" class="w-4 h-4 rounded bg-white border-gray-200 text-blue-600 focus:ring-brand-500/20">
+                            </label>
+                            <label class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 cursor-pointer hover:border-brand-200 hover:bg-brand-50/40">
+                                <span>Ödeme kırılımı</span>
+                                <input x-model="form.receipt_show_payment_breakdown" type="checkbox" name="receipt_show_payment_breakdown" value="1" class="w-4 h-4 rounded bg-white border-gray-200 text-blue-600 focus:ring-brand-500/20">
+                            </label>
+                            <label class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 cursor-pointer hover:border-brand-200 hover:bg-brand-50/40">
+                                <span>KDV kırılımı</span>
+                                <input x-model="form.receipt_show_tax_breakdown" type="checkbox" name="receipt_show_tax_breakdown" value="1" class="w-4 h-4 rounded bg-white border-gray-200 text-blue-600 focus:ring-brand-500/20">
+                            </label>
+                            <label class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 cursor-pointer hover:border-brand-200 hover:bg-brand-50/40">
+                                <span>Hizmet bedeli</span>
+                                <input x-model="form.receipt_show_service_fee" type="checkbox" name="receipt_show_service_fee" value="1" class="w-4 h-4 rounded bg-white border-gray-200 text-blue-600 focus:ring-brand-500/20">
+                            </label>
+                            <label class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 cursor-pointer hover:border-brand-200 hover:bg-brand-50/40 md:col-span-2">
+                                <span>Satış notu</span>
+                                <input x-model="form.receipt_show_notes" type="checkbox" name="receipt_show_notes" value="1" class="w-4 h-4 rounded bg-white border-gray-200 text-blue-600 focus:ring-brand-500/20">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 to-white p-4 lg:p-5 shadow-sm sticky top-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-800">Fiş Önizleme</h4>
+                                <p class="text-xs text-gray-500 mt-1">Örnek satış üzerinden canlı görünüm.</p>
+                            </div>
+                            <span class="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] text-gray-600" x-text="form.receipt_paper_width + ' mm'"></span>
+                        </div>
+
+                        <div class="mx-auto rounded-lg border border-dashed border-gray-300 bg-white px-4 py-5 text-gray-900 shadow-inner"
+                             :style="previewStyle()">
+                            <div class="text-center font-bold tracking-wide" x-text="form.receipt_business_title || 'EMARE POS'"></div>
+                            <div x-show="form.receipt_header" class="mt-1 text-center whitespace-pre-line text-[0.9em] text-gray-600" x-text="form.receipt_header"></div>
+                            <div x-show="form.receipt_show_datetime" class="mt-2 text-center text-[0.88em] text-gray-500">13.03.2026 14:35</div>
+                            <div x-show="form.receipt_show_receipt_no" class="text-center text-[0.88em] text-gray-500">Fiş: S-20260313-0042</div>
+                            <div class="my-3 border-t border-dashed border-gray-300"></div>
+                            <div x-show="form.receipt_show_customer_name" class="flex justify-between gap-3 text-[0.92em]">
+                                <span class="text-gray-500">Müşteri</span>
+                                <span class="font-medium">Ahmet Kaya</span>
+                            </div>
+                            <div x-show="form.receipt_show_customer_balance" class="flex justify-between gap-3 text-[0.92em] mt-1">
+                                <span class="text-gray-500">Borç Durumu</span>
+                                <span class="font-medium text-red-600">Borç: 245,75 TL</span>
+                            </div>
+                            <div x-show="form.receipt_show_staff_name" class="flex justify-between gap-3 text-[0.92em] mt-1">
+                                <span class="text-gray-500">Kasiyer</span>
+                                <span class="font-medium">Emare Kasiyer</span>
+                            </div>
+                            <div class="my-3 border-t border-dashed border-gray-300"></div>
+                            <div class="space-y-1.5 text-[0.92em]">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <div class="font-medium">Adana Kebap</div>
+                                        <div class="text-[0.85em] text-gray-500">1 x 320,00 TL</div>
+                                    </div>
+                                    <div class="font-medium">320,00 TL</div>
+                                </div>
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <div class="font-medium">Ayran</div>
+                                        <div class="text-[0.85em] text-gray-500">2 x 35,00 TL</div>
+                                    </div>
+                                    <div class="font-medium">70,00 TL</div>
+                                </div>
+                            </div>
+                            <div class="my-3 border-t border-dashed border-gray-300"></div>
+                            <div x-show="form.receipt_show_tax_breakdown" class="flex justify-between gap-3 text-[0.92em] text-gray-600">
+                                <span>KDV</span>
+                                <span>35,45 TL</span>
+                            </div>
+                            <div x-show="form.receipt_show_service_fee" class="flex justify-between gap-3 text-[0.92em] text-gray-600 mt-1">
+                                <span>Hizmet Bedeli</span>
+                                <span>19,50 TL</span>
+                            </div>
+                            <div class="mt-2 flex justify-between gap-3 text-[1em] font-bold">
+                                <span>TOPLAM</span>
+                                <span>409,50 TL</span>
+                            </div>
+                            <template x-if="form.receipt_show_payment_breakdown">
+                                <div class="mt-3 space-y-1 text-[0.9em] text-gray-600">
+                                    <div class="flex justify-between gap-3"><span>Nakit</span><span>200,00 TL</span></div>
+                                    <div class="flex justify-between gap-3"><span>Kart</span><span>209,50 TL</span></div>
+                                </div>
+                            </template>
+                            <div x-show="form.receipt_show_notes" class="mt-3 rounded-md bg-amber-50 px-3 py-2 text-[0.88em] text-amber-800">
+                                Not: Acısız hazırlansın, müşteri bakiyesi fişte gösterilsin.
+                            </div>
+                            <div x-show="form.receipt_footer" class="mt-4 text-center whitespace-pre-line text-[0.9em] text-gray-600" x-text="form.receipt_footer"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -235,6 +401,21 @@
     </div>
 
     <script>
+    function receiptDesigner(initial) {
+        return {
+            form: {
+                ...initial,
+                receipt_paper_width: String(initial.receipt_paper_width || '80'),
+                receipt_font_size: Number(initial.receipt_font_size || 12),
+            },
+
+            previewStyle() {
+                const width = this.form.receipt_paper_width === '58' ? 250 : 320;
+                return `width:${width}px;font-size:${this.form.receipt_font_size}px;line-height:1.45`;
+            },
+        };
+    }
+
     function paymentTypeManager() {
         return {
             types: @json($paymentTypes),
