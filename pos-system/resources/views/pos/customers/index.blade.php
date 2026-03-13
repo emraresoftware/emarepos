@@ -523,10 +523,10 @@
 
     {{-- Satış / Fatura Detay Modalı --}}
     <div x-show="showInvoiceDetailModal"
-         class="fixed inset-0 z-[60] flex justify-end bg-gray-900/60 backdrop-blur-sm"
+         class="fixed inset-0 z-[70] flex justify-end bg-gray-900/60 backdrop-blur-sm"
          x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
          x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-         style="display:none;" @click="showInvoiceDetailModal = false">
+         style="display:none;" @click="closeInvoiceModal()">
         <div class="w-full max-w-lg bg-white h-full shadow-2xl flex flex-col"
              x-transition:enter="transition ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
              x-transition:leave="transition ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
@@ -534,7 +534,7 @@
             {{-- Header --}}
             <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0 bg-white">
                 <div class="flex items-center gap-3">
-                    <button @click="showInvoiceDetailModal = false"
+                    <button @click="closeInvoiceModal()"
                             class="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors">
                         <i class="fas fa-arrow-left text-sm"></i>
                     </button>
@@ -1012,6 +1012,7 @@ function customerManager() {
         showGroupForm: false,
         showInvoiceDetailModal: false,
         selectedInvoice: null,
+        invoiceReturnToDetail: false,
         detailLoading: false,
         detailData: null,
         detailTab: 'all',
@@ -1141,7 +1142,21 @@ function customerManager() {
 
         openInvoiceModal(sale) {
             this.selectedInvoice = sale;
-            this.showInvoiceDetailModal = true;
+            this.invoiceReturnToDetail = this.showDetailModal;
+            this.showDetailModal = false;
+            this.$nextTick(() => {
+                this.showInvoiceDetailModal = true;
+            });
+        },
+
+        closeInvoiceModal() {
+            this.showInvoiceDetailModal = false;
+            if (this.invoiceReturnToDetail) {
+                this.$nextTick(() => {
+                    this.showDetailModal = true;
+                });
+            }
+            this.invoiceReturnToDetail = false;
         },
 
         printInvoice() {
