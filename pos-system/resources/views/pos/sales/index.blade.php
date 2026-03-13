@@ -2,7 +2,7 @@
 @section('title', 'Hızlı Satış')
 
 @section('content')
-<div x-data="posScreen()" x-init="init()" class="flex-1 flex flex-col lg:flex-row-reverse overflow-hidden relative">
+<div x-data="posScreen()" x-init="init()" class="flex-1 flex flex-col overflow-hidden relative">
 
     {{-- Mobil Tab Bar (sadece mobilde görünür) --}}
     <div class="lg:hidden flex shrink-0 bg-white border-b border-gray-200 z-20">
@@ -157,6 +157,9 @@
             </div>
         </div>
     </div>
+
+    {{-- Paneller Satırı --}}
+    <div class="flex-1 flex lg:flex-row-reverse overflow-hidden min-h-0">
 
     {{-- SAĞ PANEL: Sepet --}}
         <div class="w-full lg:flex-none flex flex-col bg-white border-l border-gray-200 flex-1 min-h-0 overflow-hidden relative"
@@ -403,64 +406,6 @@
                     <i class="fas fa-times text-xs"></i>
                 </button>
             </div>
-        </div>
-
-        {{-- Ödeme Butonları - 3×2 büyük grid --}}
-        <div class="grid grid-cols-3 shrink-0 border-t border-gray-100 gap-px bg-gray-100">
-            <button @click="processPayment('cash')" :disabled="cart.length === 0"
-                    class="flex flex-col items-center justify-center gap-1.5 py-5 text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
-                    style="background: linear-gradient(135deg, #43b692, #39a583);">
-                <i class="fas fa-money-bill-wave text-2xl"></i>
-                <span>Nakit</span>
-            </button>
-            <button @click="processPayment('card')" :disabled="cart.length === 0"
-                    class="flex flex-col items-center justify-center gap-1.5 py-5 text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
-                    style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
-                <i class="fas fa-credit-card text-2xl"></i>
-                <span>Kart</span>
-            </button>
-            <button @click="showMixedPayment = true; mixedRemaining = totals.grand_total" :disabled="cart.length === 0"
-                    class="flex flex-col items-center justify-center gap-1.5 py-5 text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
-                    style="background: linear-gradient(135deg, #a855f7, #7c3aed);">
-                <i class="fas fa-layer-group text-2xl"></i>
-                <span>Parçalı</span>
-            </button>
-            <button @click="processPayment('credit')" :disabled="cart.length === 0 || !selectedCustomer"
-                    class="flex flex-col items-center justify-center gap-1.5 py-5 text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
-                    style="background: linear-gradient(135deg, #f4a84b, #e8913a);">
-                <i class="fas fa-file-invoice-dollar text-2xl"></i>
-                <span>Veresiye</span>
-            </button>
-            {{-- Diğer Buton + Dropdown --}}
-            <div class="relative" @click.away="showOtherPayments = false">
-                <button @click="showOtherPayments = !showOtherPayments" :disabled="cart.length === 0"
-                        class="w-full h-full flex flex-col items-center justify-center gap-1.5 py-5 text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
-                        style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
-                    <i class="fas fa-ellipsis-h text-2xl"></i>
-                    <span>Diğer</span>
-                </button>
-                <div x-show="showOtherPayments" x-transition
-                     class="absolute bottom-full left-0 mb-1 bg-white border border-gray-200 rounded-xl shadow-2xl z-30 p-2 space-y-1 min-w-[160px]">
-                    <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider px-2 mb-1">Diğer Ödeme Türleri</div>
-                    <template x-for="pt in customPaymentTypes" :key="pt.id">
-                        <button @click="processPayment('other_' + pt.code); showOtherPayments = false"
-                                class="w-full py-2 px-3 bg-gray-50 hover:bg-blue-50 text-gray-700 hover:text-blue-700 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors">
-                            <i class="fas fa-circle text-[6px] text-blue-400"></i>
-                            <span x-text="pt.name"></span>
-                        </button>
-                    </template>
-                    <div x-show="customPaymentTypes.length === 0" class="text-center py-3 text-xs text-gray-400">
-                        <p>Ödeme türü bulunamadı</p>
-                        <a href="{{ route('pos.settings') }}" class="text-brand-500 hover:underline mt-1 inline-block">Ayarlar'dan ekleyin</a>
-                    </div>
-                </div>
-            </div>
-            <button @click="clearCart()" :disabled="cart.length === 0"
-                    class="flex flex-col items-center justify-center gap-1.5 py-5 text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
-                    style="background: linear-gradient(135deg, #f87171, #ef4444);">
-                <i class="fas fa-trash text-2xl"></i>
-                <span>Temizle</span>
-            </button>
         </div>
 
         {{-- Alt Bar: Son Fişler + İskonto + Yazdır + İade + Ödeme Al --}}
@@ -972,6 +917,65 @@
                 </div>
             </div>
         </div>
+    </div>
+    </div>{{-- /paneller satırı --}}
+
+    {{-- Ödeme Butonları - Tam genişlik alt bar --}}
+    <div class="grid grid-cols-3 lg:grid-cols-6 shrink-0 gap-3 p-3 bg-gray-100 border-t border-gray-200 safe-bottom">
+        <button @click="processPayment('cash')" :disabled="cart.length === 0"
+                class="flex flex-col items-center justify-center gap-2 py-5 rounded-2xl text-white font-bold text-sm shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
+                style="background: linear-gradient(135deg, #43b692, #39a583);">
+            <i class="fas fa-money-bill-wave text-2xl"></i>
+            <span>Nakit</span>
+        </button>
+        <button @click="processPayment('card')" :disabled="cart.length === 0"
+                class="flex flex-col items-center justify-center gap-2 py-5 rounded-2xl text-white font-bold text-sm shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
+                style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+            <i class="fas fa-credit-card text-2xl"></i>
+            <span>Kart</span>
+        </button>
+        <button @click="showMixedPayment = true; mixedRemaining = totals.grand_total" :disabled="cart.length === 0"
+                class="flex flex-col items-center justify-center gap-2 py-5 rounded-2xl text-white font-bold text-sm shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
+                style="background: linear-gradient(135deg, #a855f7, #7c3aed);">
+            <i class="fas fa-layer-group text-2xl"></i>
+            <span>Parçalı</span>
+        </button>
+        <button @click="processPayment('credit')" :disabled="cart.length === 0 || !selectedCustomer"
+                class="flex flex-col items-center justify-center gap-2 py-5 rounded-2xl text-white font-bold text-sm shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
+                style="background: linear-gradient(135deg, #f4a84b, #e8913a);">
+            <i class="fas fa-file-invoice-dollar text-2xl"></i>
+            <span>Veresiye</span>
+        </button>
+        {{-- Diğer + Dropdown --}}
+        <div class="relative" @click.away="showOtherPayments = false">
+            <button @click="showOtherPayments = !showOtherPayments" :disabled="cart.length === 0"
+                    class="w-full h-full flex flex-col items-center justify-center gap-2 py-5 rounded-2xl text-white font-bold text-sm shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
+                    style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                <i class="fas fa-ellipsis-h text-2xl"></i>
+                <span>Diğer</span>
+            </button>
+            <div x-show="showOtherPayments" x-transition
+                 class="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-2xl z-30 p-2 space-y-1 min-w-[180px]">
+                <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider px-2 mb-1">Diğer Ödeme Türleri</div>
+                <template x-for="pt in customPaymentTypes" :key="pt.id">
+                    <button @click="processPayment('other_' + pt.code); showOtherPayments = false"
+                            class="w-full py-2 px-3 bg-gray-50 hover:bg-blue-50 text-gray-700 hover:text-blue-700 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors">
+                        <i class="fas fa-circle text-[6px] text-blue-400"></i>
+                        <span x-text="pt.name"></span>
+                    </button>
+                </template>
+                <div x-show="customPaymentTypes.length === 0" class="text-center py-3 text-xs text-gray-400">
+                    <p>Ödeme türü bulunamadı</p>
+                    <a href="{{ route('pos.settings') }}" class="text-brand-500 hover:underline mt-1 inline-block">Ayarlar'dan ekleyin</a>
+                </div>
+            </div>
+        </div>
+        <button @click="clearCart()" :disabled="cart.length === 0"
+                class="flex flex-col items-center justify-center gap-2 py-5 rounded-2xl text-white font-bold text-sm shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
+                style="background: linear-gradient(135deg, #f87171, #ef4444);">
+            <i class="fas fa-trash text-2xl"></i>
+            <span>Temizle</span>
+        </button>
     </div>
 
     {{-- Parçalı (Karışık) Ödeme Modal --}}
