@@ -408,39 +408,6 @@
             </div>
         </div>
 
-        {{-- Alt Bar: Son Fişler + İskonto + Yazdır + İade + Ödeme Al --}}
-        <div class="grid grid-cols-5 shrink-0 gap-3 px-3 pb-3 bg-gray-100">
-            <button @click="loadRecentSales()"
-                    class="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm shadow-md transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
-                    style="background: linear-gradient(135deg, #64748b, #475569);">
-                <i class="fas fa-receipt text-2xl"></i>
-                <span>Son Fişler</span>
-            </button>
-            <button @click="showDiscountModal = true"
-                    class="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm shadow-md transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
-                    style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">
-                <i class="fas fa-percent text-2xl"></i>
-                <span>İskonto</span>
-            </button>
-            <button @click="printReceipt()"
-                    class="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm shadow-md transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
-                    style="background: linear-gradient(135deg, #64748b, #475569);">
-                <i class="fas fa-print text-2xl"></i>
-                <span>Yazdır</span>
-            </button>
-            <button @click="startRefund()"
-                    class="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm shadow-md transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
-                    style="background: linear-gradient(135deg, #f97316, #ea580c);">
-                <i class="fas fa-undo text-2xl"></i>
-                <span>İade</span>
-            </button>
-            <button @click="openOdemeAl()"
-                    class="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm shadow-md transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
-                    style="background: linear-gradient(135deg, #10b981, #059669);">
-                <i class="fas fa-hand-holding-usd text-2xl"></i>
-                <span>Ödeme Al</span>
-            </button>
-        </div>
     </div>
 
     {{-- İSKONTO UYGULA MODALI --}}
@@ -985,6 +952,40 @@
                 style="background: linear-gradient(135deg, #f87171, #ef4444);">
             <i class="fas fa-trash text-2xl"></i>
             <span>Temizle</span>
+        </button>
+    </div>
+
+    {{-- İşlem Butonları - 2. satır --}}
+    <div class="grid grid-cols-3 lg:grid-cols-5 shrink-0 gap-3 px-3 pb-3 bg-gray-100 safe-bottom">
+        <button @click="loadRecentSales()"
+                class="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm shadow-md transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
+                style="background: linear-gradient(135deg, #64748b, #475569);">
+            <i class="fas fa-receipt text-2xl"></i>
+            <span>Son Fişler</span>
+        </button>
+        <button @click="showDiscountModal = true"
+                class="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm shadow-md transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
+                style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">
+            <i class="fas fa-percent text-2xl"></i>
+            <span>İskonto</span>
+        </button>
+        <button @click="printReceipt()"
+                class="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm shadow-md transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
+                style="background: linear-gradient(135deg, #64748b, #475569);">
+            <i class="fas fa-print text-2xl"></i>
+            <span>Yazdır</span>
+        </button>
+        <button @click="startRefund()"
+                class="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm shadow-md transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
+                style="background: linear-gradient(135deg, #f97316, #ea580c);">
+            <i class="fas fa-undo text-2xl"></i>
+            <span>İade</span>
+        </button>
+        <button @click="openOdemeAl()"
+                class="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm shadow-md transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
+                style="background: linear-gradient(135deg, #10b981, #059669);">
+            <i class="fas fa-hand-holding-usd text-2xl"></i>
+            <span>Ödeme Al</span>
         </button>
     </div>
 
