@@ -69,8 +69,55 @@ class OrderController extends Controller
         if ($order->branch_id !== (int) session('branch_id')) {
             return response()->json(['error' => 'Yetkiniz yok.'], 403);
         }
+
         $order->load(['user', 'customer', 'tableSession.table', 'items.product']);
-        return response()->json(['order' => $order]);
+
+        return response()->json([
+            'order' => [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
+                'status' => $order->status,
+                'order_type' => $order->order_type,
+                'total_items' => $order->total_items,
+                'subtotal' => (float) ($order->subtotal ?? 0),
+                'vat_total' => (float) ($order->vat_total ?? 0),
+                'discount_total' => (float) ($order->discount_total ?? 0),
+                'grand_total' => (float) ($order->grand_total ?? 0),
+                'notes' => $order->notes,
+                'kitchen_notes' => $order->kitchen_notes,
+                'ordered_at' => optional($order->ordered_at)->toDateTimeString(),
+                'customer' => $order->customer ? [
+                    'id' => $order->customer->id,
+                    'name' => $order->customer->name,
+                ] : null,
+                'user' => $order->user ? [
+                    'id' => $order->user->id,
+                    'name' => $order->user->name,
+                ] : null,
+                'table_session' => $order->tableSession ? [
+                    'id' => $order->tableSession->id,
+                    'table' => $order->tableSession->table ? [
+                        'id' => $order->tableSession->table->id,
+                        'name' => $order->tableSession->table->name,
+                    ] : null,
+                ] : null,
+                'items' => $order->items->map(function (OrderItem $item) {
+                    return [
+                        'id' => $item->id,
+                        'product_id' => $item->product_id,
+                        'product_name' => $item->product_name ?: optional($item->product)->name,
+                        'quantity' => (float) ($item->quantity ?? 0),
+                        'unit_price' => (float) ($item->unit_price ?? 0),
+                        'discount' => (float) ($item->discount ?? 0),
+                        'vat_rate' => (int) ($item->vat_rate ?? 0),
+                        'vat_amount' => (float) ($item->vat_amount ?? 0),
+                        'total' => (float) ($item->total ?? 0),
+                        'status' => $item->status,
+                        'notes' => $item->notes,
+                    ];
+                })->values(),
+            ],
+        ]);
     }
 
     public function updateStatus(Request $request, Order $order)

@@ -166,6 +166,11 @@
                 <p>Detay yükleniyor...</p>
             </div>
 
+            <div x-show="!detailLoading && !selectedOrder" class="px-6 py-12 text-center text-gray-500">
+                <i class="fas fa-circle-exclamation text-2xl mb-3"></i>
+                <p>Sipariş detayı yüklenemedi.</p>
+            </div>
+
             <div x-show="!detailLoading && selectedOrder" class="overflow-y-auto max-h-[calc(90vh-81px)]">
                 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 p-6">
                     <div class="xl:col-span-2 space-y-6">
