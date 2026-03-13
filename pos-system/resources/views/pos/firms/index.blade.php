@@ -114,6 +114,7 @@
                         <th class="px-4 py-3.5 text-right">Borç</th>
                         <th class="px-4 py-3.5 text-right">Alacak</th>
                         <th class="px-4 py-3.5 text-right">Bakiye</th>
+                        <th class="px-4 py-3.5 text-right">Limit</th>
                         <th class="px-4 py-3.5 text-center">İşlemler</th>
                     </tr>                </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -164,13 +165,18 @@
                                     {{ formatCurrency($bal) }}
                                 </span>
                             </td>
+                            <td class="px-4 py-3 text-right">
+                                <span class="font-mono font-medium text-sky-600">
+                                    {{ formatCurrency($firm->credit_limit ?? 0) }}
+                                </span>
+                            </td>
                             <td class="px-4 py-3 text-center">
                                 <div class="flex items-center justify-center gap-1">
                                         <button @click.stop="openDetail({{ $firm->id }})"
                                             class="p-2 text-gray-500 hover:text-brand-600 hover:bg-brand-500/10 rounded-lg transition-colors" title="Detay / Hareketler">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                                     </button>
-                                        <button @click.stop="openEdit({{ json_encode(['id'=>$firm->id,'name'=>$firm->name,'firm_group_id'=>$firm->firm_group_id,'tax_number'=>$firm->tax_number,'tax_office'=>$firm->tax_office,'email'=>$firm->email,'address'=>$firm->address,'city'=>$firm->city,'notes'=>$firm->notes,'phones'=>$firm->phones->map(fn($p)=>['phone'=>$p->phone,'type'=>$p->type,'is_primary'=>(bool)$p->is_primary])->values()->toArray()]) }})"
+                                        <button @click.stop="openEdit({{ json_encode(['id'=>$firm->id,'name'=>$firm->name,'firm_group_id'=>$firm->firm_group_id,'tax_number'=>$firm->tax_number,'tax_office'=>$firm->tax_office,'email'=>$firm->email,'address'=>$firm->address,'city'=>$firm->city,'credit_limit'=>$firm->credit_limit,'notes'=>$firm->notes,'phones'=>$firm->phones->map(fn($p)=>['phone'=>$p->phone,'type'=>$p->type,'is_primary'=>(bool)$p->is_primary])->values()->toArray()]) }})"
                                             class="p-2 text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors" title="Düzenle">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                     </button>
@@ -187,7 +193,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-4 py-12 text-center">
+                            <td colspan="10" class="px-4 py-12 text-center">
                                 <p class="text-gray-500 text-sm">Henüz cari kaydı eklenmemiş</p>
                                 <button @click="openCreate()" class="text-brand-500 hover:text-brand-600 text-sm font-medium mt-2">+ İlk cariyi ekle</button>
                             </td>
@@ -223,6 +229,7 @@
                     <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Vergi No</label><input type="text" x-model="form.tax_number" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
                     <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Vergi Dairesi</label><input type="text" x-model="form.tax_office" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5"></div>
                 </div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1.5">Kredi / Risk Limiti</label><input type="number" x-model.number="form.credit_limit" min="0" step="0.01" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5" placeholder="0.00"></div>
                 {{-- Çoklu Telefon --}}
                 <div>
                     <div class="flex items-center justify-between mb-1.5">
@@ -312,7 +319,7 @@
                 <template x-if="detailData && !detailLoading">
                     <div>
                         {{-- Özet Kartlar --}}
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Borç</p>
                                 <p class="text-lg font-bold text-red-500" x-text="formatCur(Math.max(Math.abs(Math.min(detailData.firm.balance || 0, 0)), 0))"></p>
@@ -328,6 +335,10 @@
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Hareket Sayısı</p>
                                 <p class="text-lg font-bold text-gray-800" x-text="(detailData.transactions||[]).length"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center col-span-2 sm:col-span-1">
+                                <p class="text-xs text-gray-500 mb-1">Kredi Limiti</p>
+                                <p class="text-lg font-bold text-sky-600" x-text="formatCur(detailData.firm.credit_limit || 0)"></p>
                             </div>
                         </div>
 
@@ -772,7 +783,7 @@ function firmManager() {
         searchQuery: new URLSearchParams(window.location.search).get('search') || '',
         groupFilter: new URLSearchParams(window.location.search).get('group_id') || '',
         newGroupName: '', editingGroupId: null,
-        form: { name: '', firm_group_id: '', tax_number: '', tax_office: '', phones: [{phone: '', type: 'mobile', is_primary: true}], email: '', address: '', city: '', notes: '' },
+        form: { name: '', firm_group_id: '', tax_number: '', tax_office: '', phones: [{phone: '', type: 'mobile', is_primary: true}], email: '', address: '', city: '', credit_limit: null, notes: '' },
         payForm: { amount: '', description: '' }, payFirmId: null, payFirmName: '', payFirmBalance: 0,
         debtForm: { amount: '', description: '' }, debtFirmId: null, debtFirmName: '', debtFirmBalance: 0,
 
@@ -789,7 +800,7 @@ function firmManager() {
 
         openCreate() {
             this.editingId = null;
-            this.form = { name: '', firm_group_id: '', tax_number: '', tax_office: '', phones: [{phone: '', type: 'mobile', is_primary: true}], email: '', address: '', city: '', notes: '' };
+            this.form = { name: '', firm_group_id: '', tax_number: '', tax_office: '', phones: [{phone: '', type: 'mobile', is_primary: true}], email: '', address: '', city: '', credit_limit: null, notes: '' };
             this.showFormModal = true;
         },
         openEdit(f) {
@@ -804,7 +815,7 @@ function firmManager() {
                 name: f.name||'', firm_group_id: f.firm_group_id ? String(f.firm_group_id) : '',
                 tax_number: f.tax_number||'', tax_office: f.tax_office||'',
                 phones: phones,
-                email: f.email||'', address: f.address||'', city: f.city||'', notes: f.notes||''
+                email: f.email||'', address: f.address||'', city: f.city||'', credit_limit: f.credit_limit ?? null, notes: f.notes||''
             };
             this.showFormModal = true;
         },

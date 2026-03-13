@@ -23,6 +23,7 @@ class Firm extends Model
         'address',
         'city',
         'balance',
+        'credit_limit',
         'notes',
         'is_active',
     ];
@@ -31,6 +32,7 @@ class Firm extends Model
     {
         return [
             'balance' => 'decimal:2',
+            'credit_limit' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }

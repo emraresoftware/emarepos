@@ -96,6 +96,7 @@ class FirmController extends Controller
             'email' => 'nullable|email|max:255',
             'address' => 'nullable|string',
             'city' => 'nullable|string|max:100',
+            'credit_limit' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
         ]);
 
@@ -141,6 +142,7 @@ class FirmController extends Controller
             'email' => 'nullable|email|max:255',
             'address' => 'nullable|string',
             'city' => 'nullable|string|max:100',
+            'credit_limit' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
         ]);
 
