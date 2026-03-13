@@ -405,38 +405,38 @@
             </div>
         </div>
 
-        {{-- Ödeme Butonları - Tek satır 6'lı --}}
-        <div class="grid grid-cols-6 shrink-0 border-t border-gray-100">
+        {{-- Ödeme Butonları - 3×2 büyük grid --}}
+        <div class="grid grid-cols-3 shrink-0 border-t border-gray-100 gap-px bg-gray-100">
             <button @click="processPayment('cash')" :disabled="cart.length === 0"
-                    class="flex flex-col items-center justify-center gap-0.5 py-2.5 text-white font-semibold text-[10px] disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95 border-r border-white/20"
+                    class="flex flex-col items-center justify-center gap-1.5 py-5 text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
                     style="background: linear-gradient(135deg, #43b692, #39a583);">
-                <i class="fas fa-money-bill-wave text-sm"></i>
+                <i class="fas fa-money-bill-wave text-2xl"></i>
                 <span>Nakit</span>
             </button>
             <button @click="processPayment('card')" :disabled="cart.length === 0"
-                    class="flex flex-col items-center justify-center gap-0.5 py-2.5 text-white font-semibold text-[10px] disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95 border-r border-white/20"
+                    class="flex flex-col items-center justify-center gap-1.5 py-5 text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
                     style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
-                <i class="fas fa-credit-card text-sm"></i>
+                <i class="fas fa-credit-card text-2xl"></i>
                 <span>Kart</span>
             </button>
             <button @click="showMixedPayment = true; mixedRemaining = totals.grand_total" :disabled="cart.length === 0"
-                    class="flex flex-col items-center justify-center gap-0.5 py-2.5 text-white font-semibold text-[10px] disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95 border-r border-white/20"
+                    class="flex flex-col items-center justify-center gap-1.5 py-5 text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
                     style="background: linear-gradient(135deg, #a855f7, #7c3aed);">
-                <i class="fas fa-layer-group text-sm"></i>
+                <i class="fas fa-layer-group text-2xl"></i>
                 <span>Parçalı</span>
             </button>
             <button @click="processPayment('credit')" :disabled="cart.length === 0 || !selectedCustomer"
-                    class="flex flex-col items-center justify-center gap-0.5 py-2.5 text-white font-semibold text-[10px] disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95 border-r border-white/20"
+                    class="flex flex-col items-center justify-center gap-1.5 py-5 text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
                     style="background: linear-gradient(135deg, #f4a84b, #e8913a);">
-                <i class="fas fa-file-invoice-dollar text-sm"></i>
+                <i class="fas fa-file-invoice-dollar text-2xl"></i>
                 <span>Veresiye</span>
             </button>
             {{-- Diğer Buton + Dropdown --}}
-            <div class="relative border-r border-white/20" @click.away="showOtherPayments = false">
+            <div class="relative" @click.away="showOtherPayments = false">
                 <button @click="showOtherPayments = !showOtherPayments" :disabled="cart.length === 0"
-                        class="w-full h-full flex flex-col items-center justify-center gap-0.5 py-2.5 text-white font-semibold text-[10px] disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
+                        class="w-full h-full flex flex-col items-center justify-center gap-1.5 py-5 text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
                         style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
-                    <i class="fas fa-ellipsis-h text-sm"></i>
+                    <i class="fas fa-ellipsis-h text-2xl"></i>
                     <span>Diğer</span>
                 </button>
                 <div x-show="showOtherPayments" x-transition
@@ -456,9 +456,9 @@
                 </div>
             </div>
             <button @click="clearCart()" :disabled="cart.length === 0"
-                    class="flex flex-col items-center justify-center gap-0.5 py-2.5 text-white font-semibold text-[10px] disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
+                    class="flex flex-col items-center justify-center gap-1.5 py-5 text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110 active:scale-95"
                     style="background: linear-gradient(135deg, #f87171, #ef4444);">
-                <i class="fas fa-trash text-sm"></i>
+                <i class="fas fa-trash text-2xl"></i>
                 <span>Temizle</span>
             </button>
         </div>
