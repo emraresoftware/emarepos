@@ -109,7 +109,7 @@ class SaleController extends Controller
             })
             ->orderBy('name')
             ->limit(30)
-            ->get(['id', 'name', 'phone', 'email', 'balance', 'type']);
+            ->get(['id', 'name', 'phone', 'email', 'balance', 'credit_limit', 'type']);
 
         return response()->json($customers);
     }
@@ -127,6 +127,22 @@ class SaleController extends Controller
             'customer_id' => ['nullable', 'integer', Rule::exists('customers', 'id')->where('tenant_id', session('tenant_id'))],
             'payment_method' => ['required', 'string', 'regex:/^(cash|card|credit|mixed|transfer|other_.+)(\_refund)?$/'],
         ]);
+
+        $creditAmount = (float) ($request->credit_amount ?? 0);
+        if ($request->customer_id && $creditAmount > 0) {
+            $customer = Customer::where('tenant_id', session('tenant_id'))
+                ->findOrFail($request->customer_id);
+            $creditLimit = (float) ($customer->credit_limit ?? 0);
+            $projectedBalance = (float) $customer->balance - $creditAmount;
+            $projectedDebt = $projectedBalance < 0 ? abs($projectedBalance) : 0;
+
+            if ($creditLimit > 0 && $projectedDebt > $creditLimit) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Müşteri kredi limiti yetersiz. Limit: ' . formatCurrency($creditLimit) . ', satış sonrası borç: ' . formatCurrency($projectedDebt),
+                ], 422);
+            }
+        }
 
         try {
             $sale = $this->saleService->createSale([

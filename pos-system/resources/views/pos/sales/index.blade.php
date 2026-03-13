@@ -323,7 +323,7 @@
                           x-text="selectedCustomer ? selectedCustomer.name : 'Müşteri seç veya yeni müşteri ekle'"></span>
                     <span class="block text-xs mt-0.5"
                           :class="customerPanelOpen ? 'text-blue-100' : 'text-gray-500'"
-                          x-text="selectedCustomer ? ((selectedCustomer.phone || selectedCustomer.email || 'İletişim bilgisi yok') + ' • Bakiye ' + formatCurrency(selectedCustomer?.balance ?? 0)) : 'Satışa müşteri bağlamak için paneli açın'"></span>
+                          x-text="selectedCustomer ? ((selectedCustomer.phone || selectedCustomer.email || 'İletişim bilgisi yok') + ' • Bakiye ' + formatCurrency(selectedCustomer?.balance ?? 0) + ' • Limit ' + formatCurrency(selectedCustomer?.credit_limit ?? 0)) : 'Satışa müşteri bağlamak için paneli açın'"></span>
                 </span>
                 <div class="flex items-center gap-2 shrink-0">
                     <button x-show="selectedCustomer"
@@ -384,7 +384,7 @@
                                         </div>
                                         <div class="text-right shrink-0">
                                             <div class="text-xs font-bold" :class="(c.balance ?? 0) < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCurrency(c.balance ?? 0)"></div>
-                                            <div class="text-[10px] text-gray-400" x-text="(c.balance ?? 0) < 0 ? 'Borçlu' : ((c.balance ?? 0) > 0 ? 'Alacaklı' : 'Bakiye 0')"></div>
+                                            <div class="text-[10px] text-gray-400" x-text="'Limit ' + formatCurrency(c.credit_limit ?? 0)"></div>
                                         </div>
                                     </button>
                                 </template>
@@ -1354,6 +1354,26 @@ function posScreen() {
             return Math.max(this.panelMinWidth, Math.min(this.panelMaxWidth, value));
         },
 
+        kalanKrediLimiti(customer = null) {
+            const aktifMusteri = customer || this.selectedCustomer;
+            if (!aktifMusteri) return null;
+            const limit = parseFloat(aktifMusteri.credit_limit || 0);
+            if (limit <= 0) return null;
+            const balance = parseFloat(aktifMusteri.balance || 0);
+            const mevcutBorc = balance < 0 ? Math.abs(balance) : 0;
+            return Math.max(0, limit - mevcutBorc);
+        },
+
+        krediLimitiAsiliyorMu(ekKrediTutari = 0, customer = null) {
+            const aktifMusteri = customer || this.selectedCustomer;
+            if (!aktifMusteri) return false;
+            const limit = parseFloat(aktifMusteri.credit_limit || 0);
+            if (limit <= 0) return false;
+            const balance = parseFloat(aktifMusteri.balance || 0);
+            const mevcutBorc = balance < 0 ? Math.abs(balance) : 0;
+            return (mevcutBorc + parseFloat(ekKrediTutari || 0)) > limit + 0.0001;
+        },
+
         panelStyle() {
             return this.isDesktop ? `width: ${this.panelWidth}px;` : '';
         },
@@ -1761,6 +1781,11 @@ function posScreen() {
                 showToast('Veresiye satış için müşteri seçiniz.', 'error');
                 return;
             }
+            if (method === 'credit' && this.krediLimitiAsiliyorMu(this.totals.grand_total)) {
+                const kalanLimit = this.kalanKrediLimiti();
+                showToast('Müşteri kredi limiti yetersiz. Kalan limit: ' + formatCurrency(kalanLimit || 0), 'error');
+                return;
+            }
 
             // "other_xxx" formatında gelen özel ödeme türleri
             const isOther = method.startsWith('other_');
@@ -1860,6 +1885,11 @@ function posScreen() {
             }
             if (this.mixedCredit > 0 && !this.selectedCustomer) {
                 showToast('Veresiye tutarı için müşteri seçiniz.', 'error');
+                return;
+            }
+            if (this.mixedCredit > 0 && this.krediLimitiAsiliyorMu(this.mixedCredit)) {
+                const kalanLimit = this.kalanKrediLimiti();
+                showToast('Müşteri kredi limiti yetersiz. Kalan limit: ' + formatCurrency(kalanLimit || 0), 'error');
                 return;
             }
 

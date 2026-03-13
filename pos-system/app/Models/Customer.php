@@ -34,6 +34,7 @@ class Customer extends Model
     {
         return [
             'balance' => 'decimal:2',
+            'credit_limit' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }

@@ -200,6 +200,12 @@
                             <td class="px-4 py-3 hidden lg:table-cell">
                                 <span class="font-mono text-xs text-gray-500">{{ $customer->tax_number ?? '-' }}</span>
                             </td>
+                            {{-- Credit Limit --}}
+                            <td class="px-4 py-3 text-right">
+                                <span class="font-mono font-medium text-sky-600">
+                                    {{ formatCurrency($customer->credit_limit ?? 0) }}
+                                </span>
+                            </td>
                             {{-- Balance --}}
                             <td class="px-4 py-3 text-right">
                                 @php $balance = $customer->balance ?? 0; @endphp
@@ -321,10 +327,14 @@
 
                 <template x-if="detailData && !detailLoading">
                     <div>
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Bakiye</p>
                                 <p class="text-lg font-bold" :class="(detailData.customer.balance||0) < 0 ? 'text-red-500' : ((detailData.customer.balance||0) > 0 ? 'text-emerald-600' : 'text-gray-800')" x-text="formatCurrency(detailData.customer.balance || 0)"></p>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <p class="text-xs text-gray-500 mb-1">Kredi Limiti</p>
+                                <p class="text-lg font-bold text-sky-600" x-text="formatCurrency(detailData.customer.credit_limit || 0)"></p>
                             </div>
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Toplam Satış</p>
@@ -1295,6 +1305,7 @@ function customerManager() {
                 reportTitle,
                 `Müşteri: ${customer.name}`,
                 `Bakiye: ${this.formatCurrency(customer.balance || 0)}`,
+                `Kredi Limiti: ${this.formatCurrency(customer.credit_limit || 0)}`,
                 `Fiş Sayısı: ${sales.length}`,
                 `Toplam Tutar: ${this.formatCurrency(total)}`,
                 '',
@@ -1346,6 +1357,7 @@ function customerManager() {
                 <h1>${this.escapeHtml(reportTitle)}</h1>
                 <p>Müşteri: ${this.escapeHtml(customer.name)}</p>
                 <p>Bakiye: ${this.escapeHtml(this.formatCurrency(customer.balance || 0))}</p>
+                <p>Kredi Limiti: ${this.escapeHtml(this.formatCurrency(customer.credit_limit || 0))}</p>
                 <div class="cards">
                     <div class="card"><div class="label">Fiş Sayısı</div><div class="value">${sales.length}</div></div>
                     <div class="card"><div class="label">Toplam Tutar</div><div class="value">${this.escapeHtml(this.formatCurrency(total))}</div></div>
