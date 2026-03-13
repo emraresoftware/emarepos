@@ -11,7 +11,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500">Toplam Borç</p>
-                    <p class="text-2xl font-bold text-red-500 mt-1">{{ formatCurrency($stats['total_credit']) }}</p>
+                    <p class="text-2xl font-bold text-red-500 mt-1">{{ formatCurrency(abs($stats['total_debt'])) }}</p>
                 </div>
                 <div class="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center">
                     <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -25,7 +25,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500">Toplam Alacak</p>
-                    <p class="text-2xl font-bold text-emerald-600 mt-1">{{ formatCurrency(abs($stats['total_debt'])) }}</p>
+                    <p class="text-2xl font-bold text-emerald-600 mt-1">{{ formatCurrency($stats['total_credit']) }}</p>
                 </div>
                 <div class="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center">
                     <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -204,11 +204,11 @@
                             @php $balance = $customer->balance ?? 0; @endphp
                             {{-- Debt --}}
                             <td class="px-4 py-3 text-right font-mono hidden md:table-cell text-red-500">
-                                {{ formatCurrency(max($balance, 0)) }}
+                                {{ formatCurrency(max(abs(min($balance, 0)), 0)) }}
                             </td>
                             {{-- Credit --}}
                             <td class="px-4 py-3 text-right font-mono hidden md:table-cell text-emerald-600">
-                                {{ formatCurrency(max(abs(min($balance, 0)), 0)) }}
+                                {{ formatCurrency(max($balance, 0)) }}
                             </td>
                             {{-- Balance --}}
                             <td class="px-4 py-3 text-right">
@@ -336,11 +336,11 @@
                         <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Borç</p>
-                                <p class="text-lg font-bold text-red-500" x-text="formatCurrency(Math.max(detailData.customer.balance || 0, 0))"></p>
+                                <p class="text-lg font-bold text-red-500" x-text="formatCurrency(Math.max(Math.abs(Math.min(detailData.customer.balance || 0, 0)), 0))"></p>
                             </div>
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Alacak</p>
-                                <p class="text-lg font-bold text-emerald-600" x-text="formatCurrency(Math.max(Math.abs(Math.min(detailData.customer.balance || 0, 0)), 0))"></p>
+                                <p class="text-lg font-bold text-emerald-600" x-text="formatCurrency(Math.max(detailData.customer.balance || 0, 0))"></p>
                             </div>
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Bakiye</p>
