@@ -386,7 +386,8 @@
                                     <div>
                                         {{-- Fatura Satırı --}}
                                         <template x-if="item._type === 'invoice'">
-                                            <button type="button" @click="openInvoiceModal(item)"
+                                            <div>
+                                            <button type="button" @click="toggleInvoiceDetails(item)"
                                                     class="w-full flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl hover:border-orange-200 hover:shadow-sm hover:shadow-orange-500/10 transition-all text-left group">
                                                 <div class="flex items-center gap-3">
                                                     <div class="w-9 h-9 rounded-full bg-orange-50 flex items-center justify-center group-hover:scale-110 group-hover:bg-orange-100 transition-transform shadow-sm">
@@ -404,9 +405,95 @@
                                                            :class="item.payment_status === 'paid' ? 'text-green-500' : 'text-orange-500'"
                                                            x-text="item.payment_status === 'paid' ? 'Ödendi' : 'Bekliyor'"></p>
                                                     </div>
-                                                    <i class="fas fa-chevron-right text-gray-300 text-xs group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all"></i>
+                                                    <i class="fas text-gray-300 text-xs group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all"
+                                                       :class="expandedInvoiceKey === item._key ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
                                                 </div>
                                             </button>
+                                            <div x-show="expandedInvoiceKey === item._key" x-transition class="mt-2 rounded-2xl border border-orange-100 bg-orange-50/50 p-4" :id="'firm-invoice-print-' + item._key">
+                                                <div class="flex items-start justify-between gap-3 mb-4">
+                                                    <div>
+                                                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1" x-text="detailData?.firm?.name"></p>
+                                                        <div class="text-2xl font-black text-gray-900 tracking-tight" x-text="formatCur(item.grand_total)"></div>
+                                                        <div class="mt-2 flex items-center gap-2 flex-wrap">
+                                                            <span class="text-[11px] px-2 py-0.5 rounded-lg font-bold"
+                                                                  :class="item.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'"
+                                                                  x-text="item.payment_status === 'paid' ? 'Ödendi' : 'Ödenmedi'"></span>
+                                                            <span class="text-xs text-gray-400" x-text="item.invoice_date ? new Date(item.invoice_date).toLocaleString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : (item.created_at ? new Date(item.created_at).toLocaleString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : '')"></span>
+                                                        </div>
+                                                    </div>
+                                                    <button type="button" @click="printInvoice(item, 'firm-invoice-print-' + item._key)"
+                                                            class="px-3 py-2 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors shrink-0">
+                                                        <i class="fas fa-print"></i> Yazdır
+                                                    </button>
+                                                </div>
+
+                                                <div x-show="item._loading" class="py-10 text-center text-gray-400 text-sm">
+                                                    <i class="fas fa-spinner fa-spin text-lg mb-2"></i>
+                                                    <p>Fatura detayı yükleniyor...</p>
+                                                </div>
+
+                                                <div x-show="!item._loading" class="space-y-3">
+                                                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                                                        <div class="divide-y divide-gray-50">
+                                                            <template x-for="line in (item.items||[])" :key="line.id">
+                                                                <div class="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                                                                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                                                                        <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0" x-text="line.quantity||1"></div>
+                                                                        <div class="min-w-0">
+                                                                            <div class="text-[13px] font-bold text-gray-800 truncate" x-text="line.product_name || line.description || 'Kalem'"></div>
+                                                                            <div class="text-[11px] text-gray-400 mt-0.5" x-text="'Birim: ' + formatCur(line.unit_price)"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="text-right ml-3 flex-shrink-0">
+                                                                        <div class="text-[14px] font-black text-gray-900" x-text="formatCur(line.total_price || (line.unit_price * (line.quantity||1)))"></div>
+                                                                    </div>
+                                                                </div>
+                                                            </template>
+                                                            <div x-show="!(item.items||[]).length" class="p-8 text-center text-gray-400 text-sm">
+                                                                <i class="fas fa-inbox text-2xl mb-2"></i>
+                                                                <p>Kalem detayı bulunamadı</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+                                                        <div class="flex justify-between items-center text-sm">
+                                                            <span class="text-gray-500">Ara Toplam</span>
+                                                            <span class="font-bold text-gray-900" x-text="formatCur(item.subtotal || item.grand_total)"></span>
+                                                        </div>
+                                                        <template x-if="item.tax_total > 0">
+                                                            <div class="flex justify-between items-center text-sm">
+                                                                <span class="text-gray-500">KDV</span>
+                                                                <span class="font-bold text-gray-900" x-text="formatCur(item.tax_total)"></span>
+                                                            </div>
+                                                        </template>
+                                                        <template x-if="item.discount_amount > 0">
+                                                            <div class="flex justify-between items-center text-sm">
+                                                                <span class="text-gray-500">İndirim</span>
+                                                                <span class="text-red-500 font-bold" x-text="'-' + formatCur(item.discount_amount)"></span>
+                                                            </div>
+                                                        </template>
+                                                        <div class="pt-3 border-t border-gray-100 flex justify-between items-center">
+                                                            <span class="text-base font-bold text-gray-800">Genel Toplam</span>
+                                                            <span class="text-xl font-black text-gray-900" x-text="formatCur(item.grand_total)"></span>
+                                                        </div>
+                                                    </div>
+
+                                                    <template x-if="item.paid_amount > 0">
+                                                        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-2">
+                                                            <div class="flex justify-between items-center text-sm">
+                                                                <span class="text-gray-500">Ödenen</span>
+                                                                <span class="text-emerald-600 font-bold" x-text="formatCur(item.paid_amount)"></span>
+                                                            </div>
+                                                            <div class="flex justify-between items-center text-sm" x-show="item.grand_total - item.paid_amount > 0">
+                                                                <span class="text-gray-500">Kalan</span>
+                                                                <span class="text-orange-500 font-bold" x-text="formatCur(item.grand_total - item.paid_amount)"></span>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                            </div>
                                         </template>
                                         {{-- İşlem Satırı --}}
                                         <template x-if="item._type === 'tx'">
@@ -435,7 +522,8 @@
                             <div x-show="(detailData.purchase_invoices||[]).length === 0" class="text-center py-8 text-gray-400 text-sm">Alış faturası bulunamadı</div>
                             <div class="space-y-2">
                                 <template x-for="inv in (detailData.purchase_invoices||[])" :key="inv.id">
-                                    <button type="button" @click="openInvoiceModal(inv)"
+                                    <div>
+                                    <button type="button" @click="toggleInvoiceDetails(inv)"
                                             class="w-full flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl hover:border-orange-200 hover:shadow-sm hover:shadow-orange-500/10 transition-all text-left group">
                                         <div class="flex items-center gap-3">
                                             <div class="w-9 h-9 rounded-full bg-orange-50 flex items-center justify-center group-hover:scale-110 group-hover:bg-orange-100 transition-transform shadow-sm">
@@ -453,9 +541,95 @@
                                         </div>
                                         <div class="flex items-center gap-2">
                                             <p class="text-[15px] font-black text-gray-900" x-text="formatCur(inv.grand_total)"></p>
-                                            <i class="fas fa-chevron-right text-gray-300 text-xs group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all"></i>
+                                            <i class="fas text-gray-300 text-xs group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all"
+                                               :class="expandedInvoiceKey === ('inv_' + inv.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
                                         </div>
                                     </button>
+                                    <div x-show="expandedInvoiceKey === ('inv_' + inv.id)" x-transition class="mt-2 rounded-2xl border border-orange-100 bg-orange-50/50 p-4" :id="'firm-invoice-print-list-' + inv.id">
+                                        <div class="flex items-start justify-between gap-3 mb-4">
+                                            <div>
+                                                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1" x-text="detailData?.firm?.name"></p>
+                                                <div class="text-2xl font-black text-gray-900 tracking-tight" x-text="formatCur(inv.grand_total)"></div>
+                                                <div class="mt-2 flex items-center gap-2 flex-wrap">
+                                                    <span class="text-[11px] px-2 py-0.5 rounded-lg font-bold"
+                                                          :class="inv.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'"
+                                                          x-text="inv.payment_status === 'paid' ? 'Ödendi' : 'Ödenmedi'"></span>
+                                                    <span class="text-xs text-gray-400" x-text="inv.invoice_date ? new Date(inv.invoice_date).toLocaleString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : (inv.created_at ? new Date(inv.created_at).toLocaleString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : '')"></span>
+                                                </div>
+                                            </div>
+                                            <button type="button" @click="printInvoice(inv, 'firm-invoice-print-list-' + inv.id)"
+                                                    class="px-3 py-2 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors shrink-0">
+                                                <i class="fas fa-print"></i> Yazdır
+                                            </button>
+                                        </div>
+
+                                        <div x-show="inv._loading" class="py-10 text-center text-gray-400 text-sm">
+                                            <i class="fas fa-spinner fa-spin text-lg mb-2"></i>
+                                            <p>Fatura detayı yükleniyor...</p>
+                                        </div>
+
+                                        <div x-show="!inv._loading" class="space-y-3">
+                                            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                                                <div class="divide-y divide-gray-50">
+                                                    <template x-for="line in (inv.items||[])" :key="line.id">
+                                                        <div class="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                                                            <div class="flex items-center gap-3 flex-1 min-w-0">
+                                                                <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0" x-text="line.quantity||1"></div>
+                                                                <div class="min-w-0">
+                                                                    <div class="text-[13px] font-bold text-gray-800 truncate" x-text="line.product_name || line.description || 'Kalem'"></div>
+                                                                    <div class="text-[11px] text-gray-400 mt-0.5" x-text="'Birim: ' + formatCur(line.unit_price)"></div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="text-right ml-3 flex-shrink-0">
+                                                                <div class="text-[14px] font-black text-gray-900" x-text="formatCur(line.total_price || (line.unit_price * (line.quantity||1)))"></div>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                    <div x-show="!(inv.items||[]).length" class="p-8 text-center text-gray-400 text-sm">
+                                                        <i class="fas fa-inbox text-2xl mb-2"></i>
+                                                        <p>Kalem detayı bulunamadı</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+                                                <div class="flex justify-between items-center text-sm">
+                                                    <span class="text-gray-500">Ara Toplam</span>
+                                                    <span class="font-bold text-gray-900" x-text="formatCur(inv.subtotal || inv.grand_total)"></span>
+                                                </div>
+                                                <template x-if="inv.tax_total > 0">
+                                                    <div class="flex justify-between items-center text-sm">
+                                                        <span class="text-gray-500">KDV</span>
+                                                        <span class="font-bold text-gray-900" x-text="formatCur(inv.tax_total)"></span>
+                                                    </div>
+                                                </template>
+                                                <template x-if="inv.discount_amount > 0">
+                                                    <div class="flex justify-between items-center text-sm">
+                                                        <span class="text-gray-500">İndirim</span>
+                                                        <span class="text-red-500 font-bold" x-text="'-' + formatCur(inv.discount_amount)"></span>
+                                                    </div>
+                                                </template>
+                                                <div class="pt-3 border-t border-gray-100 flex justify-between items-center">
+                                                    <span class="text-base font-bold text-gray-800">Genel Toplam</span>
+                                                    <span class="text-xl font-black text-gray-900" x-text="formatCur(inv.grand_total)"></span>
+                                                </div>
+                                            </div>
+
+                                            <template x-if="inv.paid_amount > 0">
+                                                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-2">
+                                                    <div class="flex justify-between items-center text-sm">
+                                                        <span class="text-gray-500">Ödenen</span>
+                                                        <span class="text-emerald-600 font-bold" x-text="formatCur(inv.paid_amount)"></span>
+                                                    </div>
+                                                    <div class="flex justify-between items-center text-sm" x-show="inv.grand_total - inv.paid_amount > 0">
+                                                        <span class="text-gray-500">Kalan</span>
+                                                        <span class="text-orange-500 font-bold" x-text="formatCur(inv.grand_total - inv.paid_amount)"></span>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    </div>
                                 </template>
                             </div>
                         </div>
@@ -529,140 +703,6 @@
             </form>
         </div>
     </div>
-    {{-- Alım Faturası Detay Modalı --}}
-    <div x-show="showInvoiceDetailModal"
-         class="fixed inset-0 z-[70] flex justify-end bg-gray-900/60 backdrop-blur-sm"
-         x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-         style="display:none;" @click="closeInvoiceModal()">
-        <div class="w-full max-w-lg bg-white h-full shadow-2xl flex flex-col"
-             x-transition:enter="transition ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
-             x-transition:leave="transition ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
-             @click.stop>
-            {{-- Header --}}
-            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0 bg-white">
-                <div class="flex items-center gap-3">
-                    <button @click="closeInvoiceModal()"
-                            class="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors">
-                        <i class="fas fa-arrow-left text-sm"></i>
-                    </button>
-                    <div>
-                        <h3 class="text-base font-bold text-gray-900">Alım Faturası Detayı</h3>
-                        <p class="text-xs text-gray-500 font-medium" x-text="selectedInvoice ? (selectedInvoice.invoice_no || ('#' + selectedInvoice.id)) : ''"></p>
-                    </div>
-                </div>
-                <button @click="printInvoice()"
-                        class="px-4 py-1.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors">
-                    <i class="fas fa-print"></i> Yazdır
-                </button>
-            </div>
-            {{-- Body --}}
-            <div class="flex-1 overflow-y-auto bg-gray-50/50 p-5" id="firmInvoicePrintArea">
-                <template x-if="selectedInvoice">
-                    <div class="space-y-5">
-                        {{-- Özet Kart --}}
-                        <div class="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm relative overflow-hidden">
-                            <div class="absolute top-0 right-0 w-28 h-28 bg-orange-50 rounded-bl-full opacity-50 -z-0"></div>
-                            <div class="relative flex items-start justify-between">
-                                <div>
-                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1" x-text="detailData?.firm?.name"></p>
-                                    <div class="text-3xl font-black text-gray-900 tracking-tight" x-text="formatCur(selectedInvoice.grand_total)"></div>
-                                    <div class="mt-2 flex items-center gap-2">
-                                        <span class="text-[11px] px-2 py-0.5 rounded-lg font-bold"
-                                              :class="selectedInvoice.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'"
-                                              x-text="selectedInvoice.payment_status === 'paid' ? 'Ödendi' : 'Ödenmedi'">
-                                        </span>
-                                        <span class="text-xs text-gray-400" x-text="selectedInvoice.invoice_date ? new Date(selectedInvoice.invoice_date).toLocaleString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : (selectedInvoice.created_at ? new Date(selectedInvoice.created_at).toLocaleString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : '')"></span>
-                                    </div>
-                                </div>
-                                <div class="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center flex-shrink-0 shadow-inner">
-                                    <i class="fas fa-file-invoice text-xl"></i>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Kalemler --}}
-                        <div>
-                            <h4 class="text-sm font-bold text-gray-800 mb-2 px-1 flex items-center gap-2">
-                                <i class="fas fa-box-open text-gray-400"></i> Fatura Kalemleri
-                            </h4>
-                            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                                <div class="divide-y divide-gray-50">
-                                    <template x-for="line in (selectedInvoice.items||[])" :key="line.id">
-                                        <div class="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
-                                            <div class="flex items-center gap-3 flex-1 min-w-0">
-                                                <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0" x-text="line.quantity||1"></div>
-                                                <div class="min-w-0">
-                                                    <div class="text-[13px] font-bold text-gray-800 truncate" x-text="line.product_name || line.description || 'Kalem'"></div>
-                                                    <div class="text-[11px] text-gray-400 mt-0.5" x-text="'Birim: ' + formatCur(line.unit_price)"></div>
-                                                </div>
-                                            </div>
-                                            <div class="text-right ml-3 flex-shrink-0">
-                                                <div class="text-[14px] font-black text-gray-900" x-text="formatCur(line.total_price || (line.unit_price * (line.quantity||1)))"></div>
-                                            </div>
-                                        </div>
-                                    </template>
-                                    <div x-show="!(selectedInvoice.items||[]).length" class="p-8 text-center text-gray-400 text-sm">
-                                        <i class="fas fa-inbox text-2xl mb-2"></i>
-                                        <p>Kalem detayı bulunamadı</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Fatura Özeti --}}
-                        <div>
-                            <h4 class="text-sm font-bold text-gray-800 mb-2 px-1 flex items-center gap-2">
-                                <i class="fas fa-calculator text-gray-400"></i> Fatura Özeti
-                            </h4>
-                            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
-                                <div class="flex justify-between items-center text-sm">
-                                    <span class="text-gray-500">Ara Toplam</span>
-                                    <span class="font-bold text-gray-900" x-text="formatCur(selectedInvoice.subtotal || selectedInvoice.grand_total)"></span>
-                                </div>
-                                <template x-if="selectedInvoice.tax_total > 0">
-                                    <div class="flex justify-between items-center text-sm">
-                                        <span class="text-gray-500">KDV</span>
-                                        <span class="font-bold text-gray-900" x-text="formatCur(selectedInvoice.tax_total)"></span>
-                                    </div>
-                                </template>
-                                <template x-if="selectedInvoice.discount_amount > 0">
-                                    <div class="flex justify-between items-center text-sm">
-                                        <span class="text-gray-500">İndirim</span>
-                                        <span class="text-red-500 font-bold" x-text="'-' + formatCur(selectedInvoice.discount_amount)"></span>
-                                    </div>
-                                </template>
-                                <div class="pt-3 border-t border-gray-100 flex justify-between items-center">
-                                    <span class="text-base font-bold text-gray-800">Genel Toplam</span>
-                                    <span class="text-xl font-black text-gray-900" x-text="formatCur(selectedInvoice.grand_total)"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Ödeme Durumu --}}
-                        <template x-if="selectedInvoice.paid_amount > 0">
-                            <div>
-                                <h4 class="text-sm font-bold text-gray-800 mb-2 px-1 flex items-center gap-2">
-                                    <i class="fas fa-wallet text-gray-400"></i> Ödeme Durumu
-                                </h4>
-                                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-2">
-                                    <div class="flex justify-between items-center text-sm">
-                                        <span class="text-gray-500">Ödenen</span>
-                                        <span class="text-emerald-600 font-bold" x-text="formatCur(selectedInvoice.paid_amount)"></span>
-                                    </div>
-                                    <div class="flex justify-between items-center text-sm" x-show="selectedInvoice.grand_total - selectedInvoice.paid_amount > 0">
-                                        <span class="text-gray-500">Kalan</span>
-                                        <span class="text-orange-500 font-bold" x-text="formatCur(selectedInvoice.grand_total - selectedInvoice.paid_amount)"></span>
-                                    </div>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                </template>
-            </div>
-        </div>
-    </div>
-
 </div>
 @endsection
 
@@ -673,9 +713,8 @@ function firmManager() {
         showFormModal: false, showPaymentModal: false, showDetailModal: false,
         showDebtModal: false,
         showGroupPanel: false, showGroupForm: false,
-        showInvoiceDetailModal: false,
-        selectedInvoice: null,
-        invoiceReturnToDetail: false,
+        expandedInvoiceKey: null,
+        loadingInvoiceKey: null,
         editingId: null, saving: false, paying: false, addingDebt: false, detailLoading: false,
         detailData: null,
         detailTab: 'timeline',
@@ -729,40 +768,46 @@ function firmManager() {
         async openDetail(id) {
             this.detailData = null;
             this.detailTab = 'timeline';
+            this.expandedInvoiceKey = null;
             this.detailLoading = true;
             this.showDetailModal = true;
             try {
                 const data = await posAjax(`/firms/${id}`, {}, 'GET');
                 // Faturalara _open durumu ve _key ekle
-                (data.purchase_invoices || []).forEach(inv => { inv._open = false; inv._type = 'invoice'; inv._key = 'inv_'+inv.id; });
+                (data.purchase_invoices || []).forEach(inv => { inv._open = false; inv._loading = false; inv._type = 'invoice'; inv._key = 'inv_'+inv.id; });
                 (data.transactions || []).forEach(t => { t._type = 'tx'; t._key = 'tx_'+t.id; });
                 this.detailData = data;
             } catch(e) { showToast('Detay yüklenemedi', 'error'); this.showDetailModal = false; }
             finally { this.detailLoading = false; }
         },
 
-        openInvoiceModal(inv) {
-            this.selectedInvoice = inv;
-            this.invoiceReturnToDetail = this.showDetailModal;
-            this.showDetailModal = false;
-            this.$nextTick(() => {
-                this.showInvoiceDetailModal = true;
-            });
-        },
-
-        closeInvoiceModal() {
-            this.showInvoiceDetailModal = false;
-            if (this.invoiceReturnToDetail) {
-                this.$nextTick(() => {
-                    this.showDetailModal = true;
-                });
+        async toggleInvoiceDetails(inv) {
+            const key = inv._key || ('inv_' + inv.id);
+            if (this.expandedInvoiceKey === key) {
+                this.expandedInvoiceKey = null;
+                return;
             }
-            this.invoiceReturnToDetail = false;
+
+            this.expandedInvoiceKey = key;
+            if (inv.items && inv.items.length) return;
+
+            inv._loading = true;
+            this.loadingInvoiceKey = key;
+            try {
+                const url = '{{ route("pos.purchase-invoices.show", ":id") }}'.replace(':id', inv.id);
+                const data = await posAjax(url, {}, 'GET');
+                Object.assign(inv, data, { _key: key, _type: 'invoice', _loading: false });
+            } catch (e) {
+                showToast(e.message || 'Fatura detayı yüklenemedi.', 'error');
+                this.expandedInvoiceKey = null;
+                inv._loading = false;
+            } finally {
+                this.loadingInvoiceKey = null;
+            }
         },
 
-        printInvoice() {
-            if (!this.selectedInvoice) return;
-            const printArea = document.getElementById('firmInvoicePrintArea');
+        printInvoice(invoice, printAreaId) {
+            const printArea = document.getElementById(printAreaId);
             if (!printArea) return;
             const printWindow = window.open('', '', 'width=850,height=700');
             printWindow.document.write(`<!DOCTYPE html><html lang="tr"><head>
