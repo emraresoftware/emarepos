@@ -33,16 +33,17 @@ class CustomerController extends Controller
             $query->where('customer_group_id', $request->group_id);
         }
         
-        $customers = $query->paginate(50)->withQueryString();
-        $statsAgg = Customer::where('is_active', true)
-            ->selectRaw('COUNT(*) as total_customers, COALESCE(SUM(CASE WHEN balance < 0 THEN balance ELSE 0 END), 0) as total_debt, COALESCE(SUM(CASE WHEN balance > 0 THEN balance ELSE 0 END), 0) as total_credit, COALESCE(SUM(balance), 0) as total_balance')
+        $statsAgg = (clone $query)
+            ->reorder()
+            ->selectRaw('COUNT(*) as total_customers, COALESCE(SUM(CASE WHEN balance < 0 THEN balance ELSE 0 END), 0) as total_debt, COALESCE(SUM(CASE WHEN balance > 0 THEN balance ELSE 0 END), 0) as total_credit')
             ->first();
         $stats = [
             'total_customers' => (int) ($statsAgg->total_customers ?? 0),
             'total_debt' => (float) ($statsAgg->total_debt ?? 0),
             'total_credit' => (float) ($statsAgg->total_credit ?? 0),
-            'total_balance' => (float) ($statsAgg->total_balance ?? 0),
+            'total_balance' => (float) (($statsAgg->total_credit ?? 0) - abs((float) ($statsAgg->total_debt ?? 0))),
         ];
+        $customers = $query->paginate(50)->withQueryString();
         $groups = CustomerGroup::where('is_active', true)->withCount('customers')->orderBy('name')->get();
         return view('pos.customers.index', compact('customers', 'groups', 'stats'));
     }

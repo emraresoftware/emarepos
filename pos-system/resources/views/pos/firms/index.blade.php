@@ -200,6 +200,25 @@
                         </tr>
                     @endforelse
                 </tbody>
+                <tfoot class="bg-gray-50 border-t-2 border-gray-200">
+                    <tr>
+                        <td colspan="5" class="px-4 py-3 text-sm font-semibold text-gray-700">
+                            Toplam (listelenen kayıtlar)
+                            <span class="ml-2 text-xs font-normal text-gray-500">{{ $stats['total_firms'] }} cari</span>
+                        </td>
+                        <td class="px-4 py-3 text-right font-mono font-bold text-red-500">
+                            {{ formatCurrency(abs($stats['total_debt'])) }}
+                        </td>
+                        <td class="px-4 py-3 text-right font-mono font-bold text-emerald-600">
+                            {{ formatCurrency($stats['total_credit']) }}
+                        </td>
+                        <td class="px-4 py-3 text-right font-mono font-bold {{ $stats['total_balance'] < 0 ? 'text-red-500' : ($stats['total_balance'] > 0 ? 'text-emerald-600' : 'text-gray-500') }}">
+                            {{ formatCurrency($stats['total_balance']) }}
+                        </td>
+                        <td class="px-4 py-3 text-right text-gray-400">-</td>
+                        <td class="px-4 py-3 text-right text-xs text-gray-500">Bakiye = Alacak - Borç</td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
         @if($firms->hasPages())
