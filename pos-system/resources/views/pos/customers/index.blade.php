@@ -360,6 +360,40 @@
                             </div>
                         </div>
 
+                        <div class="bg-white rounded-2xl border border-gray-200 p-4 mb-4 shadow-sm">
+                            <div class="flex flex-col gap-3">
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                    <div>
+                                        <p class="text-sm font-semibold text-gray-900">Rapor Gönder</p>
+                                        <p class="text-xs text-gray-500" x-text="selectedCustomerSaleIds.length ? selectedCustomerSaleIds.length + ' fiş seçili' : 'Tek fiş, seçili birkaç fiş veya tüm geçmiş gönderilebilir.'"></p>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button type="button" @click="toggleAllCustomerSales(true)" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Tümünü Seç</button>
+                                        <button type="button" @click="toggleAllCustomerSales(false)" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Seçimi Temizle</button>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                    <div class="rounded-xl border border-brand-100 bg-brand-50/50 p-3">
+                                        <p class="text-[11px] font-bold uppercase tracking-wider text-brand-700 mb-2">Seçili Fişler</p>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button type="button" @click="sendCustomerReportWhatsApp('selected')" class="px-3 py-2 text-xs font-bold rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"><i class="fab fa-whatsapp mr-1.5"></i>WhatsApp</button>
+                                            <button type="button" @click="sendCustomerReportEmail('selected')" class="px-3 py-2 text-xs font-bold rounded-xl bg-sky-500 text-white hover:bg-sky-600 transition-colors"><i class="fas fa-envelope mr-1.5"></i>E-posta</button>
+                                            <button type="button" @click="printCustomerReport('selected')" class="px-3 py-2 text-xs font-bold rounded-xl bg-gray-900 text-white hover:bg-black transition-colors"><i class="fas fa-print mr-1.5"></i>Yazdır</button>
+                                        </div>
+                                    </div>
+                                    <div class="rounded-xl border border-purple-100 bg-purple-50/50 p-3">
+                                        <p class="text-[11px] font-bold uppercase tracking-wider text-purple-700 mb-2">Tüm Geçmiş</p>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button type="button" @click="sendCustomerReportWhatsApp('all')" class="px-3 py-2 text-xs font-bold rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"><i class="fab fa-whatsapp mr-1.5"></i>WhatsApp</button>
+                                            <button type="button" @click="sendCustomerReportEmail('all')" class="px-3 py-2 text-xs font-bold rounded-xl bg-sky-500 text-white hover:bg-sky-600 transition-colors"><i class="fas fa-envelope mr-1.5"></i>E-posta</button>
+                                            <button type="button" @click="printCustomerReport('all')" class="px-3 py-2 text-xs font-bold rounded-xl bg-gray-900 text-white hover:bg-black transition-colors"><i class="fas fa-print mr-1.5"></i>Yazdır</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="flex flex-wrap gap-2 mb-4">
                             <button @click="detailTab = 'all'" class="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
                                     :class="detailTab === 'all' ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'">
@@ -401,8 +435,11 @@
                         <template x-for="item in detailTimeline" :key="item._key">
                             {{-- SATIŞ SATIRI --}}
                             <div x-show="item._type==='sale'" class="mb-2">
-                                <button type="button" @click="toggleSaleDetails(item)"
-                                        class="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white hover:border-brand-200 hover:shadow-sm hover:shadow-brand-500/10 cursor-pointer text-left group transition-all">
+                                <div @click="toggleSaleDetails(item)"
+                                     class="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white hover:border-brand-200 hover:shadow-sm hover:shadow-brand-500/10 cursor-pointer text-left group transition-all">
+                                    <label class="flex items-center" @click.stop>
+                                        <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500" :checked="selectedCustomerSaleIds.includes(item.id)" @change="toggleCustomerSaleSelection(item.id)">
+                                    </label>
                                     <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm"
                                          :class="item.payment_method==='cash'?'bg-emerald-50 text-emerald-600':item.payment_method==='card'?'bg-blue-50 text-blue-600':item.payment_method==='credit'?'bg-amber-50 text-amber-600':'bg-purple-50 text-purple-600'">
                                         <i :class="item.payment_method==='cash'?'fas fa-money-bill-wave':item.payment_method==='card'?'fas fa-credit-card':item.payment_method==='credit'?'fas fa-user-clock':'fas fa-layer-group'" class="text-sm"></i>
@@ -426,7 +463,7 @@
                                         <i class="fas text-gray-300 text-xs group-hover:text-brand-400 group-hover:translate-x-0.5 transition-all"
                                            :class="expandedSaleKey === item._key ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
                                     </div>
-                                </button>
+                                </div>
                                 <div x-show="expandedSaleKey === item._key" x-transition class="mt-2 rounded-2xl border border-brand-100 bg-brand-50/40 p-4" :id="'customer-invoice-print-' + item._key">
                                     <div class="flex items-start justify-between gap-3 mb-4">
                                         <div>
@@ -439,10 +476,11 @@
                                                 <span class="text-xs text-gray-400" x-text="item.sold_at ? new Date(item.sold_at).toLocaleString('tr-TR',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}) : ''"></span>
                                             </div>
                                         </div>
-                                        <button type="button" @click="printInvoice(item, 'customer-invoice-print-' + item._key)"
-                                                class="px-3 py-2 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors shrink-0">
-                                            <i class="fas fa-print"></i> Yazdır
-                                        </button>
+                                        <div class="flex flex-wrap justify-end gap-2 shrink-0">
+                                            <button type="button" @click="sendCustomerReportWhatsApp('single', item)" class="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+                                            <button type="button" @click="sendCustomerReportEmail('single', item)" class="px-3 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"><i class="fas fa-envelope"></i> E-posta</button>
+                                            <button type="button" @click="printCustomerReport('single', item)" class="px-3 py-2 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"><i class="fas fa-print"></i> Yazdır</button>
+                                        </div>
                                     </div>
 
                                     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-3">
@@ -532,8 +570,11 @@
                         </template>
                         <template x-for="sale in (detailData?.recent_sales || [])" :key="sale.id">
                             <div class="mb-2">
-                            <button type="button" @click="toggleSaleDetails(sale)"
-                                    class="w-full mb-2 flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white hover:border-brand-200 hover:shadow-sm hover:shadow-brand-500/10 cursor-pointer text-left group transition-all">
+                            <div @click="toggleSaleDetails(sale)"
+                                 class="w-full mb-2 flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white hover:border-brand-200 hover:shadow-sm hover:shadow-brand-500/10 cursor-pointer text-left group transition-all">
+                                <label class="flex items-center" @click.stop>
+                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500" :checked="selectedCustomerSaleIds.includes(sale.id)" @change="toggleCustomerSaleSelection(sale.id)">
+                                </label>
                                 <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm"
                                      :class="sale.payment_method==='cash'?'bg-emerald-50 text-emerald-600':sale.payment_method==='card'?'bg-blue-50 text-blue-600':sale.payment_method==='credit'?'bg-amber-50 text-amber-600':'bg-purple-50 text-purple-600'">
                                     <i :class="sale.payment_method==='cash'?'fas fa-money-bill-wave':sale.payment_method==='card'?'fas fa-credit-card':sale.payment_method==='credit'?'fas fa-user-clock':'fas fa-layer-group'" class="text-sm"></i>
@@ -556,7 +597,7 @@
                                     <i class="fas text-gray-300 text-xs group-hover:text-brand-400 group-hover:translate-x-0.5 transition-all"
                                        :class="expandedSaleKey === ('sale_' + sale.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
                                 </div>
-                            </button>
+                            </div>
                             <div x-show="expandedSaleKey === ('sale_' + sale.id)" x-transition class="mt-2 rounded-2xl border border-brand-100 bg-brand-50/40 p-4" :id="'customer-invoice-print-sale-' + sale.id">
                                 <div class="flex items-start justify-between gap-3 mb-4">
                                     <div>
@@ -569,10 +610,11 @@
                                             <span class="text-xs text-gray-400" x-text="sale.sold_at ? new Date(sale.sold_at).toLocaleString('tr-TR',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}) : ''"></span>
                                         </div>
                                     </div>
-                                    <button type="button" @click="printInvoice(sale, 'customer-invoice-print-sale-' + sale.id)"
-                                            class="px-3 py-2 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors shrink-0">
-                                        <i class="fas fa-print"></i> Yazdır
-                                    </button>
+                                    <div class="flex flex-wrap justify-end gap-2 shrink-0">
+                                        <button type="button" @click="sendCustomerReportWhatsApp('single', sale)" class="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+                                        <button type="button" @click="sendCustomerReportEmail('single', sale)" class="px-3 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"><i class="fas fa-envelope"></i> E-posta</button>
+                                        <button type="button" @click="printCustomerReport('single', sale)" class="px-3 py-2 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"><i class="fas fa-print"></i> Yazdır</button>
+                                    </div>
                                 </div>
 
                                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-3">
@@ -1036,6 +1078,7 @@ function customerManager() {
         showGroupPanel: false,
         showGroupForm: false,
         expandedSaleKey: null,
+        selectedCustomerSaleIds: [],
         detailLoading: false,
         detailData: null,
         detailTab: 'all',
@@ -1149,6 +1192,7 @@ function customerManager() {
             this.detailTab = 'all';
             this.detailExpanded = false;
             this.expandedSaleKey = null;
+            this.selectedCustomerSaleIds = [];
             this.showDetailModal = true;
             try {
                 const data = await posAjax('/customers/' + id, {}, 'GET');
@@ -1167,6 +1211,183 @@ function customerManager() {
         toggleSaleDetails(sale) {
             const key = sale._key || ('sale_' + sale.id);
             this.expandedSaleKey = this.expandedSaleKey === key ? null : key;
+        },
+
+        toggleCustomerSaleSelection(id) {
+            if (this.selectedCustomerSaleIds.includes(id)) {
+                this.selectedCustomerSaleIds = this.selectedCustomerSaleIds.filter(selectedId => selectedId !== id);
+                return;
+            }
+            this.selectedCustomerSaleIds = [...this.selectedCustomerSaleIds, id];
+        },
+
+        toggleAllCustomerSales(selectAll) {
+            if (!selectAll) {
+                this.selectedCustomerSaleIds = [];
+                return;
+            }
+            this.selectedCustomerSaleIds = (this.detailData?.recent_sales || []).map(sale => sale.id);
+        },
+
+        normalizeWhatsappPhone(phone) {
+            const digits = String(phone || '').replace(/\D/g, '');
+            if (!digits) return '';
+            if (digits.startsWith('90')) return digits;
+            if (digits.startsWith('0') && digits.length === 11) return '90' + digits.slice(1);
+            if (digits.length === 10) return '90' + digits;
+            return digits;
+        },
+
+        escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        },
+
+        formatReportDate(value) {
+            if (!value) return '-';
+            return new Date(value).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        },
+
+        getCustomerReportPhone() {
+            const phones = this.detailData?.phones || [];
+            const rawPhone = phones.find(phone => phone.is_primary)?.phone || phones[0]?.phone || this.detailData?.customer?.phone || '';
+            return this.normalizeWhatsappPhone(rawPhone);
+        },
+
+        getCustomerReportEmail() {
+            return this.detailData?.customer?.email || '';
+        },
+
+        resolveCustomerReportSales(scope, sale = null) {
+            const sales = this.detailData?.recent_sales || [];
+            if (scope === 'single' && sale) return [sale];
+            if (scope === 'all') return sales;
+            return sales.filter(currentSale => this.selectedCustomerSaleIds.includes(currentSale.id));
+        },
+
+        buildCustomerReport(scope, sale = null) {
+            if (!this.detailData?.customer) {
+                showToast('Rapor verisi bulunamadı.', 'error');
+                return null;
+            }
+
+            const customer = this.detailData.customer;
+            const sales = this.resolveCustomerReportSales(scope, sale);
+            if (!sales.length) {
+                showToast(scope === 'selected' ? 'Önce en az bir fiş seçin.' : 'Raporlanacak fiş bulunamadı.', 'warning');
+                return null;
+            }
+
+            const includeAllHistory = scope === 'all';
+            const transactions = includeAllHistory ? (this.detailData.transactions || []) : [];
+            const total = sales.reduce((sum, currentSale) => sum + parseFloat(currentSale.grand_total || 0), 0);
+            const salesPreview = sales.slice(0, 12);
+            const txPreview = transactions.slice(0, 8);
+            const reportTitle = scope === 'single'
+                ? `Fiş Raporu - ${customer.name}`
+                : (scope === 'all' ? `Tüm Geçmiş Raporu - ${customer.name}` : `Seçili Fişler Raporu - ${customer.name}`);
+
+            const textLines = [
+                reportTitle,
+                `Müşteri: ${customer.name}`,
+                `Bakiye: ${this.formatCurrency(customer.balance || 0)}`,
+                `Fiş Sayısı: ${sales.length}`,
+                `Toplam Tutar: ${this.formatCurrency(total)}`,
+                '',
+                'Fişler:',
+                ...salesPreview.map(currentSale => `- ${(currentSale.receipt_no || ('#' + currentSale.id))} | ${this.formatReportDate(currentSale.sold_at)} | ${this.formatCurrency(currentSale.grand_total)} | ${currentSale.payment_method === 'cash' ? 'Nakit' : currentSale.payment_method === 'card' ? 'Kart' : currentSale.payment_method === 'credit' ? 'Veresiye' : 'Karışık'}`),
+            ];
+
+            if (sales.length > salesPreview.length) {
+                textLines.push(`... ve ${sales.length - salesPreview.length} fiş daha`);
+            }
+
+            if (includeAllHistory && transactions.length) {
+                textLines.push('', 'Son Hesap Hareketleri:');
+                txPreview.forEach(transaction => {
+                    textLines.push(`- ${transaction.description || transaction.type || 'Hareket'} | ${this.formatReportDate(transaction.transaction_date || transaction.created_at)} | ${(transaction.amount >= 0 ? '+' : '-') + this.formatCurrency(Math.abs(transaction.amount || 0))}`);
+                });
+                if (transactions.length > txPreview.length) {
+                    textLines.push(`... ve ${transactions.length - txPreview.length} hareket daha`);
+                }
+            }
+
+            const salesHtml = sales.map(currentSale => `
+                <tr>
+                    <td>${this.escapeHtml(currentSale.receipt_no || ('#' + currentSale.id))}</td>
+                    <td>${this.escapeHtml(this.formatReportDate(currentSale.sold_at))}</td>
+                    <td>${this.escapeHtml(currentSale.payment_method === 'cash' ? 'Nakit' : currentSale.payment_method === 'card' ? 'Kart' : currentSale.payment_method === 'credit' ? 'Veresiye' : 'Karışık')}</td>
+                    <td style="text-align:right;">${this.escapeHtml(this.formatCurrency(currentSale.grand_total))}</td>
+                </tr>
+            `).join('');
+
+            const transactionsHtml = includeAllHistory ? transactions.map(transaction => `
+                <tr>
+                    <td>${this.escapeHtml(transaction.description || transaction.type || 'Hareket')}</td>
+                    <td>${this.escapeHtml(this.formatReportDate(transaction.transaction_date || transaction.created_at))}</td>
+                    <td style="text-align:right;">${this.escapeHtml((transaction.amount >= 0 ? '+' : '-') + this.formatCurrency(Math.abs(transaction.amount || 0)))}</td>
+                </tr>
+            `).join('') : '';
+
+            const html = `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>${this.escapeHtml(reportTitle)}</title><style>
+                body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px;color:#111827;background:#fff}
+                h1{font-size:24px;margin-bottom:8px} h2{font-size:16px;margin:24px 0 12px} p{margin:4px 0;color:#4b5563}
+                .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:20px 0}
+                .card{border:1px solid #e5e7eb;border-radius:14px;padding:14px;background:#f9fafb}
+                .card .label{font-size:12px;color:#6b7280;margin-bottom:6px}.card .value{font-size:20px;font-weight:800;color:#111827}
+                table{width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden} th,td{padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;text-align:left}
+                th{background:#f3f4f6;color:#374151;font-weight:700} tr:last-child td{border-bottom:none}
+                @media print{body{padding:8mm}}
+            </style></head><body>
+                <h1>${this.escapeHtml(reportTitle)}</h1>
+                <p>Müşteri: ${this.escapeHtml(customer.name)}</p>
+                <p>Bakiye: ${this.escapeHtml(this.formatCurrency(customer.balance || 0))}</p>
+                <div class="cards">
+                    <div class="card"><div class="label">Fiş Sayısı</div><div class="value">${sales.length}</div></div>
+                    <div class="card"><div class="label">Toplam Tutar</div><div class="value">${this.escapeHtml(this.formatCurrency(total))}</div></div>
+                    <div class="card"><div class="label">Rapor Tipi</div><div class="value" style="font-size:16px;">${this.escapeHtml(scope === 'single' ? 'Tek Fiş' : (scope === 'all' ? 'Tüm Geçmiş' : 'Seçili Fişler'))}</div></div>
+                </div>
+                <h2>Fişler</h2>
+                <table><thead><tr><th>Fiş No</th><th>Tarih</th><th>Ödeme</th><th style="text-align:right;">Tutar</th></tr></thead><tbody>${salesHtml}</tbody></table>
+                ${includeAllHistory ? `<h2>Hesap Hareketleri</h2><table><thead><tr><th>Açıklama</th><th>Tarih</th><th style="text-align:right;">Tutar</th></tr></thead><tbody>${transactionsHtml || '<tr><td colspan="3">Hareket yok</td></tr>'}</tbody></table>` : ''}
+            </body></html>`;
+
+            return { title: reportTitle, subject: reportTitle, text: textLines.join('\n'), html };
+        },
+
+        sendCustomerReportWhatsApp(scope, sale = null) {
+            const report = this.buildCustomerReport(scope, sale);
+            if (!report) return;
+            const phone = this.getCustomerReportPhone();
+            if (!phone) {
+                showToast('WhatsApp için müşteri telefon numarası bulunamadı.', 'warning');
+                return;
+            }
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(report.text)}`, '_blank');
+        },
+
+        sendCustomerReportEmail(scope, sale = null) {
+            const report = this.buildCustomerReport(scope, sale);
+            if (!report) return;
+            const email = this.getCustomerReportEmail();
+            if (!email) {
+                showToast('E-posta göndermek için müşteri e-posta adresi bulunamadı.', 'warning');
+                return;
+            }
+            window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(report.subject)}&body=${encodeURIComponent(report.text)}`;
+        },
+
+        printCustomerReport(scope, sale = null) {
+            const report = this.buildCustomerReport(scope, sale);
+            if (!report) return;
+            const reportWindow = window.open('', '', 'width=960,height=760');
+            reportWindow.document.write(report.html);
+            reportWindow.document.close();
+            setTimeout(() => { reportWindow.focus(); reportWindow.print(); }, 500);
         },
 
         printInvoice(invoice, printAreaId) {

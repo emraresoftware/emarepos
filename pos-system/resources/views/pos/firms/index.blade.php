@@ -378,6 +378,40 @@
                             </button>
                         </div>
 
+                        <div class="bg-white rounded-2xl border border-gray-200 p-4 mb-4 shadow-sm">
+                            <div class="flex flex-col gap-3">
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                    <div>
+                                        <p class="text-sm font-semibold text-gray-900">Rapor Gönder</p>
+                                        <p class="text-xs text-gray-500" x-text="selectedInvoiceIds.length ? selectedInvoiceIds.length + ' fatura seçili' : 'Tek fatura, birkaç seçili fatura veya tüm geçmiş gönderilebilir.'"></p>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button type="button" @click="toggleAllFirmInvoices(true)" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Tümünü Seç</button>
+                                        <button type="button" @click="toggleAllFirmInvoices(false)" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Seçimi Temizle</button>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                    <div class="rounded-xl border border-orange-100 bg-orange-50/50 p-3">
+                                        <p class="text-[11px] font-bold uppercase tracking-wider text-orange-700 mb-2">Seçili Faturalar</p>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button type="button" @click="sendFirmReportWhatsApp('selected')" class="px-3 py-2 text-xs font-bold rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"><i class="fab fa-whatsapp mr-1.5"></i>WhatsApp</button>
+                                            <button type="button" @click="sendFirmReportEmail('selected')" class="px-3 py-2 text-xs font-bold rounded-xl bg-sky-500 text-white hover:bg-sky-600 transition-colors"><i class="fas fa-envelope mr-1.5"></i>E-posta</button>
+                                            <button type="button" @click="printFirmReport('selected')" class="px-3 py-2 text-xs font-bold rounded-xl bg-gray-900 text-white hover:bg-black transition-colors"><i class="fas fa-print mr-1.5"></i>Yazdır</button>
+                                        </div>
+                                    </div>
+                                    <div class="rounded-xl border border-purple-100 bg-purple-50/50 p-3">
+                                        <p class="text-[11px] font-bold uppercase tracking-wider text-purple-700 mb-2">Tüm Geçmiş</p>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button type="button" @click="sendFirmReportWhatsApp('all')" class="px-3 py-2 text-xs font-bold rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"><i class="fab fa-whatsapp mr-1.5"></i>WhatsApp</button>
+                                            <button type="button" @click="sendFirmReportEmail('all')" class="px-3 py-2 text-xs font-bold rounded-xl bg-sky-500 text-white hover:bg-sky-600 transition-colors"><i class="fas fa-envelope mr-1.5"></i>E-posta</button>
+                                            <button type="button" @click="printFirmReport('all')" class="px-3 py-2 text-xs font-bold rounded-xl bg-gray-900 text-white hover:bg-black transition-colors"><i class="fas fa-print mr-1.5"></i>Yazdır</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         {{-- Tüm Hareketler (Timeline) --}}
                         <div x-show="detailTab === 'timeline'">
                             <div x-show="detailTimeline.length === 0" class="text-center py-8 text-gray-400 text-sm">Hareket kaydı yok</div>
@@ -387,9 +421,12 @@
                                         {{-- Fatura Satırı --}}
                                         <template x-if="item._type === 'invoice'">
                                             <div>
-                                            <button type="button" @click="toggleInvoiceDetails(item)"
-                                                    class="w-full flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl hover:border-orange-200 hover:shadow-sm hover:shadow-orange-500/10 transition-all text-left group">
+                                            <div @click="toggleInvoiceDetails(item)"
+                                                 class="w-full flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl hover:border-orange-200 hover:shadow-sm hover:shadow-orange-500/10 transition-all text-left group cursor-pointer">
                                                 <div class="flex items-center gap-3">
+                                                    <label class="flex items-center" @click.stop>
+                                                        <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500" :checked="selectedInvoiceIds.includes(item.id)" @change="toggleFirmInvoiceSelection(item.id)">
+                                                    </label>
                                                     <div class="w-9 h-9 rounded-full bg-orange-50 flex items-center justify-center group-hover:scale-110 group-hover:bg-orange-100 transition-transform shadow-sm">
                                                         <i class="fas fa-file-invoice text-orange-500 text-sm"></i>
                                                     </div>
@@ -408,7 +445,7 @@
                                                     <i class="fas text-gray-300 text-xs group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all"
                                                        :class="expandedInvoiceKey === item._key ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
                                                 </div>
-                                            </button>
+                                            </div>
                                             <div x-show="expandedInvoiceKey === item._key" x-transition class="mt-2 rounded-2xl border border-orange-100 bg-orange-50/50 p-4" :id="'firm-invoice-print-' + item._key">
                                                 <div class="flex items-start justify-between gap-3 mb-4">
                                                     <div>
@@ -421,10 +458,11 @@
                                                             <span class="text-xs text-gray-400" x-text="item.invoice_date ? new Date(item.invoice_date).toLocaleString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : (item.created_at ? new Date(item.created_at).toLocaleString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : '')"></span>
                                                         </div>
                                                     </div>
-                                                    <button type="button" @click="printInvoice(item, 'firm-invoice-print-' + item._key)"
-                                                            class="px-3 py-2 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors shrink-0">
-                                                        <i class="fas fa-print"></i> Yazdır
-                                                    </button>
+                                                    <div class="flex flex-wrap justify-end gap-2 shrink-0">
+                                                        <button type="button" @click="sendFirmReportWhatsApp('single', item)" class="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+                                                        <button type="button" @click="sendFirmReportEmail('single', item)" class="px-3 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"><i class="fas fa-envelope"></i> E-posta</button>
+                                                        <button type="button" @click="printFirmReport('single', item)" class="px-3 py-2 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"><i class="fas fa-print"></i> Yazdır</button>
+                                                    </div>
                                                 </div>
 
                                                 <div x-show="item._loading" class="py-10 text-center text-gray-400 text-sm">
@@ -523,9 +561,12 @@
                             <div class="space-y-2">
                                 <template x-for="inv in (detailData.purchase_invoices||[])" :key="inv.id">
                                     <div>
-                                    <button type="button" @click="toggleInvoiceDetails(inv)"
-                                            class="w-full flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl hover:border-orange-200 hover:shadow-sm hover:shadow-orange-500/10 transition-all text-left group">
+                                    <div @click="toggleInvoiceDetails(inv)"
+                                         class="w-full flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl hover:border-orange-200 hover:shadow-sm hover:shadow-orange-500/10 transition-all text-left group cursor-pointer">
                                         <div class="flex items-center gap-3">
+                                            <label class="flex items-center" @click.stop>
+                                                <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500" :checked="selectedInvoiceIds.includes(inv.id)" @change="toggleFirmInvoiceSelection(inv.id)">
+                                            </label>
                                             <div class="w-9 h-9 rounded-full bg-orange-50 flex items-center justify-center group-hover:scale-110 group-hover:bg-orange-100 transition-transform shadow-sm">
                                                 <i class="fas fa-file-invoice text-orange-500 text-sm"></i>
                                             </div>
@@ -544,7 +585,7 @@
                                             <i class="fas text-gray-300 text-xs group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all"
                                                :class="expandedInvoiceKey === ('inv_' + inv.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
                                         </div>
-                                    </button>
+                                    </div>
                                     <div x-show="expandedInvoiceKey === ('inv_' + inv.id)" x-transition class="mt-2 rounded-2xl border border-orange-100 bg-orange-50/50 p-4" :id="'firm-invoice-print-list-' + inv.id">
                                         <div class="flex items-start justify-between gap-3 mb-4">
                                             <div>
@@ -557,10 +598,11 @@
                                                     <span class="text-xs text-gray-400" x-text="inv.invoice_date ? new Date(inv.invoice_date).toLocaleString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : (inv.created_at ? new Date(inv.created_at).toLocaleString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : '')"></span>
                                                 </div>
                                             </div>
-                                            <button type="button" @click="printInvoice(inv, 'firm-invoice-print-list-' + inv.id)"
-                                                    class="px-3 py-2 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors shrink-0">
-                                                <i class="fas fa-print"></i> Yazdır
-                                            </button>
+                                            <div class="flex flex-wrap justify-end gap-2 shrink-0">
+                                                <button type="button" @click="sendFirmReportWhatsApp('single', inv)" class="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+                                                <button type="button" @click="sendFirmReportEmail('single', inv)" class="px-3 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"><i class="fas fa-envelope"></i> E-posta</button>
+                                                <button type="button" @click="printFirmReport('single', inv)" class="px-3 py-2 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"><i class="fas fa-print"></i> Yazdır</button>
+                                            </div>
                                         </div>
 
                                         <div x-show="inv._loading" class="py-10 text-center text-gray-400 text-sm">
@@ -714,6 +756,7 @@ function firmManager() {
         showDebtModal: false,
         showGroupPanel: false, showGroupForm: false,
         expandedInvoiceKey: null,
+        selectedInvoiceIds: [],
         loadingInvoiceKey: null,
         editingId: null, saving: false, paying: false, addingDebt: false, detailLoading: false,
         detailData: null,
@@ -769,6 +812,7 @@ function firmManager() {
             this.detailData = null;
             this.detailTab = 'timeline';
             this.expandedInvoiceKey = null;
+            this.selectedInvoiceIds = [];
             this.detailLoading = true;
             this.showDetailModal = true;
             try {
@@ -804,6 +848,187 @@ function firmManager() {
             } finally {
                 this.loadingInvoiceKey = null;
             }
+        },
+
+        toggleFirmInvoiceSelection(id) {
+            if (this.selectedInvoiceIds.includes(id)) {
+                this.selectedInvoiceIds = this.selectedInvoiceIds.filter(selectedId => selectedId !== id);
+                return;
+            }
+            this.selectedInvoiceIds = [...this.selectedInvoiceIds, id];
+        },
+
+        toggleAllFirmInvoices(selectAll) {
+            if (!selectAll) {
+                this.selectedInvoiceIds = [];
+                return;
+            }
+            this.selectedInvoiceIds = (this.detailData?.purchase_invoices || []).map(invoice => invoice.id);
+        },
+
+        normalizeWhatsappPhone(phone) {
+            const digits = String(phone || '').replace(/\D/g, '');
+            if (!digits) return '';
+            if (digits.startsWith('90')) return digits;
+            if (digits.startsWith('0') && digits.length === 11) return '90' + digits.slice(1);
+            if (digits.length === 10) return '90' + digits;
+            return digits;
+        },
+
+        escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        },
+
+        formatReportDate(value) {
+            if (!value) return '-';
+            return new Date(value).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        },
+
+        getFirmReportPhone() {
+            const phones = this.detailData?.phones || [];
+            const rawPhone = phones.find(phone => phone.is_primary)?.phone || phones[0]?.phone || this.detailData?.firm?.phone || '';
+            return this.normalizeWhatsappPhone(rawPhone);
+        },
+
+        getFirmReportEmail() {
+            return this.detailData?.firm?.email || '';
+        },
+
+        resolveFirmReportInvoices(scope, invoice = null) {
+            const invoices = this.detailData?.purchase_invoices || [];
+            if (scope === 'single' && invoice) return [invoice];
+            if (scope === 'all') return invoices;
+            return invoices.filter(currentInvoice => this.selectedInvoiceIds.includes(currentInvoice.id));
+        },
+
+        buildFirmReport(scope, invoice = null) {
+            if (!this.detailData?.firm) {
+                showToast('Rapor verisi bulunamadı.', 'error');
+                return null;
+            }
+
+            const firm = this.detailData.firm;
+            const invoices = this.resolveFirmReportInvoices(scope, invoice);
+            if (!invoices.length) {
+                showToast(scope === 'selected' ? 'Önce en az bir fatura seçin.' : 'Raporlanacak fatura bulunamadı.', 'warning');
+                return null;
+            }
+
+            const includeAllHistory = scope === 'all';
+            const payments = includeAllHistory ? (this.detailData.payments || this.detailData.transactions || []) : [];
+            const total = invoices.reduce((sum, currentInvoice) => sum + parseFloat(currentInvoice.grand_total || 0), 0);
+            const invoicesPreview = invoices.slice(0, 12);
+            const paymentsPreview = payments.slice(0, 8);
+            const reportTitle = scope === 'single'
+                ? `Fatura Raporu - ${firm.name}`
+                : (scope === 'all' ? `Tüm Cari Geçmişi - ${firm.name}` : `Seçili Faturalar Raporu - ${firm.name}`);
+
+            const textLines = [
+                reportTitle,
+                `Firma: ${firm.name}`,
+                `Bakiye: ${this.formatCur(firm.balance || 0)}`,
+                `Fatura Sayısı: ${invoices.length}`,
+                `Toplam Tutar: ${this.formatCur(total)}`,
+                '',
+                'Faturalar:',
+                ...invoicesPreview.map(currentInvoice => `- ${(currentInvoice.invoice_no || ('Fatura #' + currentInvoice.id))} | ${this.formatReportDate(currentInvoice.invoice_date || currentInvoice.created_at)} | ${this.formatCur(currentInvoice.grand_total)} | ${currentInvoice.payment_status === 'paid' ? 'Ödendi' : 'Bekliyor'}`),
+            ];
+
+            if (invoices.length > invoicesPreview.length) {
+                textLines.push(`... ve ${invoices.length - invoicesPreview.length} fatura daha`);
+            }
+
+            if (includeAllHistory && payments.length) {
+                textLines.push('', 'Son Ödeme / Hareketler:');
+                paymentsPreview.forEach(payment => {
+                    const amount = payment.amount ?? payment.paid_amount ?? 0;
+                    textLines.push(`- ${payment.description || payment.type || 'Hareket'} | ${this.formatReportDate(payment.transaction_date || payment.payment_date || payment.created_at)} | ${(amount >= 0 ? '+' : '-') + this.formatCur(Math.abs(amount || 0))}`);
+                });
+                if (payments.length > paymentsPreview.length) {
+                    textLines.push(`... ve ${payments.length - paymentsPreview.length} hareket daha`);
+                }
+            }
+
+            const invoicesHtml = invoices.map(currentInvoice => `
+                <tr>
+                    <td>${this.escapeHtml(currentInvoice.invoice_no || ('Fatura #' + currentInvoice.id))}</td>
+                    <td>${this.escapeHtml(this.formatReportDate(currentInvoice.invoice_date || currentInvoice.created_at))}</td>
+                    <td>${this.escapeHtml(currentInvoice.payment_status === 'paid' ? 'Ödendi' : 'Bekliyor')}</td>
+                    <td style="text-align:right;">${this.escapeHtml(this.formatCur(currentInvoice.grand_total))}</td>
+                </tr>
+            `).join('');
+
+            const paymentsHtml = includeAllHistory ? payments.map(payment => {
+                const amount = payment.amount ?? payment.paid_amount ?? 0;
+                return `
+                    <tr>
+                        <td>${this.escapeHtml(payment.description || payment.type || 'Hareket')}</td>
+                        <td>${this.escapeHtml(this.formatReportDate(payment.transaction_date || payment.payment_date || payment.created_at))}</td>
+                        <td style="text-align:right;">${this.escapeHtml((amount >= 0 ? '+' : '-') + this.formatCur(Math.abs(amount || 0)))}</td>
+                    </tr>
+                `;
+            }).join('') : '';
+
+            const html = `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>${this.escapeHtml(reportTitle)}</title><style>
+                body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px;color:#111827;background:#fff}
+                h1{font-size:24px;margin-bottom:8px} h2{font-size:16px;margin:24px 0 12px} p{margin:4px 0;color:#4b5563}
+                .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:20px 0}
+                .card{border:1px solid #e5e7eb;border-radius:14px;padding:14px;background:#f9fafb}
+                .card .label{font-size:12px;color:#6b7280;margin-bottom:6px}.card .value{font-size:20px;font-weight:800;color:#111827}
+                table{width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden} th,td{padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;text-align:left}
+                th{background:#f3f4f6;color:#374151;font-weight:700} tr:last-child td{border-bottom:none}
+                @media print{body{padding:8mm}}
+            </style></head><body>
+                <h1>${this.escapeHtml(reportTitle)}</h1>
+                <p>Firma: ${this.escapeHtml(firm.name)}</p>
+                <p>Bakiye: ${this.escapeHtml(this.formatCur(firm.balance || 0))}</p>
+                <div class="cards">
+                    <div class="card"><div class="label">Fatura Sayısı</div><div class="value">${invoices.length}</div></div>
+                    <div class="card"><div class="label">Toplam Tutar</div><div class="value">${this.escapeHtml(this.formatCur(total))}</div></div>
+                    <div class="card"><div class="label">Rapor Tipi</div><div class="value" style="font-size:16px;">${this.escapeHtml(scope === 'single' ? 'Tek Fatura' : (scope === 'all' ? 'Tüm Geçmiş' : 'Seçili Faturalar'))}</div></div>
+                </div>
+                <h2>Faturalar</h2>
+                <table><thead><tr><th>Fatura No</th><th>Tarih</th><th>Durum</th><th style="text-align:right;">Tutar</th></tr></thead><tbody>${invoicesHtml}</tbody></table>
+                ${includeAllHistory ? `<h2>Ödeme / Hareketler</h2><table><thead><tr><th>Açıklama</th><th>Tarih</th><th style="text-align:right;">Tutar</th></tr></thead><tbody>${paymentsHtml || '<tr><td colspan="3">Hareket yok</td></tr>'}</tbody></table>` : ''}
+            </body></html>`;
+
+            return { title: reportTitle, subject: reportTitle, text: textLines.join('\n'), html };
+        },
+
+        sendFirmReportWhatsApp(scope, invoice = null) {
+            const report = this.buildFirmReport(scope, invoice);
+            if (!report) return;
+            const phone = this.getFirmReportPhone();
+            if (!phone) {
+                showToast('WhatsApp için firma telefon numarası bulunamadı.', 'warning');
+                return;
+            }
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(report.text)}`, '_blank');
+        },
+
+        sendFirmReportEmail(scope, invoice = null) {
+            const report = this.buildFirmReport(scope, invoice);
+            if (!report) return;
+            const email = this.getFirmReportEmail();
+            if (!email) {
+                showToast('E-posta göndermek için firma e-posta adresi bulunamadı.', 'warning');
+                return;
+            }
+            window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(report.subject)}&body=${encodeURIComponent(report.text)}`;
+        },
+
+        printFirmReport(scope, invoice = null) {
+            const report = this.buildFirmReport(scope, invoice);
+            if (!report) return;
+            const reportWindow = window.open('', '', 'width=960,height=760');
+            reportWindow.document.write(report.html);
+            reportWindow.document.close();
+            setTimeout(() => { reportWindow.focus(); reportWindow.print(); }, 500);
         },
 
         printInvoice(invoice, printAreaId) {
