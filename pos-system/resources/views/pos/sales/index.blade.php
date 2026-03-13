@@ -127,7 +127,7 @@
 
     {{-- SAĞ PANEL: Sepet --}}
         <div class="w-full lg:flex-none flex flex-col bg-white border-l border-gray-200 flex-1 min-h-0 overflow-hidden relative"
-            style="width:360px"
+            style="width:332px"
             :style="panelStyle()"
             :class="{ 'hidden lg:flex': mobileTab !== 'cart' }">
 
@@ -973,22 +973,22 @@
     <div class="flex-1 min-h-0 flex overflow-hidden"
          :class="{ 'hidden lg:flex': mobileTab !== 'products' }">
         {{-- Dikey Kategori Sidebar (tablet+desktop) / Horizontal scroll (mobil) --}}
-        <div class="hidden sm:flex w-32 lg:w-44 flex-col bg-white border-r border-gray-200 overflow-y-auto shrink-0">
+        <div class="hidden sm:flex w-28 lg:w-36 flex-col bg-white border-r border-gray-200 overflow-y-auto shrink-0">
                 <button @click="filterCategory(null); searchQuery = ''"
-                    class="px-3 py-3 text-sm font-semibold text-center transition-colors border-b border-gray-100 uppercase tracking-wide"
+                    class="px-3 py-3 text-[11px] lg:text-xs font-semibold text-left transition-colors border-b border-gray-100 uppercase tracking-[0.16em]"
                     :class="selectedCategory === null ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-blue-50'">
                 <i class="fas fa-star text-xs mr-1"></i>FAVORİLER
             </button>
             @foreach($categories as $cat)
             <button @click="filterCategory({{ $cat->id }})"
-                    class="px-3 py-3 text-xs font-medium text-center transition-colors border-b border-gray-100 uppercase tracking-wide"
+                    class="px-3 py-3 text-[11px] lg:text-xs font-medium text-left transition-colors border-b border-gray-100 uppercase tracking-[0.14em]"
                     :class="selectedCategory === {{ $cat->id }} ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-blue-50'">
                 {{ $cat->name }}
             </button>
             @endforeach
             <template x-for="cat in dynamicCategories" :key="cat.id">
                 <button @click="filterCategory(cat.id)"
-                        class="px-3 py-3 text-xs font-medium text-center transition-colors border-b border-gray-100 uppercase tracking-wide"
+                        class="px-3 py-3 text-[11px] lg:text-xs font-medium text-left transition-colors border-b border-gray-100 uppercase tracking-[0.14em]"
                         :class="selectedCategory === cat.id ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-blue-50'"
                         x-text="cat.name"></button>
             </template>
@@ -1023,38 +1023,51 @@
                 </template>
             </div>
             {{-- Arama Bar --}}
-            <div class="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-2 shrink-0">
-                <div class="flex-1 relative">
+            <div class="bg-white border-b border-gray-200 px-3 py-2.5 flex items-center gap-2.5 shrink-0">
+                <div class="flex-1 flex items-center gap-2 min-w-0">
+                    <div class="hidden lg:flex items-center shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        <span x-text="selectedCategory === null ? 'Tum Urunler' : 'Kategori Aktif'"></span>
+                    </div>
+                    <div class="flex-1 relative min-w-0">
                     <input type="text" x-model="searchQuery" @input.debounce.300ms="searchProducts()"
-                           placeholder="Arama yapınız.."
-                           class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-800 text-sm placeholder-gray-400 focus:outline-none focus:border-blue-400 pr-8">
-                    <button @click="searchProducts()" class="absolute right-2 top-2 text-gray-400 hover:text-gray-600">
+                           placeholder="Urun ara, barkod yaz veya isim gir"
+                           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-gray-800 text-sm placeholder-gray-400 focus:outline-none focus:border-blue-400 pr-9">
+                    <button @click="searchProducts()" class="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600">
                         <i class="fas fa-search text-sm"></i>
                     </button>
                 </div>
-                <button @click="checkPrice()" class="px-2.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200 rounded text-xs font-medium transition-colors whitespace-nowrap" title="Fiyat Gör [F3]">
+                </div>
+                <button @click="checkPrice()" class="px-3 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-semibold transition-colors whitespace-nowrap" title="Fiyat Gör [F3]">
                     <i class="fas fa-tag mr-1"></i>Fiyat
                 </button>
                 <button @click="openProductModal()"
-                        class="px-2.5 py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 border border-brand-200 rounded text-xs font-medium transition-colors whitespace-nowrap"
+                        class="px-3 py-2.5 bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 rounded-xl text-xs font-semibold transition-colors whitespace-nowrap"
                         title="Hızlı ürün ekle">
                     <i class="fas fa-box mr-1"></i>+
                 </button>
             </div>
 
             {{-- Ürün Grid --}}
-            <div class="flex-1 overflow-y-auto p-2 sm:p-3">
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-1.5 sm:gap-2">
+            <div class="flex-1 overflow-y-auto p-2.5 sm:p-3.5">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-2.5">
                     <template x-for="product in filteredProducts" :key="product.id">
                         <button @click="handleProductClick(product)"
-                                class="bg-white border border-gray-100 rounded-xl p-2 sm:p-3 text-left hover:border-blue-300 hover:shadow-md hover:shadow-blue-100/50 transition-all group active:scale-95">
-                            <div class="text-xs sm:text-sm font-medium text-gray-800 group-hover:text-blue-600 truncate" x-text="product.name"></div>
-                            <div class="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 truncate" x-text="product.category || ''"></div>
-                            <div class="flex items-center justify-between mt-1 sm:mt-2">
-                                <span class="text-xs sm:text-sm font-bold text-blue-600" x-text="formatCurrency(product.sale_price)"></span>
-                                <span class="text-[10px] sm:text-xs text-gray-400" x-show="!product.is_service" x-text="product.stock_quantity + ' ' + (product.unit || 'Adet')"></span>
+                                class="bg-white border border-slate-200 rounded-2xl p-2.5 sm:p-3 text-left min-h-[108px] sm:min-h-[118px] hover:border-blue-300 hover:shadow-lg hover:shadow-blue-100/60 transition-all group active:scale-[0.98] flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="text-xs sm:text-sm font-semibold leading-5 text-gray-800 group-hover:text-blue-700 line-clamp-2" x-text="product.name"></div>
+                                    <span class="shrink-0 rounded-lg bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-700" x-text="formatCurrency(product.sale_price)"></span>
+                                </div>
+                                <div class="text-[10px] sm:text-xs text-gray-400 mt-1 truncate" x-text="product.category || 'Genel'"></div>
                             </div>
-                            <div x-show="product.barcode" class="text-[10px] text-gray-400 mt-1 truncate" x-text="product.barcode"></div>
+                            <div class="pt-2">
+                                <div class="flex items-center justify-between gap-2 text-[10px] sm:text-xs text-gray-500">
+                                    <span class="font-medium text-slate-500" x-show="!product.is_service" x-text="(product.stock_quantity ?? 0) + ' ' + (product.unit || 'Adet')"></span>
+                                    <span class="text-gray-300" x-show="product.is_service">Hizmet</span>
+                                    <span class="font-semibold text-gray-700" x-text="product.barcode ? 'Barkod var' : 'Barkod yok'"></span>
+                                </div>
+                                <div x-show="product.barcode" class="text-[10px] text-gray-400 mt-1 truncate" x-text="product.barcode"></div>
+                            </div>
                         </button>
                     </template>
                 </div>
@@ -1071,48 +1084,48 @@
     </div>{{-- /paneller satırı --}}
 
     {{-- Alt Aksiyon Alanı --}}
-    <div class="shrink-0 border-t border-gray-200 bg-white px-3 pt-2.5 pb-3 safe-bottom shadow-[0_-6px_20px_rgba(15,23,42,0.06)]">
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-2.5">
+    <div class="shrink-0 border-t border-gray-200 bg-white px-3 pt-2 pb-2.5 safe-bottom shadow-[0_-4px_14px_rgba(15,23,42,0.05)]">
+        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
             <button @click="refundMode ? startRefund() : (cart.length ? processPayment('cash') : showToast('Önce sepete ürün ekleyin.', 'warning'))"
-                    class="flex items-center gap-3 px-3 py-3 min-h-[74px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
+                    class="flex items-center gap-2.5 px-3 py-2.5 min-h-[60px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
                     :style="refundMode ? 'background: linear-gradient(135deg, #ef4444, #dc2626);' : 'background: linear-gradient(135deg, #43b692, #39a583);'">
-                <span class="w-10 h-10 rounded-2xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
-                    <i class="fas text-lg leading-none" :class="refundMode ? 'fa-rotate-left' : 'fa-money-bill-wave'"></i>
+                <span class="w-9 h-9 rounded-xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
+                    <i class="fas text-base leading-none" :class="refundMode ? 'fa-rotate-left' : 'fa-money-bill-wave'"></i>
                 </span>
                 <span class="leading-tight"><span class="block" x-text="refundMode ? 'Nakit İade' : 'Nakit'"></span><span class="block text-[11px] font-semibold text-white/80" x-text="refundMode ? 'İade fişi bul' : 'Hızlı tahsilat'"></span></span>
             </button>
             <button @click="refundMode ? startRefund() : (cart.length ? processPayment('card') : showToast('Önce sepete ürün ekleyin.', 'warning'))"
-                    class="flex items-center gap-3 px-3 py-3 min-h-[74px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
+                    class="flex items-center gap-2.5 px-3 py-2.5 min-h-[60px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
                     :style="refundMode ? 'background: linear-gradient(135deg, #f97316, #ea580c);' : 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);'">
-                <span class="w-10 h-10 rounded-2xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
-                    <i class="fas text-lg leading-none" :class="refundMode ? 'fa-receipt' : 'fa-credit-card'"></i>
+                <span class="w-9 h-9 rounded-xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
+                    <i class="fas text-base leading-none" :class="refundMode ? 'fa-receipt' : 'fa-credit-card'"></i>
                 </span>
                 <span class="leading-tight"><span class="block" x-text="refundMode ? 'Kart İade' : 'Kart'"></span><span class="block text-[11px] font-semibold text-white/80" x-text="refundMode ? 'İade fişi bul' : 'POS çekimi'"></span></span>
             </button>
             <button @click="refundMode ? startRefund() : (cart.length ? (showMixedPayment = true, mixedRemaining = totals.grand_total) : showToast('Önce sepete ürün ekleyin.', 'warning'))"
-                    class="flex items-center gap-3 px-3 py-3 min-h-[74px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
+                    class="flex items-center gap-2.5 px-3 py-2.5 min-h-[60px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
                     :style="refundMode ? 'background: linear-gradient(135deg, #fb7185, #e11d48);' : 'background: linear-gradient(135deg, #a855f7, #7c3aed);'">
-                <span class="w-10 h-10 rounded-2xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
-                    <i class="fas text-lg leading-none" :class="refundMode ? 'fa-reply-all' : 'fa-layer-group'"></i>
+                <span class="w-9 h-9 rounded-xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
+                    <i class="fas text-base leading-none" :class="refundMode ? 'fa-reply-all' : 'fa-layer-group'"></i>
                 </span>
                 <span class="leading-tight"><span class="block" x-text="refundMode ? 'İade Akışı' : 'Parçalı'"></span><span class="block text-[11px] font-semibold text-white/80" x-text="refundMode ? 'Fişten iade yap' : 'Karışık ödeme'"></span></span>
             </button>
             <button @click="refundMode ? startRefund() : (!cart.length ? showToast('Önce sepete ürün ekleyin.', 'warning') : !selectedCustomer ? showToast('Veresiye için müşteri seçiniz.', 'error') : processPayment('credit'))"
-                    class="flex items-center gap-3 px-3 py-3 min-h-[74px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
+                    class="flex items-center gap-2.5 px-3 py-2.5 min-h-[60px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
                     :class="refundMode ? '' : (!cart.length || !selectedCustomer ? 'opacity-55' : '')"
                     :style="refundMode ? 'background: linear-gradient(135deg, #b91c1c, #991b1b);' : 'background: linear-gradient(135deg, #f4a84b, #e8913a);'">
-                <span class="w-10 h-10 rounded-2xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
-                    <i class="fas text-lg leading-none" :class="refundMode ? 'fa-file-circle-xmark' : 'fa-file-invoice-dollar'"></i>
+                <span class="w-9 h-9 rounded-xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
+                    <i class="fas text-base leading-none" :class="refundMode ? 'fa-file-circle-xmark' : 'fa-file-invoice-dollar'"></i>
                 </span>
                 <span class="leading-tight"><span class="block" x-text="refundMode ? 'İade Fişi' : 'Veresiye'"></span><span class="block text-[11px] font-semibold text-white/80" x-text="refundMode ? 'Numara ile ara' : 'Müşteriye yaz'"></span></span>
             </button>
             <div class="relative" @click.away="showOtherPayments = false">
                 <button @click="showOtherPayments = !showOtherPayments"
-                    class="w-full h-full flex items-center gap-3 px-3 py-3 min-h-[74px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
+                    class="w-full h-full flex items-center gap-2.5 px-3 py-2.5 min-h-[60px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
                         :class="refundMode ? 'ring-2 ring-red-200' : ''"
                         style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
-                    <span class="w-10 h-10 rounded-2xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
-                        <i class="fas fa-ellipsis-h text-lg leading-none"></i>
+                    <span class="w-9 h-9 rounded-xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
+                        <i class="fas fa-ellipsis-h text-base leading-none"></i>
                     </span>
                     <span class="leading-tight"><span class="block">Diğer</span><span class="block text-[11px] font-semibold text-white/80">Ek aksiyonlar</span></span>
                 </button>
@@ -1152,62 +1165,62 @@
                 </div>
             </div>
             <button @click="cart.length ? clearCart() : showToast('Sepet zaten boş.', 'warning')"
-                    class="flex items-center gap-3 px-3 py-3 min-h-[74px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
+                    class="flex items-center gap-2.5 px-3 py-2.5 min-h-[60px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
                     :class="!cart.length ? 'opacity-55' : ''"
                     style="background: linear-gradient(135deg, #f87171, #ef4444);">
-                <span class="w-10 h-10 rounded-2xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
-                    <i class="fas fa-trash text-lg leading-none"></i>
+                <span class="w-9 h-9 rounded-xl bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
+                    <i class="fas fa-trash text-base leading-none"></i>
                 </span>
                 <span class="leading-tight"><span class="block">Temizle</span><span class="block text-[11px] font-semibold text-white/80">Sepeti sıfırla</span></span>
             </button>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-2.5 mt-2.5">
+        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 mt-2">
             <button @click="openManualItemModal()"
-                    class="flex items-center gap-3 px-3 py-3 min-h-[72px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
+                    class="flex items-center gap-2.5 px-3 py-2.5 min-h-[56px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
                     style="background: linear-gradient(135deg, #0891b2, #0e7490);">
-                <span class="w-10 h-10 rounded-2xl bg-white/16 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
-                    <i class="fas fa-pen-ruler text-lg leading-none"></i>
+                <span class="w-8 h-8 rounded-xl bg-white/16 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
+                    <i class="fas fa-pen-ruler text-sm leading-none"></i>
                 </span>
                 <span class="leading-tight"><span class="block">Muhtelif</span><span class="block text-[11px] font-semibold text-white/80">Serbest tutar</span></span>
             </button>
             <button @click="loadRecentSales()"
-                    class="flex items-center gap-3 px-3 py-3 min-h-[72px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
+                    class="flex items-center gap-2.5 px-3 py-2.5 min-h-[56px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
                     style="background: linear-gradient(135deg, #64748b, #475569);">
-                <span class="w-10 h-10 rounded-2xl bg-white/16 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
-                    <i class="fas fa-receipt text-lg leading-none"></i>
+                <span class="w-8 h-8 rounded-xl bg-white/16 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
+                    <i class="fas fa-receipt text-sm leading-none"></i>
                 </span>
                 <span class="leading-tight"><span class="block">Son Fişler</span><span class="block text-[11px] font-semibold text-white/80">Geçmiş işlemler</span></span>
             </button>
             <button @click="showDiscountModal = true"
-                    class="flex items-center gap-3 px-3 py-3 min-h-[72px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
+                    class="flex items-center gap-2.5 px-3 py-2.5 min-h-[56px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
                     style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">
-                <span class="w-10 h-10 rounded-2xl bg-white/16 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
-                    <i class="fas fa-percent text-lg leading-none"></i>
+                <span class="w-8 h-8 rounded-xl bg-white/16 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
+                    <i class="fas fa-percent text-sm leading-none"></i>
                 </span>
                 <span class="leading-tight"><span class="block">İskonto</span><span class="block text-[11px] font-semibold text-white/80">Genel indirim</span></span>
             </button>
             <button @click="printReceipt()"
-                    class="flex items-center gap-3 px-3 py-3 min-h-[72px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
+                    class="flex items-center gap-2.5 px-3 py-2.5 min-h-[56px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
                     style="background: linear-gradient(135deg, #64748b, #475569);">
-                <span class="w-10 h-10 rounded-2xl bg-white/16 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
-                    <i class="fas fa-print text-lg leading-none"></i>
+                <span class="w-8 h-8 rounded-xl bg-white/16 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
+                    <i class="fas fa-print text-sm leading-none"></i>
                 </span>
                 <span class="leading-tight"><span class="block">Yazdır</span><span class="block text-[11px] font-semibold text-white/80">Fiş bas</span></span>
             </button>
             <button @click="startRefund()"
-                    class="flex items-center gap-3 px-3 py-3 min-h-[72px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
+                    class="flex items-center gap-2.5 px-3 py-2.5 min-h-[56px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
                     style="background: linear-gradient(135deg, #f97316, #ea580c);">
-                <span class="w-10 h-10 rounded-2xl bg-white/16 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
-                    <i class="fas fa-undo text-lg leading-none"></i>
+                <span class="w-8 h-8 rounded-xl bg-white/16 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
+                    <i class="fas fa-undo text-sm leading-none"></i>
                 </span>
                 <span class="leading-tight"><span class="block">İade</span><span class="block text-[11px] font-semibold text-white/80">Fişi geri al</span></span>
             </button>
             <button @click="openOdemeAl()"
-                    class="flex items-center gap-3 px-3 py-3 min-h-[72px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
+                    class="flex items-center gap-2.5 px-3 py-2.5 min-h-[56px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
                     style="background: linear-gradient(135deg, #10b981, #059669);">
-                <span class="w-10 h-10 rounded-2xl bg-white/16 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
-                    <i class="fas fa-hand-holding-usd text-lg leading-none"></i>
+                <span class="w-8 h-8 rounded-xl bg-white/16 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
+                    <i class="fas fa-hand-holding-usd text-sm leading-none"></i>
                 </span>
                 <span class="leading-tight"><span class="block">Ödeme Al</span><span class="block text-[11px] font-semibold text-white/80">Cari tahsilat</span></span>
             </button>
@@ -1473,9 +1486,9 @@ function posScreen() {
         serviceFeeEnabled: false,
         serviceFeePercentage: @json((float) ($receiptSettings['service_fee_percentage'] ?? 0)),
         isDesktop: window.innerWidth >= 1024,
-        panelWidth: 360,
-        panelMinWidth: 300,
-        panelMaxWidth: 480,
+        panelWidth: 332,
+        panelMinWidth: 280,
+        panelMaxWidth: 420,
         panelResizing: false,
         panelResizeEnabled: {{ auth()->user()->is_super_admin ? 'true' : 'false' }},
         panelResizeStorageKey: 'pos_cart_width_v2',
@@ -1535,7 +1548,7 @@ function posScreen() {
         },
 
         effectivePanelMaxWidth() {
-            const viewportBasedMax = Math.floor(window.innerWidth * 0.42);
+            const viewportBasedMax = Math.floor(window.innerWidth * 0.38);
             return Math.max(this.panelMinWidth, Math.min(this.panelMaxWidth, viewportBasedMax));
         },
 
