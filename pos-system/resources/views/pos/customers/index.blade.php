@@ -303,9 +303,7 @@
     {{-- Müşteri Detay Modalı --}}
     <div x-show="showDetailModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;" x-cloak>
         <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showDetailModal = false"></div>
-        <div class="relative bg-white rounded-xl border border-gray-100 shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col"
-             x-show="showDetailModal"
-             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
+        <div class="relative bg-white rounded-xl border border-gray-100 shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col" x-transition>
             <div class="border-b border-gray-100 px-6 py-4 flex items-center justify-between shrink-0">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <i class="fas fa-user-group text-brand-500"></i>
@@ -432,24 +430,25 @@
 
                             {{-- HESAP HAREKETİ SATIRI --}}
                             <div x-show="item._type==='tx'" class="mb-2">
-                                <div class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white hover:bg-gray-50 transition-colors">
-                                    <div class="w-6 flex-shrink-0"></div>
-                                    <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                                         :class="item.amount>=0?'bg-emerald-50 text-emerald-600':'bg-red-50 text-red-500'">
-                                        <i :class="item.type==='payment'?'fas fa-hand-holding-dollar':item.type==='debt'?'fas fa-user-minus':'fas fa-exchange-alt'" class="text-sm"></i>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex items-center gap-2">
-                                            <span class="font-medium text-sm text-gray-900" x-text="item.description || (item.type==='payment'?'Tahsilat':item.type==='debt'?'Borç Eklendi':'Hesap Hareketi')"></span>
-                                            <span class="text-xs px-1.5 py-0.5 rounded-full font-medium"
-                                                  :class="item.type==='payment'?'bg-emerald-100 text-emerald-700':item.type==='debt'?'bg-red-100 text-red-700':'bg-gray-100 text-gray-600'"
-                                                  x-text="item.type==='payment'?'Ödeme':item.type==='debt'?'Borç':'Hareket'">
-                                            </span>
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                                             :class="item.amount >= 0 ? 'bg-emerald-500' : 'bg-red-500'">
+                                            <i :class="item.type==='payment'?'fas fa-hand-holding-dollar':item.type==='debt'?'fas fa-user-minus':'fas fa-exchange-alt'"></i>
                                         </div>
-                                        <span class="text-xs text-gray-400" x-text="item.transaction_date ? new Date(item.transaction_date).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : new Date(item.created_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric'})"></span>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <p class="text-sm font-medium text-gray-800" x-text="item.description || (item.type==='payment'?'Tahsilat':item.type==='debt'?'Borç Eklendi':'Hesap Hareketi')"></p>
+                                                <span class="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                                                      :class="item.type==='payment'?'bg-emerald-100 text-emerald-700':item.type==='debt'?'bg-red-100 text-red-700':'bg-gray-100 text-gray-600'"
+                                                      x-text="item.type==='payment'?'Ödeme':item.type==='debt'?'Borç':'Hareket'">
+                                                </span>
+                                            </div>
+                                            <p class="text-xs text-gray-400" x-text="item.transaction_date ? new Date(item.transaction_date).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : new Date(item.created_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric'})"></p>
+                                        </div>
                                     </div>
-                                    <div class="text-right flex-shrink-0">
-                                        <p class="font-bold text-sm" :class="item.amount>=0?'text-emerald-600':'text-red-500'" x-text="(item.amount>=0?'+':'') + formatCurrency(Math.abs(item.amount))"></p>
+                                    <div class="text-right ml-3 flex-shrink-0">
+                                        <p class="text-sm font-bold" :class="item.amount>=0?'text-emerald-600':'text-red-500'" x-text="(item.amount>=0?'+':'') + formatCurrency(Math.abs(item.amount))"></p>
                                         <p class="text-xs text-gray-400" x-text="'Bakiye: ' + formatCurrency(item.balance_after)"></p>
                                     </div>
                                 </div>
@@ -493,24 +492,32 @@
                         <template x-if="detailData?.transactions?.length === 0">
                             <div class="text-center py-12 text-gray-400"><i class="fas fa-exchange-alt text-3xl mb-2"></i><p class="text-sm">Henüz hareket yok</p></div>
                         </template>
-                        <template x-for="tx in (detailData?.transactions || [])" :key="tx.id">
-                            <div class="flex items-center justify-between py-3 border-b border-gray-50 hover:bg-gray-50 rounded-xl px-2 transition-colors">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs"
-                                         :class="tx.amount>=0?'bg-emerald-50 text-emerald-600':'bg-red-50 text-red-500'">
-                                        <i :class="tx.type==='payment'?'fas fa-hand-holding-dollar':tx.type==='debt'?'fas fa-user-minus':'fas fa-exchange-alt'"></i>
+                        <div class="space-y-2">
+                            <template x-for="tx in (detailData?.transactions || [])" :key="tx.id">
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
+                                             :class="tx.amount >= 0 ? 'bg-emerald-500' : 'bg-red-500'">
+                                            <i :class="tx.type==='payment'?'fas fa-hand-holding-dollar':tx.type==='debt'?'fas fa-user-minus':'fas fa-exchange-alt'"></i>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <p class="text-sm font-medium text-gray-800" x-text="tx.description || (tx.type==='payment'?'Tahsilat':tx.type==='debt'?'Borç Eklendi':'İşlem')"></p>
+                                                <span class="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                                                      :class="tx.type==='payment'?'bg-emerald-100 text-emerald-700':tx.type==='debt'?'bg-red-100 text-red-700':'bg-gray-100 text-gray-600'"
+                                                      x-text="tx.type==='payment'?'Ödeme':tx.type==='debt'?'Borç':'Hareket'">
+                                                </span>
+                                            </div>
+                                            <p class="text-xs text-gray-400" x-text="tx.transaction_date ? new Date(tx.transaction_date).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : new Date(tx.created_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric'})"></p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p class="text-sm font-medium text-gray-900" x-text="tx.description || (tx.type==='payment'?'Tahsilat':tx.type==='debt'?'Borç Eklendi':'İşlem')"></p>
-                                        <p class="text-xs text-gray-400" x-text="tx.transaction_date ? new Date(tx.transaction_date).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : new Date(tx.created_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric'})"></p>
+                                    <div class="text-right ml-3 flex-shrink-0">
+                                        <p class="text-sm font-bold" :class="tx.amount>=0?'text-emerald-600':'text-red-500'" x-text="(tx.amount>=0?'+':'') + formatCurrency(Math.abs(tx.amount))"></p>
+                                        <p class="text-xs text-gray-400" x-text="'Bakiye: ' + formatCurrency(tx.balance_after)"></p>
                                     </div>
                                 </div>
-                                <div class="text-right">
-                                    <p class="font-bold" :class="tx.amount>=0?'text-emerald-600':'text-red-500'" x-text="(tx.amount>=0?'+':'') + formatCurrency(Math.abs(tx.amount))"></p>
-                                    <p class="text-xs text-gray-400" x-text="'Bakiye: ' + formatCurrency(tx.balance_after)"></p>
-                                </div>
-                            </div>
-                        </template>
+                            </template>
+                        </div>
                     </div>
 
                     <div x-show="detailTab==='notes'">
