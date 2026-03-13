@@ -2,7 +2,7 @@
 @section('title', 'Hızlı Satış')
 
 @section('content')
-<div x-data="posScreen()" x-init="init()" class="flex-1 flex flex-col overflow-hidden relative">
+<div x-data="posScreen()" x-init="init()" class="flex-1 min-h-0 flex flex-col overflow-hidden relative">
 
     {{-- Mobil Tab Bar (sadece mobilde görünür) --}}
     <div class="lg:hidden flex shrink-0 bg-white border-b border-gray-200 z-20">
@@ -970,13 +970,13 @@
     </div>
 
     {{-- SOL PANEL: Kategoriler + Ürünler --}}
-    <div class="flex-1 flex overflow-hidden"
+    <div class="flex-1 min-h-0 flex overflow-hidden"
          :class="{ 'hidden lg:flex': mobileTab !== 'products' }">
         {{-- Dikey Kategori Sidebar (tablet+desktop) / Horizontal scroll (mobil) --}}
         <div class="hidden sm:flex w-32 lg:w-44 flex-col bg-white border-r border-gray-200 overflow-y-auto shrink-0">
-            <button @click="filterCategory(null); searchQuery = ''"
+                <button @click="filterCategory(null); searchQuery = ''"
                     class="px-3 py-3 text-sm font-semibold text-center transition-colors border-b border-gray-100 uppercase tracking-wide"
-                    :class="selectedCategory === null ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-blue-50'">>
+                    :class="selectedCategory === null ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-blue-50'">
                 <i class="fas fa-star text-xs mr-1"></i>FAVORİLER
             </button>
             @foreach($categories as $cat)

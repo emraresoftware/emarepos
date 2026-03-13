@@ -89,14 +89,12 @@ class CustomerController extends Controller
         $customer->load('phones');
 
         $transactions = AccountTransaction::where('customer_id', $customer->id)
-            ->orderBy('created_at', 'desc')
-            
+            ->orderByRaw('COALESCE(transaction_date, created_at) desc')
             ->get();
 
         $sales = $customer->sales()
-            ->with('items')
+            ->with(['items', 'user'])
             ->orderBy('sold_at', 'desc')
-            
             ->get();
 
         return response()->json([

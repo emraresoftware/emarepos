@@ -57,19 +57,16 @@ class FirmController extends Controller
         $firm->load('phones');
 
         $transactions = AccountTransaction::where('firm_id', $firm->id)
-            ->orderBy('created_at', 'desc')
-            ->limit(100)
+            ->orderByRaw('COALESCE(transaction_date, created_at) desc')
             ->get();
 
         $payments = AccountTransaction::where('firm_id', $firm->id)
             ->where('type', 'payment')
-            ->orderBy('created_at', 'desc')
-            ->limit(50)
+            ->orderByRaw('COALESCE(transaction_date, created_at) desc')
             ->get();
 
         $purchaseInvoices = PurchaseInvoice::where('firm_id', $firm->id)
             ->orderByDesc('invoice_date')
-            ->limit(50)
             ->get();
 
         $totalPurchase = $purchaseInvoices->sum('grand_total');
