@@ -22,6 +22,11 @@
                         :class="nameSource === 'table_opened_by' ? 'bg-brand-500 text-white' : 'text-gray-500 hover:text-gray-700'">
                     Masa Acan
                 </button>
+                <button @click="nameSource = 'customer'"
+                        class="px-2.5 py-1 text-xs font-medium rounded-md transition-colors"
+                        :class="nameSource === 'customer' ? 'bg-brand-500 text-white' : 'text-gray-500 hover:text-gray-700'">
+                    Musteri
+                </button>
             </div>
 
             {{-- Durum Filtreleri --}}
@@ -68,6 +73,24 @@
                     @endforeach
                 </select>
             </div>
+
+            {{-- Musteri Filtresi --}}
+            <div class="flex items-center">
+                @php
+                    $activeCustomers = collect();
+                    foreach($orders as $o) {
+                        if($o->customer) $activeCustomers->push($o->customer);
+                    }
+                    $activeCustomers = $activeCustomers->unique('id');
+                @endphp
+                <select x-model="customerFilter" class="px-2 py-1.5 h-8 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-700 outline-none focus:border-brand-500 hover:bg-gray-50 transition-colors cursor-pointer" title="Sipariş Sahibi Müşteri">
+                    <option value="all">Tum Musteriler</option>
+                    <option value="none">Musteri Secilmemis</option>
+                    @foreach($activeCustomers as $customer)
+                        <option value="{{ $customer->id }}">{{ $customer->name }}</option>
+                    @endforeach
+                </select>
+            </div>
         </div>
 
         <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
@@ -99,7 +122,7 @@
     <div class="flex-1 overflow-y-auto p-4">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             @foreach($orders as $order)
-            <div x-show="(statusFilter === 'all' || statusFilter === '{{ $order->status }}') && (userFilter === 'all' || userFilter == '{{ $order->user_id }}')"
+              <div x-show="(statusFilter === 'all' || statusFilter === '{{ $order->status }}') && (userFilter === 'all' || userFilter == '{{ $order->user_id }}') && (customerFilter === 'all' || (customerFilter === 'none' ? '{{ $order->customer_id ?? '' }}' === '' : customerFilter == '{{ $order->customer_id ?? '' }}'))"
                  x-transition:enter="transition ease-out duration-200"
                  x-transition:enter-start="opacity-0 scale-95"
                  x-transition:enter-end="opacity-100 scale-100"
@@ -124,6 +147,10 @@
                             <i class="fas fa-user mr-1 text-gray-400"></i>
                             <span x-show="nameSource === 'order_user'">{{ $order->user?->name ?? 'Bilinmiyor' }}</span>
                             <span x-show="nameSource === 'table_opened_by'">{{ $order->tableSession?->openedBy?->name ?? 'Bilinmiyor' }}</span>
+                            <span x-show="nameSource === 'customer'">{{ $order->customer?->name ?? 'Musteri secilmemis' }}</span>
+                        </span>
+                        <span class="px-2 py-0.5 bg-brand-50 rounded text-xs text-brand-700 border border-brand-100">
+                            <i class="fas fa-id-badge mr-1"></i>{{ $order->customer?->name ?? 'Musteri secilmemis' }}
                         </span>
                     </div>
                     <div class="flex items-center gap-2">
@@ -218,6 +245,7 @@ function kitchenScreen() {
     return {
         statusFilter: 'all',
         userFilter: 'all',
+        customerFilter: 'all',
         nameSource: 'order_user',
         countdown: 15,
         soundEnabled: false,
