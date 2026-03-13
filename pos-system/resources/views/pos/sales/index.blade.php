@@ -136,11 +136,11 @@
                @mousedown.prevent="startPanelResize($event)"></div>
 
         {{-- Müşteri Sekmeleri --}}
-        <div class="shrink-0 border-b border-gray-200 bg-white px-2 py-2">
-            <div class="grid grid-cols-5 gap-1.5">
+        <div class="shrink-0 border-b border-gray-200 bg-white px-2 py-2 overflow-x-auto hide-scrollbar">
+            <div class="flex gap-1.5 min-w-max">
                 <template x-for="(slot, slotIndex) in customerSlots" :key="slot.id">
                     <button @click="aktifMusteriSlotunaGec(slotIndex)"
-                            class="rounded-2xl border px-2 py-2 text-left transition-all min-w-0"
+                            class="rounded-2xl border px-2 py-2 text-left transition-all w-[96px] shrink-0"
                             :class="activeSlotIndex === slotIndex ? 'border-brand-400 bg-brand-50 shadow-sm' : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'">
                         <div class="flex items-center justify-between gap-1">
                             <span class="text-[11px] font-bold uppercase tracking-wide"
@@ -357,7 +357,7 @@
                           x-text="selectedCustomer ? selectedCustomer.name : 'Müşteri seç veya yeni müşteri ekle'"></span>
                     <span class="block text-xs mt-0.5"
                           :class="customerPanelOpen ? 'text-blue-100' : 'text-gray-500'"
-                          x-text="selectedCustomer ? ((selectedCustomer.phone || selectedCustomer.email || 'İletişim bilgisi yok') + ' • Bakiye ' + formatCurrency(selectedCustomer?.balance ?? 0) + ' • Limit ' + formatCurrency(selectedCustomer?.credit_limit ?? 0)) : 'Satışa müşteri bağlamak için paneli açın'"></span>
+                          x-text="selectedCustomer ? ((selectedCustomer.phone || selectedCustomer.email || 'İletişim bilgisi yok') + ' • Bakiye ' + formatCurrency(selectedCustomer?.balance ?? 0)) : 'Satışa müşteri bağlamak için paneli açın'"></span>
                 </span>
                 <div class="flex items-center gap-2 shrink-0">
                     <button x-show="selectedCustomer"
@@ -1044,7 +1044,7 @@
 
             {{-- Ürün Grid --}}
             <div class="flex-1 overflow-y-auto p-2 sm:p-3">
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 sm:gap-2">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-1.5 sm:gap-2">
                     <template x-for="product in filteredProducts" :key="product.id">
                         <button @click="handleProductClick(product)"
                                 class="bg-white border border-gray-100 rounded-xl p-2 sm:p-3 text-left hover:border-blue-300 hover:shadow-md hover:shadow-blue-100/50 transition-all group active:scale-95">
@@ -1072,7 +1072,7 @@
 
     {{-- Alt Aksiyon Alanı --}}
     <div class="shrink-0 border-t border-gray-200 bg-white px-3 pt-2.5 pb-3 safe-bottom shadow-[0_-6px_20px_rgba(15,23,42,0.06)]">
-        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-2.5">
             <button @click="refundMode ? startRefund() : (cart.length ? processPayment('cash') : showToast('Önce sepete ürün ekleyin.', 'warning'))"
                     class="flex items-center gap-3 px-3 py-3 min-h-[74px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
                     :style="refundMode ? 'background: linear-gradient(135deg, #ef4444, #dc2626);' : 'background: linear-gradient(135deg, #43b692, #39a583);'">
@@ -1162,7 +1162,7 @@
             </button>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5 mt-2.5">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-2.5 mt-2.5">
             <button @click="openManualItemModal()"
                     class="flex items-center gap-3 px-3 py-3 min-h-[72px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
                     style="background: linear-gradient(135deg, #0891b2, #0e7490);">
@@ -1475,10 +1475,10 @@ function posScreen() {
         isDesktop: window.innerWidth >= 1024,
         panelWidth: 360,
         panelMinWidth: 300,
-        panelMaxWidth: 600,
+        panelMaxWidth: 480,
         panelResizing: false,
         panelResizeEnabled: {{ auth()->user()->is_super_admin ? 'true' : 'false' }},
-        panelResizeStorageKey: 'pos_cart_width',
+        panelResizeStorageKey: 'pos_cart_width_v2',
         cartStorageKey: 'pos_cart_state',
         customerSlots: [],
         activeSlotIndex: 0,
@@ -1499,6 +1499,9 @@ function posScreen() {
             });
             window.addEventListener('resize', () => {
                 this.isDesktop = window.innerWidth >= 1024;
+                if (this.isDesktop) {
+                    this.panelWidth = this.clampPanelWidth(this.panelWidth);
+                }
             });
         },
 
@@ -1528,7 +1531,12 @@ function posScreen() {
         },
 
         clampPanelWidth(value) {
-            return Math.max(this.panelMinWidth, Math.min(this.panelMaxWidth, value));
+            return Math.max(this.panelMinWidth, Math.min(this.effectivePanelMaxWidth(), value));
+        },
+
+        effectivePanelMaxWidth() {
+            const viewportBasedMax = Math.floor(window.innerWidth * 0.42);
+            return Math.max(this.panelMinWidth, Math.min(this.panelMaxWidth, viewportBasedMax));
         },
 
         bosMusteriSlotuOlustur(index) {

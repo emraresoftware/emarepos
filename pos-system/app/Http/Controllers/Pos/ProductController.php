@@ -784,8 +784,10 @@ class ProductController extends Controller
             'ids.*'            => 'integer',
             'updates'          => 'required|array',
             'updates.*.branch_id' => 'required|integer',
-            'updates.*.type'   => 'required|in:percent,fixed',
-            'updates.*.value'  => 'required|numeric',
+            'updates.*.type'   => 'nullable|in:percent,fixed',
+            'updates.*.value'  => 'nullable|numeric',
+            'updates.*.product_id' => 'nullable|integer',
+            'updates.*.price'  => 'nullable|numeric|min:0',
         ]);
 
         $tenantId  = session('tenant_id');
@@ -795,6 +797,10 @@ class ProductController extends Controller
 
         foreach ($products as $product) {
             foreach ($request->updates as $upd) {
+                if (!empty($upd['product_id']) && (int) $upd['product_id'] !== (int) $product->id) {
+                    continue;
+                }
+
                 $branchId = (int) $upd['branch_id'];
                 if (!in_array($branchId, $branchIds)) continue;
 
@@ -806,7 +812,9 @@ class ProductController extends Controller
 
                 $currentPrice = $pivot ? (float) $pivot->sale_price : (float) $product->sale_price;
 
-                if ($upd['type'] === 'percent') {
+                if (array_key_exists('price', $upd) && $upd['price'] !== null && $upd['price'] !== '') {
+                    $newPrice = (float) $upd['price'];
+                } elseif (($upd['type'] ?? null) === 'percent') {
                     $newPrice = $currentPrice * (1 + (float) $upd['value'] / 100);
                 } else {
                     $newPrice = (float) $upd['value'];

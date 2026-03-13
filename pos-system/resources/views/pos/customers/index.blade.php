@@ -448,8 +448,9 @@
                         </template>
                         {{-- Birleşik, tarih sıralı zaman çizelgesi --}}
                         <template x-for="item in detailTimeline" :key="item._key">
-                            {{-- SATIŞ SATIRI --}}
-                            <div x-show="item._type==='sale'" class="mb-2">
+                            <div class="mb-2">
+                            <template x-if="item._type==='sale'">
+                            <div>
                                 <div @click="toggleSaleDetails(item)"
                                      class="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white hover:border-brand-200 hover:shadow-sm hover:shadow-brand-500/10 cursor-pointer text-left group transition-all">
                                     <label class="flex items-center" @click.stop>
@@ -550,9 +551,11 @@
                                     </div>
                                 </div>
                             </div>
+                            </template>
 
                             {{-- HESAP HAREKETİ SATIRI --}}
-                            <div x-show="item._type==='tx'" class="mb-2">
+                            <template x-if="item._type==='tx'">
+                            <div>
                                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
                                     <div class="flex items-center gap-3 min-w-0">
                                         <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
@@ -575,6 +578,8 @@
                                         <p class="text-xs text-gray-400" x-text="'Bakiye: ' + formatCurrency(item.balance_after)"></p>
                                     </div>
                                 </div>
+                            </div>
+                            </template>
                             </div>
                         </template>
                     </div>

@@ -244,7 +244,7 @@
         <button @click="showBulkCategoryModal = true" class="px-3 py-2 text-xs font-medium bg-blue-50 border border-blue-200 text-blue-600 rounded-xl hover:bg-blue-100 flex items-center gap-1.5">
             <i class="fas fa-folder text-[10px]"></i> Kategori Ata
         </button>
-        <button @click="showBulkPriceModal = true; priceModalTab = 'quick'; branchPriceData = null; branchPriceUpdates = []" :disabled="!priceEditAllowed" class="px-3 py-2 text-xs font-medium bg-amber-50 border border-amber-200 text-amber-600 rounded-xl hover:bg-amber-100 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+        <button @click="showBulkPriceModal = true; priceModalTab = 'quick'; branchPriceData = null; branchPriceUpdates = []; branchPriceManualValues = {}" :disabled="!priceEditAllowed" class="px-3 py-2 text-xs font-medium bg-amber-50 border border-amber-200 text-amber-600 rounded-xl hover:bg-amber-100 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
             <i class="fas fa-dollar-sign text-[10px]"></i> Fiyat Güncelle
         </button>
         <button @click="openBulkBranchModal()" class="px-3 py-2 text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-xl hover:bg-indigo-100 flex items-center gap-1.5">
@@ -1793,13 +1793,23 @@
                                                     <td class="px-3 py-2 text-right">
                                                         <div x-data="{
                                                             get current() { return prod.branch_prices[b.id] ?? null; },
-                                                            get preview() { return prod._preview && prod._preview[b.id] !== undefined ? prod._preview[b.id] : null; }
+                                                            get preview() { return prod._preview && prod._preview[b.id] !== undefined ? prod._preview[b.id] : null; },
+                                                            get draft() { return getBranchDraftValue(prod.id, b.id); }
                                                         }">
-                                                            <span class="font-mono" :class="preview !== null ? 'text-amber-600 font-semibold' : 'text-gray-600'">
-                                                                <span x-show="preview !== null" x-text="formatPrice(preview)"></span>
-                                                                <span x-show="preview === null" x-text="current !== null ? formatPrice(current) : '—'"></span>
-                                                            </span>
-                                                            <span x-show="preview !== null && current !== null" class="text-gray-400 text-[10px] ml-1" x-text="'(' + formatPrice(current) + ')'"></span>
+                                                            <div class="flex flex-col items-end gap-1">
+                                                                <span class="font-mono" :class="preview !== null ? 'text-amber-600 font-semibold' : 'text-gray-600'">
+                                                                    <span x-show="preview !== null" x-text="formatPrice(preview)"></span>
+                                                                    <span x-show="preview === null" x-text="current !== null ? formatPrice(current) : '—'"></span>
+                                                                </span>
+                                                                <span x-show="preview !== null && current !== null" class="text-gray-400 text-[10px]" x-text="'Mevcut: ' + formatPrice(current)"></span>
+                                                                <input type="number"
+                                                                       step="0.01"
+                                                                       min="0"
+                                                                       class="w-24 text-[11px] px-2 py-1 border border-gray-200 rounded-lg text-right"
+                                                                       :value="draft"
+                                                                       :placeholder="preview !== null ? preview : (current !== null ? current : '')"
+                                                                       @input="setBranchDraftValue(prod.id, b.id, $event.target.value)">
+                                                            </div>
                                                         </div>
                                                     </td>
                                                 </template>
@@ -2133,6 +2143,7 @@ function productManager() {
         branchPriceLoading: false,
         branchPriceData: null,
         branchPriceUpdates: [],
+        branchPriceManualValues: {},
         branchPriceApplying: false,
         branchPriceUpdateBranchId: '',
         branchPriceUpdateType: 'percent',
@@ -2704,8 +2715,41 @@ function productManager() {
                 // Her ürüne _preview alanı ekle
                 (res.products || []).forEach(p => { p._preview = {}; });
                 this.branchPriceData = res;
+                this.branchPriceManualValues = {};
             } catch(e) { showToast(e.message || 'Şube fiyatları yüklenemedi', 'error'); }
             finally { this.branchPriceLoading = false; }
+        },
+
+        getBranchDraftValue(productId, branchId) {
+            const productDrafts = this.branchPriceManualValues[productId] || {};
+            return productDrafts[branchId] ?? '';
+        },
+
+        setBranchDraftValue(productId, branchId, value) {
+            const normalized = value === '' ? '' : Number(value);
+            this.branchPriceManualValues = {
+                ...this.branchPriceManualValues,
+                [productId]: {
+                    ...(this.branchPriceManualValues[productId] || {}),
+                    [branchId]: normalized,
+                },
+            };
+            this.rebuildBranchPriceUpdates();
+        },
+
+        rebuildBranchPriceUpdates() {
+            const updates = [];
+            Object.entries(this.branchPriceManualValues || {}).forEach(([productId, branchMap]) => {
+                Object.entries(branchMap || {}).forEach(([branchId, price]) => {
+                    if (price === '' || price === null || price === undefined || Number.isNaN(Number(price))) return;
+                    updates.push({
+                        product_id: Number(productId),
+                        branch_id: Number(branchId),
+                        price: Math.max(0, Math.round(Number(price) * 100) / 100),
+                    });
+                });
+            });
+            this.branchPriceUpdates = updates;
         },
 
         applyBranchPricePreview() {
@@ -2716,16 +2760,18 @@ function productManager() {
             (this.branchPriceData.products || []).forEach(prod => {
                 const current = prod.branch_prices[bid] ?? prod.sale_price;
                 let np = type === 'percent' ? current * (1 + val / 100) : val;
+                np = Math.max(0, Math.round(np * 100) / 100);
                 prod._preview = prod._preview || {};
-                prod._preview[bid] = Math.max(0, Math.round(np * 100) / 100);
+                prod._preview[bid] = np;
+                this.branchPriceManualValues = {
+                    ...this.branchPriceManualValues,
+                    [prod.id]: {
+                        ...(this.branchPriceManualValues[prod.id] || {}),
+                        [bid]: np,
+                    },
+                };
             });
-            // updates listesi
-            const existing = this.branchPriceUpdates.findIndex(u => u.branch_id === bid);
-            if (existing >= 0) {
-                this.branchPriceUpdates[existing] = { branch_id: bid, type, value: val };
-            } else {
-                this.branchPriceUpdates.push({ branch_id: bid, type, value: val });
-            }
+            this.rebuildBranchPriceUpdates();
             showToast('Önizleme hazır — Uygula butonuna basın', 'info');
         },
 

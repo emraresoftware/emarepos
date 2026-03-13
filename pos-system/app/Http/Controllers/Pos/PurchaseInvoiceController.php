@@ -7,6 +7,7 @@ use App\Models\PurchaseInvoice;
 use App\Models\PurchaseInvoiceItem;
 use App\Models\Product;
 use App\Models\Firm;
+use App\Models\AccountTransaction;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -137,6 +138,17 @@ class PurchaseInvoiceController extends Controller
         $firm = Firm::where('id', $request->firm_id)->lockForUpdate()->first();
         if ($firm) {
             $firm->decrement('balance', $grandTotal);
+
+            AccountTransaction::create([
+                'tenant_id' => session('tenant_id'),
+                'firm_id' => $firm->id,
+                'type' => 'purchase',
+                'amount' => -$grandTotal,
+                'balance_after' => $firm->balance,
+                'description' => 'Alış faturası: ' . ($invoice->invoice_no ?? ('PI-' . $invoice->id)),
+                'reference' => 'PI-' . $invoice->id,
+                'transaction_date' => Carbon::parse($request->invoice_date),
+            ]);
         }
 
         return response()->json(['success' => true, 'invoice' => $invoice->load('items', 'firm')]);
@@ -196,6 +208,17 @@ class PurchaseInvoiceController extends Controller
                 $firm = Firm::where('id', $invoice->firm_id)->lockForUpdate()->first();
                 if ($firm) {
                     $firm->increment('balance', $invoice->grand_total);
+
+                    AccountTransaction::create([
+                        'tenant_id' => $invoice->tenant_id,
+                        'firm_id' => $firm->id,
+                        'type' => 'purchase_return',
+                        'amount' => $invoice->grand_total,
+                        'balance_after' => $firm->balance,
+                        'description' => 'Alış faturası iade/iptal: ' . ($invoice->invoice_no ?? ('PI-' . $invoice->id)),
+                        'reference' => 'PI-' . $invoice->id,
+                        'transaction_date' => Carbon::now(),
+                    ]);
                 }
             }
 
@@ -239,6 +262,17 @@ class PurchaseInvoiceController extends Controller
                 $firm = Firm::where('id', $invoice->firm_id)->lockForUpdate()->first();
                 if ($firm) {
                     $firm->increment('balance', $invoice->grand_total);
+
+                    AccountTransaction::create([
+                        'tenant_id' => $invoice->tenant_id,
+                        'firm_id' => $firm->id,
+                        'type' => 'purchase_return',
+                        'amount' => $invoice->grand_total,
+                        'balance_after' => $firm->balance,
+                        'description' => 'Alış faturası silme iadesi: ' . ($invoice->invoice_no ?? ('PI-' . $invoice->id)),
+                        'reference' => 'PI-' . $invoice->id,
+                        'transaction_date' => Carbon::now(),
+                    ]);
                 }
             }
 
