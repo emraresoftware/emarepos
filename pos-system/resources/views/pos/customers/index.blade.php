@@ -1248,6 +1248,22 @@ function customerManager() {
             return digits;
         },
 
+        buildWhatsappText(text, maxLength = 1500) {
+            const content = String(text || '').trim();
+            if (!content) return '';
+            if (content.length <= maxLength) return content;
+            return content.slice(0, maxLength - 28).trimEnd() + '\n\n...rapor kısaltıldı';
+        },
+
+        openWhatsappReport(phone, text) {
+            const message = this.buildWhatsappText(text);
+            const url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+            const popup = window.open(url, '_blank', 'noopener');
+            if (!popup) {
+                window.location.href = url;
+            }
+        },
+
         escapeHtml(value) {
             return String(value ?? '')
                 .replace(/&/g, '&amp;')
@@ -1379,7 +1395,7 @@ function customerManager() {
                 showToast('WhatsApp için müşteri telefon numarası bulunamadı.', 'warning');
                 return;
             }
-            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(report.text)}`, '_blank');
+            this.openWhatsappReport(phone, report.text);
         },
 
         sendCustomerReportEmail(scope, sale = null) {

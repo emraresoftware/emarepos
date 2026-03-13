@@ -112,12 +112,15 @@ class SaleService
             $calculatedItems = $calculated['items'];
             $productMap = []; // Ürünleri önbelleğe al — alttaki mutfak blokları tekrar sorgu yapmasın
             foreach ($calculatedItems as $item) {
-                $product = Product::where('id', $item['product_id'])->lockForUpdate()->first();
-                if (! $product) {
-                    throw new \Exception('Geçersiz ürün seçimi: #' . $item['product_id']);
-                }
+                $product = null;
+                if (!empty($item['product_id'])) {
+                    $product = Product::where('id', $item['product_id'])->lockForUpdate()->first();
+                    if (! $product) {
+                        throw new \Exception('Geçersiz ürün seçimi: #' . $item['product_id']);
+                    }
 
-                $productMap[$product->id] = $product;
+                    $productMap[$product->id] = $product;
+                }
 
                 if ($product && !$product->is_service) {
                     $qty = $item['quantity'] ?? 1;
@@ -125,7 +128,7 @@ class SaleService
                 
                 $saleItem = SaleItem::create([
                     'sale_id' => $sale->id,
-                    'product_id' => $item['product_id'],
+                    'product_id' => $item['product_id'] ?? null,
                     'product_name' => $item['product_name'] ?? $product?->name ?? 'Bilinmeyen Ürün',
                     'barcode' => $item['barcode'] ?? $product?->barcode,
                     'quantity' => $item['quantity'] ?? 1,
@@ -230,6 +233,9 @@ class SaleService
             try {
                 if ($tenantId && $branchId) {
                     $kitchenItems = array_filter($calculated['items'], function ($item) use ($productMap) {
+                        if (empty($item['product_id'])) {
+                            return false;
+                        }
                         $p = $productMap[$item['product_id']] ?? null;
                         return !$p || !$p->is_service;
                     });

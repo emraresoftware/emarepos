@@ -121,7 +121,8 @@ class SaleController extends Controller
     {
         $request->validate([
             'items' => 'required|array|min:1',
-            'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->where('tenant_id', session('tenant_id'))],
+            'items.*.product_id' => ['nullable', 'integer', Rule::exists('products', 'id')->where('tenant_id', session('tenant_id'))],
+            'items.*.product_name' => 'required|string|max:255',
             'items.*.quantity' => 'required|numeric|min:0.01',
             'items.*.unit_price' => 'required|numeric|min:0',
             'customer_id' => ['nullable', 'integer', Rule::exists('customers', 'id')->where('tenant_id', session('tenant_id'))],

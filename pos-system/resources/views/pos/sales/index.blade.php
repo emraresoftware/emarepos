@@ -802,6 +802,55 @@
         </div>
     </div>
 
+    {{-- MUHTELİF TUTAR MODALI --}}
+    <div x-show="showManualItemModal" x-transition x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto" @click.away="showManualItemModal = false">
+            <div class="flex items-center justify-between px-5 py-3 bg-sky-600 rounded-t-2xl">
+                <h3 class="text-base font-bold text-white"><i class="fas fa-pen-to-square mr-2"></i>Muhtelif Tutar</h3>
+                <button @click="showManualItemModal = false" class="text-white/70 hover:text-white"><i class="fas fa-times-circle text-lg"></i></button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Başlık</label>
+                    <input type="text" x-model="manualItemForm.name" placeholder="Muhtelif"
+                           class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Açıklama / Not</label>
+                    <input type="text" x-model="manualItemForm.note" placeholder="Örn: özel servis, ek ücret"
+                           class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1.5">Tutar</label>
+                        <input type="number" x-model.number="manualItemForm.amount" min="0.01" step="0.01" placeholder="0.00"
+                               class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1.5">KDV</label>
+                        <select x-model.number="manualItemForm.vat_rate"
+                                class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-sky-500">
+                            <option :value="0">%0</option>
+                            <option :value="1">%1</option>
+                            <option :value="10">%10</option>
+                            <option :value="20">%20</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500">Muhtelif satır sepete ayrı eklenir; sepette satır bazlı iskonto uygulayabilirsiniz.</p>
+                <div class="flex gap-3">
+                    <button @click="showManualItemModal = false" class="flex-1 py-2.5 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors">İptal</button>
+                    <button @click="addManualItemToCart()"
+                            :disabled="!manualItemForm.amount || manualItemForm.amount <= 0"
+                            class="flex-1 py-2.5 text-sm text-white bg-sky-600 hover:bg-sky-700 rounded-xl font-semibold transition-colors disabled:opacity-50">
+                        Sepete Ekle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Fiyat Seçim Modalı (Barkod okutunca çoklu fiyat varsa) --}}
     <div x-show="showPriceSelectModal" x-transition x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -1006,7 +1055,15 @@
             </button>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2.5 mt-2.5">
+        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5 mt-2.5">
+            <button @click="openManualItemModal()"
+                    class="flex items-center gap-3 px-3 py-3 min-h-[72px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
+                    style="background: linear-gradient(135deg, #0891b2, #0e7490);">
+                <span class="w-10 h-10 rounded-2xl bg-white/16 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
+                    <i class="fas fa-pen-ruler text-lg leading-none"></i>
+                </span>
+                <span class="leading-tight"><span class="block">Muhtelif</span><span class="block text-[11px] font-semibold text-white/80">Serbest tutar</span></span>
+            </button>
             <button @click="loadRecentSales()"
                     class="flex items-center gap-3 px-3 py-3 min-h-[72px] rounded-2xl text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0 text-left"
                     style="background: linear-gradient(135deg, #64748b, #475569);">
@@ -1263,6 +1320,8 @@ function posScreen() {
         customerPickerCreateMode: false,
         quickCustomerForm: { name: '', phone: '' },
         quickCustomerSaving: false,
+        showManualItemModal: false,
+        manualItemForm: { name: 'Muhtelif', note: '', amount: '', vat_rate: 20 },
         // İskonto modal
         showDiscountModal: false,
         manualDiscountInput: 0,
@@ -1318,7 +1377,7 @@ function posScreen() {
                 if (e.key === 'F3') { e.preventDefault(); this.checkPrice(); }
                 if (e.key === 'F5') { e.preventDefault(); this.processPayment('cash'); }
                 if (e.key === 'F6') { e.preventDefault(); this.processPayment('card'); }
-                if (e.key === 'Escape') { this.showMixedPayment = false; this.showReceipt = false; this.showDiscountModal = false; this.showRecentSales = false; this.showRefundModal = false; this.showPriceSelectModal = false; this.showOdemeAlModal = false; this.customerPanelOpen = false; }
+                if (e.key === 'Escape') { this.showMixedPayment = false; this.showReceipt = false; this.showDiscountModal = false; this.showRecentSales = false; this.showRefundModal = false; this.showPriceSelectModal = false; this.showOdemeAlModal = false; this.customerPanelOpen = false; this.showManualItemModal = false; }
             });
             window.addEventListener('resize', () => {
                 this.isDesktop = window.innerWidth >= 1024;
@@ -1560,6 +1619,43 @@ function posScreen() {
             this.recalcTotals();
             // Mobilde sepete geçiş
             if (window.innerWidth < 1024) this.mobileTab = 'cart';
+        },
+
+        openManualItemModal() {
+            this.manualItemForm = { name: 'Muhtelif', note: '', amount: '', vat_rate: 20 };
+            this.showManualItemModal = true;
+        },
+
+        addManualItemToCart() {
+            const amount = parseFloat(this.manualItemForm.amount || 0);
+            if (amount <= 0) return;
+
+            const title = (this.manualItemForm.name || 'Muhtelif').trim() || 'Muhtelif';
+            const note = (this.manualItemForm.note || '').trim();
+            const lineName = note ? `${title} - ${note}` : title;
+
+            this.cart.push({
+                product_id: null,
+                product_name: lineName,
+                barcode: null,
+                unit_price: amount,
+                price_label: 'Standart',
+                price_options: [{ label: 'Standart', price: amount }],
+                quantity: 1,
+                discount: 0,
+                discountType: 'TL',
+                discountAmount: 0,
+                vat_rate: parseInt(this.manualItemForm.vat_rate || 20, 10),
+                vat_amount: 0,
+                additional_tax_amount: 0,
+                total: amount,
+                showDiscount: true,
+            });
+
+            this.recalcItem(this.cart.length - 1);
+            this.showManualItemModal = false;
+            if (window.innerWidth < 1024) this.mobileTab = 'cart';
+            showToast('Muhtelif tutar sepete eklendi.', 'success');
         },
 
         handleProductClick(product) {
