@@ -134,6 +134,33 @@
            <div x-show="panelResizeEnabled" x-cloak
                class="hidden lg:block absolute left-0 top-0 h-full w-1.5 cursor-col-resize bg-transparent hover:bg-brand-200/40"
                @mousedown.prevent="startPanelResize($event)"></div>
+
+        {{-- Müşteri Sekmeleri --}}
+        <div class="shrink-0 border-b border-gray-200 bg-white px-2 py-2">
+            <div class="grid grid-cols-5 gap-1.5">
+                <template x-for="(slot, slotIndex) in customerSlots" :key="slot.id">
+                    <button @click="aktifMusteriSlotunaGec(slotIndex)"
+                            class="rounded-2xl border px-2 py-2 text-left transition-all min-w-0"
+                            :class="activeSlotIndex === slotIndex ? 'border-brand-400 bg-brand-50 shadow-sm' : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'">
+                        <div class="flex items-center justify-between gap-1">
+                            <span class="text-[11px] font-bold uppercase tracking-wide"
+                                  :class="activeSlotIndex === slotIndex ? 'text-brand-700' : 'text-gray-500'"
+                                  x-text="'Müşteri ' + (slotIndex + 1)"></span>
+                            <span x-show="slot.cart?.length"
+                                  class="inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold"
+                                  :class="activeSlotIndex === slotIndex ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-600'"
+                                  x-text="slot.cart.length"></span>
+                        </div>
+                        <div class="mt-1 truncate text-xs font-semibold"
+                             :class="activeSlotIndex === slotIndex ? 'text-gray-900' : 'text-gray-700'"
+                             x-text="slot.selectedCustomer?.name || 'Boş sekme'"></div>
+                        <div class="truncate text-[10px] mt-0.5"
+                             :class="activeSlotIndex === slotIndex ? 'text-brand-700' : 'text-gray-400'"
+                             x-text="formatCurrency(slotToplami(slot))"></div>
+                    </button>
+                </template>
+            </div>
+        </div>
                
 
         {{-- Koyu Header: Barkod + Toplam + KDV --}}
@@ -1365,10 +1392,13 @@ function posScreen() {
         panelResizeEnabled: {{ auth()->user()->is_super_admin ? 'true' : 'false' }},
         panelResizeStorageKey: 'pos_cart_width',
         cartStorageKey: 'pos_cart_state',
+        customerSlots: [],
+        activeSlotIndex: 0,
 
         init() {
             this.showAllProducts();
             this.initPanelResize();
+            this.customerSlots = Array.from({ length: 5 }, (_, index) => this.bosMusteriSlotuOlustur(index));
             this.loadCart();
             this.$refs.searchInput?.focus();
             // Barkod okuyucu için keyboard shortcut
@@ -1411,6 +1441,59 @@ function posScreen() {
 
         clampPanelWidth(value) {
             return Math.max(this.panelMinWidth, Math.min(this.panelMaxWidth, value));
+        },
+
+        bosMusteriSlotuOlustur(index) {
+            return {
+                id: index + 1,
+                cart: [],
+                selectedCustomer: null,
+                generalDiscount: 0,
+                generalDiscountType: 'TL',
+                paidAmount: '',
+            };
+        },
+
+        aktifSlot() {
+            return this.customerSlots[this.activeSlotIndex] || null;
+        },
+
+        aktifSlotuEsitle() {
+            const slot = this.aktifSlot();
+            if (!slot) return;
+            slot.cart = this.cart;
+            slot.selectedCustomer = this.selectedCustomer;
+            slot.generalDiscount = this.generalDiscount;
+            slot.generalDiscountType = this.generalDiscountType;
+            slot.paidAmount = this.paidAmount;
+        },
+
+        aktifMusteriSlotunaGec(index) {
+            if (index === this.activeSlotIndex) return;
+            this.aktifSlotuEsitle();
+            this.activeSlotIndex = index;
+            const slot = this.aktifSlot() || this.bosMusteriSlotuOlustur(index);
+            this.cart = Array.isArray(slot.cart) ? slot.cart : [];
+            this.selectedCustomer = slot.selectedCustomer || null;
+            this.generalDiscount = slot.generalDiscount ?? 0;
+            this.generalDiscountType = slot.generalDiscountType || 'TL';
+            this.paidAmount = slot.paidAmount || '';
+            this.customerPanelOpen = false;
+            this.recalcTotals();
+            this.saveCart();
+        },
+
+        aktifSlotuTemizle() {
+            this.cart = [];
+            this.selectedCustomer = null;
+            this.generalDiscount = 0;
+            this.generalDiscountType = 'TL';
+            this.paidAmount = '';
+        },
+
+        slotToplami(slot) {
+            const items = slot?.cart || [];
+            return items.reduce((sum, item) => sum + parseFloat(item.total || 0), 0);
         },
 
         kalanKrediLimiti(customer = null) {
@@ -1738,19 +1821,15 @@ function posScreen() {
 
         clearCart() {
             if (this.cart.length && !confirm('Sepeti temizlemek istediğinize emin misiniz?')) return;
-            this.cart = [];
-            this.selectedCustomer = null;
-            this.generalDiscount = 0;
-            this.paidAmount = '';
+            this.aktifSlotuTemizle();
             this.recalcTotals();
         },
 
         saveCart() {
+            this.aktifSlotuEsitle();
             const payload = {
-                cart: this.cart,
-                selectedCustomer: this.selectedCustomer,
-                generalDiscount: this.generalDiscount,
-                generalDiscountType: this.generalDiscountType,
+                customerSlots: this.customerSlots,
+                activeSlotIndex: this.activeSlotIndex,
             };
             try {
                 localStorage.setItem(this.cartStorageKey, JSON.stringify(payload));
@@ -1762,18 +1841,31 @@ function posScreen() {
                 const raw = localStorage.getItem(this.cartStorageKey);
                 if (!raw) return;
                 const data = JSON.parse(raw);
-                if (Array.isArray(data.cart)) {
-                    this.cart = data.cart;
+                if (Array.isArray(data.customerSlots) && data.customerSlots.length) {
+                    this.customerSlots = Array.from({ length: 5 }, (_, index) => ({
+                        ...this.bosMusteriSlotuOlustur(index),
+                        ...(data.customerSlots[index] || {}),
+                        cart: Array.isArray(data.customerSlots[index]?.cart) ? data.customerSlots[index].cart : [],
+                    }));
+                    this.activeSlotIndex = Math.max(0, Math.min(4, parseInt(data.activeSlotIndex ?? 0, 10) || 0));
+                } else {
+                    this.customerSlots = Array.from({ length: 5 }, (_, index) => this.bosMusteriSlotuOlustur(index));
+                    this.customerSlots[0] = {
+                        ...this.customerSlots[0],
+                        cart: Array.isArray(data.cart) ? data.cart : [],
+                        selectedCustomer: data.selectedCustomer || null,
+                        generalDiscount: data.generalDiscount ?? 0,
+                        generalDiscountType: data.generalDiscountType || 'TL',
+                    };
+                    this.activeSlotIndex = 0;
                 }
-                if (data.selectedCustomer) {
-                    this.selectedCustomer = data.selectedCustomer;
-                }
-                if (data.generalDiscount !== undefined) {
-                    this.generalDiscount = data.generalDiscount;
-                }
-                if (data.generalDiscountType) {
-                    this.generalDiscountType = data.generalDiscountType;
-                }
+
+                const slot = this.aktifSlot();
+                this.cart = Array.isArray(slot?.cart) ? slot.cart : [];
+                this.selectedCustomer = slot?.selectedCustomer || null;
+                this.generalDiscount = slot?.generalDiscount ?? 0;
+                this.generalDiscountType = slot?.generalDiscountType || 'TL';
+                this.paidAmount = slot?.paidAmount || '';
                 this.recalcTotals();
             } catch (e) { /* ignore */ }
         },
@@ -1964,6 +2056,7 @@ function posScreen() {
         selectCustomer(customer) {
             this.selectedCustomer = customer;
             this.closeCustomerPicker();
+            this.saveCart();
         },
 
         clearSelectedCustomer() {
@@ -1971,6 +2064,7 @@ function posScreen() {
             this.customerSearch = '';
             this.customerResults = [];
             this.showCustomerDropdown = false;
+            this.saveCart();
         },
 
         async processMixedPayment() {
@@ -2039,10 +2133,7 @@ function posScreen() {
 
         closeReceipt() {
             this.showReceipt = false;
-            this.cart = [];
-            this.selectedCustomer = null;
-            this.generalDiscount = 0;
-            this.paidAmount = '';
+            this.aktifSlotuTemizle();
             this.recalcTotals();
             this.mobileTab = 'products';
             this.$refs.searchInput?.focus();
@@ -2072,6 +2163,7 @@ function posScreen() {
                 if (data.success) {
                     this.selectedCustomer = data.customer;
                     this.closeCustomerPicker();
+                    this.saveCart();
                     showToast('Müşteri eklendi!', 'success');
                 }
             } catch(e) { showToast(e.message || 'Müşteri eklenemedi.', 'error'); }
