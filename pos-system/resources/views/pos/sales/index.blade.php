@@ -122,37 +122,126 @@
         </div>
     </div>
     
-    {{-- ─── Hızlı Müşteri Ekle Modalı ─── --}}
+    {{-- ─── Müşteri Seç / Ekle Modalı ─── --}}
     <div x-show="showQuickCustomerModal" x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-         @keydown.escape.window="showQuickCustomerModal = false">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6" @click.stop>
-            <div class="flex items-center justify-between mb-5">
-                <h3 class="text-base font-semibold text-gray-900"><i class="fas fa-user-plus mr-2 text-brand-500"></i>Yeni Müşteri Ekle</h3>
-                <button @click="showQuickCustomerModal = false" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+            @keydown.escape.window="closeCustomerPicker()">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[88vh] overflow-hidden flex flex-col" @click.stop>
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-white shrink-0">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900"><i class="fas fa-user-group mr-2 text-brand-500"></i>Müşteri Seçimi</h3>
+                    <p class="text-xs text-gray-500 mt-1">Mevcut müşteriyi seçin veya buradan yeni müşteri oluşturun.</p>
+                </div>
+                <button @click="closeCustomerPicker()" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
             </div>
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Ad Soyad *</label>
-                    <input type="text" x-model="quickCustomerForm.name" @keydown.enter="saveQuickCustomer()"
-                           placeholder="Müşteri adı..."
-                           class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Telefon <span class="text-gray-400">(opsiyonel)</span></label>
-                    <input type="tel" x-model="quickCustomerForm.phone" @keydown.enter="saveQuickCustomer()"
-                           placeholder="0532..."
-                           class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20">
-                </div>
-                <div class="flex gap-3 pt-2">
-                    <button @click="showQuickCustomerModal = false"
-                            class="flex-1 px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">İptal</button>
-                    <button @click="saveQuickCustomer()" :disabled="!quickCustomerForm.name.trim() || quickCustomerSaving"
-                            class="flex-1 px-4 py-2 text-sm text-white bg-gradient-to-r from-brand-500 to-purple-600 rounded-xl hover:opacity-90 disabled:opacity-50 font-medium flex items-center justify-center gap-2">
-                        <i class="fas fa-spinner fa-spin" x-show="quickCustomerSaving"></i>
-                        <i class="fas fa-check" x-show="!quickCustomerSaving"></i>
-                        <span x-text="quickCustomerSaving ? 'Kaydediliyor...' : 'Kaydet & Seç'"></span>
+
+            <div class="px-5 pt-4 pb-3 border-b border-gray-100 bg-gray-50/80 shrink-0">
+                <div class="flex gap-2">
+                    <button @click="customerPickerCreateMode = false; searchCustomers(customerSearch); $nextTick(() => $refs.customerPickerInput?.focus())"
+                            class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                            :class="!customerPickerCreateMode ? 'bg-brand-500 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'">
+                        <i class="fas fa-magnifying-glass mr-1.5"></i>Müşteri Seç
                     </button>
+                    <button @click="openQuickCustomerForm(customerSearch)"
+                            class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                            :class="customerPickerCreateMode ? 'bg-emerald-500 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'">
+                        <i class="fas fa-user-plus mr-1.5"></i>Yeni Müşteri
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-5 space-y-4">
+                <div x-show="!customerPickerCreateMode" class="space-y-4">
+                    <div class="relative">
+                        <input x-ref="customerPickerInput" type="text" x-model="customerSearch"
+                               @input.debounce.300ms="searchCustomers(customerSearch)"
+                               placeholder="Ad, telefon veya e-posta ile müşteri arayın..."
+                               class="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-2xl text-sm text-gray-800 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-white">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    </div>
+
+                    <div class="flex items-center justify-between text-xs text-gray-500 px-1">
+                        <span x-text="customerResults.length ? customerResults.length + ' müşteri bulundu' : (customerSearch.length > 1 ? 'Sonuç bulunamadı' : 'Son müşteriler listeleniyor')"></span>
+                        <button @click="openQuickCustomerForm(customerSearch)" class="text-emerald-600 hover:text-emerald-700 font-semibold">
+                            <i class="fas fa-user-plus mr-1"></i>Yeni müşteri ekle
+                        </button>
+                    </div>
+
+                    <div class="border border-gray-100 rounded-2xl overflow-hidden bg-white shadow-sm min-h-[220px]">
+                        <div x-show="customerResults.length > 0" class="divide-y divide-gray-100 max-h-[46vh] overflow-y-auto">
+                            <template x-for="c in customerResults" :key="c.id">
+                                <button @click="selectCustomer(c)"
+                                        class="w-full text-left px-4 py-3 hover:bg-brand-50/60 transition-colors flex items-center justify-between gap-3 group">
+                                    <div class="min-w-0 flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0 group-hover:bg-brand-100 transition-colors">
+                                            <i class="fas fa-user text-sm"></i>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="text-sm font-semibold text-gray-900 truncate" x-text="c.name"></div>
+                                            <div class="text-xs text-gray-400 truncate" x-text="c.phone || c.email || 'İletişim bilgisi yok'"></div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right shrink-0">
+                                        <div class="text-xs font-bold" :class="(c.balance ?? 0) < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCurrency(c.balance ?? 0)"></div>
+                                        <div class="text-[10px] text-gray-400" x-text="(c.balance ?? 0) < 0 ? 'Borçlu' : ((c.balance ?? 0) > 0 ? 'Alacaklı' : 'Bakiye 0')"></div>
+                                    </div>
+                                </button>
+                            </template>
+                        </div>
+
+                        <div x-show="customerSearch.length > 1 && customerResults.length === 0" class="h-full min-h-[220px] flex flex-col items-center justify-center text-center px-6 py-8">
+                            <div class="w-14 h-14 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center mb-3">
+                                <i class="fas fa-user-slash text-xl"></i>
+                            </div>
+                            <p class="text-sm font-semibold text-gray-800">Eşleşen müşteri bulunamadı</p>
+                            <p class="text-xs text-gray-500 mt-1">İsterseniz bu isimle yeni müşteri oluşturabilirsiniz.</p>
+                            <button @click="openQuickCustomerForm(customerSearch)"
+                                    class="mt-4 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-sm font-semibold rounded-xl border border-emerald-200 transition-colors">
+                                <i class="fas fa-user-plus mr-1.5"></i>"<span x-text="customerSearch"></span>" müşterisini oluştur
+                            </button>
+                        </div>
+
+                        <div x-show="customerSearch.length <= 1 && customerResults.length === 0" class="h-full min-h-[220px] flex flex-col items-center justify-center text-center px-6 py-8 text-gray-400">
+                            <i class="fas fa-users text-3xl mb-3"></i>
+                            <p class="text-sm">Müşteri listesi yükleniyor veya kayıt bulunamadı.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="customerPickerCreateMode" x-transition class="space-y-4">
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-sm text-emerald-800">
+                        <i class="fas fa-circle-info mr-1.5"></i>Oluşturulan müşteri otomatik olarak bu satışa seçilecektir.
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-medium text-gray-700 mb-1.5">Ad Soyad *</label>
+                            <input x-ref="quickCustomerNameInput" type="text" x-model="quickCustomerForm.name" @keydown.enter="saveQuickCustomer()"
+                                   placeholder="Müşteri adı..."
+                                   class="w-full px-3 py-3 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1.5">Telefon</label>
+                            <input type="tel" x-model="quickCustomerForm.phone" @keydown.enter="saveQuickCustomer()"
+                                   placeholder="0532..."
+                                   class="w-full px-3 py-3 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-white">
+                        </div>
+                        <div class="flex items-end">
+                            <button @click="customerPickerCreateMode = false; searchCustomers(customerSearch)"
+                                    class="w-full px-4 py-3 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                                Listeye Geri Dön
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 pt-2">
+                        <button @click="closeCustomerPicker()"
+                                class="flex-1 px-4 py-3 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">İptal</button>
+                        <button @click="saveQuickCustomer()" :disabled="!quickCustomerForm.name.trim() || quickCustomerSaving"
+                                class="flex-1 px-4 py-3 text-sm text-white bg-gradient-to-r from-brand-500 to-purple-600 rounded-xl hover:opacity-90 disabled:opacity-50 font-medium flex items-center justify-center gap-2">
+                            <i class="fas fa-spinner fa-spin" x-show="quickCustomerSaving"></i>
+                            <i class="fas fa-check" x-show="!quickCustomerSaving"></i>
+                            <span x-text="quickCustomerSaving ? 'Kaydediliyor...' : 'Kaydet & Seç'"></span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -350,59 +439,19 @@
         </div>
 
         {{-- Müşteri Seçimi --}}
-        <div class="border-t border-gray-200 shrink-0" @click.away="showCustomerDropdown = false">
-            {{-- Seçilmemiş → Buton --}}
-            <button x-show="!selectedCustomer && !showCustomerDropdown"
-                    @click="showCustomerDropdown = true; $nextTick(() => $refs.customerInput?.focus()); searchCustomers('')"
+        <div class="border-t border-gray-200 shrink-0">
+            <button x-show="!selectedCustomer"
+                    @click="openCustomerPicker()"
                     class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors">
                 <i class="fas fa-user-circle text-base"></i> Müşteri Seçiniz
             </button>
-            {{-- Arama Alanı --}}
-            <div x-show="!selectedCustomer && showCustomerDropdown" class="p-2">
-                <div class="flex items-center gap-1.5">
-                    <input x-ref="customerInput" type="text" x-model="customerSearch"
-                           @input.debounce.300ms="searchCustomers(customerSearch)"
-                           @keydown.escape="showCustomerDropdown = false; customerSearch = ''"
-                           placeholder="Müşteri ara (ad / telefon)..."
-                           class="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30">
-                    <button @click="quickCustomerForm.name = customerSearch; showQuickCustomerModal = true; showCustomerDropdown = false"
-                            title="Yeni müşteri ekle"
-                            class="p-1.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors shrink-0">
-                        <i class="fas fa-user-plus text-sm"></i>
-                    </button>
-                    <button @click="showCustomerDropdown = false; customerSearch = ''" class="p-1.5 text-gray-400 hover:text-red-500 transition-colors shrink-0">
-                        <i class="fas fa-times text-sm"></i>
-                    </button>
-                </div>
-                {{-- Sonuçlar --}}
-                <div x-show="customerResults.length > 0" class="mt-1 max-h-36 overflow-y-auto border border-gray-100 rounded-lg divide-y divide-gray-50 bg-white shadow-sm">
-                    <template x-for="c in customerResults" :key="c.id">
-                        <button @click="selectedCustomer = c; showCustomerDropdown = false; customerSearch = ''; customerResults = []"
-                                class="w-full text-left px-3 py-2 hover:bg-blue-50 text-sm flex items-center justify-between transition-colors">
-                            <div>
-                                <div class="text-gray-900 font-medium text-sm" x-text="c.name"></div>
-                                <div class="text-xs text-gray-400" x-text="c.phone || c.email || ''"></div>
-                            </div>
-                            <span class="text-xs font-medium shrink-0 ml-2" :class="c.balance < 0 ? 'text-red-500' : 'text-emerald-500'" x-text="formatCurrency(c.balance)"></span>
-                        </button>
-                    </template>
-                </div>
-                {{-- Sonuç yok --}}
-                <div x-show="customerSearch.length > 1 && customerResults.length === 0" class="mt-1">
-                    <p class="text-xs text-gray-400 text-center py-1">Kayıt bulunamadı</p>
-                    <button @click="quickCustomerForm.name = customerSearch; showQuickCustomerModal = true; showCustomerDropdown = false"
-                            class="w-full py-2 bg-brand-50 hover:bg-brand-100 text-brand-600 text-xs font-medium rounded-lg border border-brand-200 flex items-center justify-center gap-1.5 transition-colors">
-                        <i class="fas fa-user-plus"></i>
-                        "<span x-text="customerSearch"></span>" adlı müşteri oluştur
-                    </button>
-                </div>
-            </div>
-            {{-- Seçildi --}}
             <div x-show="selectedCustomer" class="flex items-center gap-2 px-3 py-2.5 bg-blue-600">
-                <i class="fas fa-user-check text-white text-sm shrink-0"></i>
-                <span class="flex-1 text-sm text-white font-medium truncate" x-text="selectedCustomer?.name"></span>
-                <span class="text-xs text-blue-200 whitespace-nowrap" :class="(selectedCustomer?.balance ?? 0) < 0 ? 'text-red-300' : 'text-blue-200'" x-text="formatCurrency(selectedCustomer?.balance ?? 0)"></span>
-                <button @click="selectedCustomer = null; customerSearch = ''" class="text-blue-200 hover:text-white transition-colors shrink-0">
+                <button @click="openCustomerPicker()" class="flex items-center gap-2 flex-1 min-w-0 text-left">
+                    <i class="fas fa-user-check text-white text-sm shrink-0"></i>
+                    <span class="flex-1 text-sm text-white font-medium truncate" x-text="selectedCustomer?.name"></span>
+                    <span class="text-xs text-blue-200 whitespace-nowrap" :class="(selectedCustomer?.balance ?? 0) < 0 ? 'text-red-300' : 'text-blue-200'" x-text="formatCurrency(selectedCustomer?.balance ?? 0)"></span>
+                </button>
+                <button @click="clearSelectedCustomer()" class="text-blue-200 hover:text-white transition-colors shrink-0">
                     <i class="fas fa-times text-xs"></i>
                 </button>
             </div>
@@ -1224,6 +1273,7 @@ function posScreen() {
         showOtherPayments: false,
         customPaymentTypes: @json($paymentTypes ?? []),
         showQuickCustomerModal: false,
+        customerPickerCreateMode: false,
         quickCustomerForm: { name: '', phone: '' },
         quickCustomerSaving: false,
         // İskonto modal
@@ -1781,6 +1831,46 @@ function posScreen() {
             }
         },
 
+        openCustomerPicker() {
+            this.showQuickCustomerModal = true;
+            this.customerPickerCreateMode = false;
+            this.customerSearch = '';
+            this.customerResults = [];
+            this.showCustomerDropdown = false;
+            this.$nextTick(() => this.$refs.customerPickerInput?.focus());
+            this.searchCustomers('');
+        },
+
+        closeCustomerPicker() {
+            this.showQuickCustomerModal = false;
+            this.customerPickerCreateMode = false;
+            this.customerSearch = '';
+            this.customerResults = [];
+            this.showCustomerDropdown = false;
+            this.quickCustomerForm = { name: '', phone: '' };
+        },
+
+        openQuickCustomerForm(prefill = '') {
+            this.customerPickerCreateMode = true;
+            this.quickCustomerForm = {
+                name: (prefill || this.customerSearch || '').trim(),
+                phone: '',
+            };
+            this.$nextTick(() => this.$refs.quickCustomerNameInput?.focus());
+        },
+
+        selectCustomer(customer) {
+            this.selectedCustomer = customer;
+            this.closeCustomerPicker();
+        },
+
+        clearSelectedCustomer() {
+            this.selectedCustomer = null;
+            this.customerSearch = '';
+            this.customerResults = [];
+            this.showCustomerDropdown = false;
+        },
+
         async processMixedPayment() {
             const totalEntered = (this.mixedCash || 0) + (this.mixedCard || 0) + (this.mixedCredit || 0) + (this.mixedTransfer || 0);
             if (Math.abs(totalEntered - this.totals.grand_total) > 0.01) {
@@ -1874,11 +1964,7 @@ function posScreen() {
                 const data = await posAjax('{{ route("pos.customers.store") }}', this.quickCustomerForm);
                 if (data.success) {
                     this.selectedCustomer = data.customer;
-                    this.showQuickCustomerModal = false;
-                    this.quickCustomerForm = { name: '', phone: '' };
-                    this.customerSearch = '';
-                    this.customerResults = [];
-                    this.showCustomerDropdown = false;
+                    this.closeCustomerPicker();
                     showToast('Müşteri eklendi!', 'success');
                 }
             } catch(e) { showToast(e.message || 'Müşteri eklenemedi.', 'error'); }
