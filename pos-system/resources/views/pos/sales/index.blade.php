@@ -361,11 +361,6 @@
                                             </template>
                                         </select>
                                     </template>
-                                    <template x-if="item.price_label === 'Diğer'">
-                                        <input type="number" x-model.number="item.custom_price" @input="updatePriceType(index, 'Diğer')"
-                                               class="w-16 bg-white border border-gray-200 rounded px-1.5 py-0.5 text-[10px] text-gray-600"
-                                               min="0" step="0.01" placeholder="0.00">
-                                    </template>
                                     <span x-text="'× ' + formatCurrency(item.unit_price)" class="text-gray-400"></span>
                                     <button @click.stop="removeFromCart(index)" class="ml-auto text-gray-300 hover:text-red-500 transition-colors">
                                         <i class="fas fa-times text-xs"></i>
@@ -1471,7 +1466,6 @@ function posScreen() {
                     options.push({ label: p.label, price: p.price });
                 });
             }
-            options.push({ label: 'Diğer', price: null });
             return options;
         },
 
@@ -1608,11 +1602,7 @@ function posScreen() {
             if (!item || !item.price_options) return;
             const selected = item.price_options.find(p => p.label === label);
             if (!selected) return;
-            if (label === 'Diğer') {
-                item.unit_price = parseFloat(item.custom_price || 0);
-            } else {
-                item.unit_price = parseFloat(selected.price || 0);
-            }
+            item.unit_price = parseFloat(selected.price || 0);
             item.price_label = selected.label;
             this.recalcItem(index);
         },
