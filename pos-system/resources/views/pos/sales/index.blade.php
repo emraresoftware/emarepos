@@ -584,6 +584,55 @@
                         </template>
                     </div>
                 </div>
+
+                <div class="rounded-2xl p-3 space-y-2.5 border"
+                     x-show="cart.length > 0"
+                     :class="creditRiskTone() === 'danger' ? 'bg-red-50 border-red-200' : creditRiskTone() === 'warning' ? 'bg-amber-50 border-amber-200' : 'bg-sky-50 border-sky-200'">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Veresiye Risk Analizi</span>
+                            <div class="text-xs font-bold text-gray-900 mt-0.5" x-text="selectedCustomer ? selectedCustomer.name : 'Müşteri seçilmedi'"></div>
+                        </div>
+                        <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold"
+                              :class="creditRiskTone() === 'danger' ? 'bg-red-100 text-red-700' : creditRiskTone() === 'warning' ? 'bg-amber-100 text-amber-700' : 'bg-sky-100 text-sky-700'"
+                              x-text="creditRiskLabel()"></span>
+                    </div>
+
+                    <div x-show="selectedCustomer" class="grid grid-cols-2 gap-2">
+                        <div class="rounded-xl bg-white/85 px-3 py-2 ring-1 ring-black/5">
+                            <div class="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Mevcut Bakiye</div>
+                            <div class="mt-1 text-sm font-bold" :class="(selectedCustomer?.balance ?? 0) < 0 ? 'text-red-600' : 'text-emerald-600'" x-text="formatCurrency(selectedCustomer?.balance ?? 0)"></div>
+                        </div>
+                        <div class="rounded-xl bg-white/85 px-3 py-2 ring-1 ring-black/5">
+                            <div class="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Kredi Limiti</div>
+                            <div class="mt-1 text-sm font-bold text-gray-900" x-text="customerCreditLimitLabel()"></div>
+                        </div>
+                        <div class="rounded-xl bg-white/85 px-3 py-2 ring-1 ring-black/5">
+                            <div class="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Veresiye Sonrası</div>
+                            <div class="mt-1 text-sm font-bold" :class="projectedCustomerBalanceAfterCredit() < 0 ? 'text-red-600' : 'text-emerald-600'" x-text="formatCurrency(projectedCustomerBalanceAfterCredit())"></div>
+                        </div>
+                        <div class="rounded-xl bg-white/85 px-3 py-2 ring-1 ring-black/5">
+                            <div class="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Limit Kullanımı</div>
+                            <div class="mt-1 text-sm font-bold" :class="creditUsagePercent() >= 100 ? 'text-red-600' : creditUsagePercent() >= 80 ? 'text-amber-600' : 'text-sky-700'" x-text="creditUsageLabel()"></div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2" x-show="selectedCustomer">
+                        <div class="h-2 rounded-full bg-white/80 overflow-hidden ring-1 ring-black/5">
+                            <div class="h-full rounded-full transition-all"
+                                 :class="creditRiskTone() === 'danger' ? 'bg-gradient-to-r from-red-400 to-red-600' : creditRiskTone() === 'warning' ? 'bg-gradient-to-r from-amber-400 to-amber-600' : 'bg-gradient-to-r from-sky-400 to-sky-600'"
+                                 :style="'width:' + Math.min(100, Math.max(0, creditUsagePercent())) + '%'">
+                            </div>
+                        </div>
+                        <template x-for="(warning, warningIndex) in creditRiskWarnings()" :key="warning + '-' + warningIndex">
+                            <div class="rounded-xl bg-white/85 px-3 py-2 text-[11px] text-gray-700 ring-1 ring-black/5" x-text="warning"></div>
+                        </template>
+                    </div>
+
+                    <div x-show="!selectedCustomer" class="rounded-xl bg-white/85 px-3 py-2 text-[11px] text-gray-700 ring-1 ring-black/5">
+                        Veresiye satış ihtimali varsa önce müşteri seçin. Seçilmeden limit, bakiye ve risk hesaplaması yapılamaz.
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1911,6 +1960,97 @@ function posScreen() {
             }
 
             return suggestions.slice(0, 3);
+        },
+
+        customerDebtAmount() {
+            const balance = parseFloat(this.selectedCustomer?.balance) || 0;
+            return balance < 0 ? Math.abs(balance) : 0;
+        },
+
+        customerCreditLimit() {
+            return Math.max(0, parseFloat(this.selectedCustomer?.credit_limit) || 0);
+        },
+
+        customerCreditLimitLabel() {
+            return this.customerCreditLimit() > 0 ? formatCurrency(this.customerCreditLimit()) : 'Limitsiz';
+        },
+
+        projectedCustomerBalanceAfterCredit() {
+            const currentBalance = parseFloat(this.selectedCustomer?.balance) || 0;
+            return Math.round((currentBalance - (this.totals.grand_total || 0)) * 100) / 100;
+        },
+
+        projectedCustomerDebtAfterCredit() {
+            const projectedBalance = this.projectedCustomerBalanceAfterCredit();
+            return projectedBalance < 0 ? Math.abs(projectedBalance) : 0;
+        },
+
+        creditUsagePercent() {
+            const limit = this.customerCreditLimit();
+            if (!this.selectedCustomer) return 0;
+            if (limit <= 0) return this.projectedCustomerDebtAfterCredit() > 0 ? 100 : 0;
+            return Math.round((this.projectedCustomerDebtAfterCredit() / limit) * 100);
+        },
+
+        creditUsageLabel() {
+            const limit = this.customerCreditLimit();
+            if (!this.selectedCustomer) return 'Müşteri yok';
+            if (limit <= 0) return this.projectedCustomerDebtAfterCredit() > 0 ? 'Limitsiz / borç oluşur' : 'Limitsiz';
+            return '%' + this.creditUsagePercent() + ' kullanım';
+        },
+
+        creditRiskTone() {
+            if (!this.selectedCustomer) return this.totals.grand_total >= 500 ? 'warning' : 'info';
+            const usage = this.creditUsagePercent();
+            const currentDebt = this.customerDebtAmount();
+            if ((this.customerCreditLimit() > 0 && usage >= 100) || currentDebt >= Math.max(this.customerCreditLimit(), 1)) return 'danger';
+            if (usage >= 80 || currentDebt > 0) return 'warning';
+            return 'info';
+        },
+
+        creditRiskLabel() {
+            const tone = this.creditRiskTone();
+            if (tone === 'danger') return 'Yüksek Risk';
+            if (tone === 'warning') return 'Dikkat';
+            return 'Kontrollü';
+        },
+
+        creditRiskWarnings() {
+            const warnings = [];
+
+            if (!this.selectedCustomer) {
+                warnings.push('Müşteri seçilmeden veresiye projeksiyonu yapılamaz.');
+                if ((this.totals.grand_total || 0) >= 500) {
+                    warnings.push('Yüksek tutarlı satışlarda müşteri seçmeden ilerlemek takip zafiyeti yaratır.');
+                }
+                return warnings;
+            }
+
+            const limit = this.customerCreditLimit();
+            const currentDebt = this.customerDebtAmount();
+            const projectedDebt = this.projectedCustomerDebtAfterCredit();
+
+            if (currentDebt > 0) {
+                warnings.push('Müşterinin mevcut borcu ' + formatCurrency(-currentDebt) + '.');
+            }
+
+            if (limit > 0) {
+                const available = Math.max(0, limit - currentDebt);
+                warnings.push('Kullanılabilir limit ' + formatCurrency(available) + '.');
+                if (projectedDebt > limit) {
+                    warnings.push('Bu satış sonrası limit ' + formatCurrency(projectedDebt - limit) + ' aşılmış olacak.');
+                } else if (projectedDebt > limit * 0.8) {
+                    warnings.push('Bu satış sonrası limitin kritik eşiğine yaklaşılacak.');
+                }
+            } else if (projectedDebt > 0) {
+                warnings.push('Müşteride kredi limiti tanımlı değil; borç kontrolü manuel takip gerektirir.');
+            }
+
+            if (!warnings.length) {
+                warnings.push('Bu satış için veresiye riski düşük görünüyor.');
+            }
+
+            return warnings.slice(0, 3);
         },
 
         removeFromCart(index) {
