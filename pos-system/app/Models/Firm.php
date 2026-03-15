@@ -48,6 +48,11 @@ class Firm extends Model
         return $this->hasMany(FirmPhone::class)->orderByDesc('is_primary');
     }
 
+    public function accountTransactions()
+    {
+        return $this->hasMany(AccountTransaction::class);
+    }
+
     public function stockMovements()
     {
         return $this->hasMany(StockMovement::class, 'firm_customer', 'name');

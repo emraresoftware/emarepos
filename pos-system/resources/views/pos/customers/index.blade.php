@@ -359,15 +359,15 @@
                         <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Borç</p>
-                                <p class="text-lg font-bold text-red-500" x-text="formatCurrency(Math.max(Math.abs(Math.min(detailData.customer.balance || 0, 0)), 0))"></p>
+                                <p class="text-lg font-bold text-red-500" x-text="formatCurrency(detailData.stats?.debt_total || 0)"></p>
                             </div>
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Alacak</p>
-                                <p class="text-lg font-bold text-emerald-600" x-text="formatCurrency(Math.max(detailData.customer.balance || 0, 0))"></p>
+                                <p class="text-lg font-bold text-emerald-600" x-text="formatCurrency(detailData.stats?.credit_total || 0)"></p>
                             </div>
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Bakiye</p>
-                                <p class="text-lg font-bold" :class="(detailData.customer.balance||0) < 0 ? 'text-red-500' : ((detailData.customer.balance||0) > 0 ? 'text-emerald-600' : 'text-gray-800')" x-text="formatCurrency(detailData.customer.balance || 0)"></p>
+                                <p class="text-lg font-bold" :class="(detailData.stats?.balance||0) < 0 ? 'text-red-500' : ((detailData.stats?.balance||0) > 0 ? 'text-emerald-600' : 'text-gray-800')" x-text="formatCurrency(detailData.stats?.balance || 0)"></p>
                             </div>
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Kredi Limiti</p>

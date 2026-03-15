@@ -16,7 +16,15 @@ class FirmController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Firm::where('is_active', true)->with(['group', 'phones'])->orderBy('name');
+        $query = Firm::where('is_active', true)
+            ->with(['group', 'phones'])
+            ->withSum(['accountTransactions as debt_total' => function ($q) {
+                $q->where('amount', '<', 0);
+            }], 'amount')
+            ->withSum(['accountTransactions as credit_total' => function ($q) {
+                $q->where('amount', '>', 0);
+            }], 'amount')
+            ->orderBy('name');
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -31,16 +39,18 @@ class FirmController extends Controller
             $query->where('firm_group_id', $request->group_id);
         }
 
-        // 3 sorgu yerine tek aggregate
-        $statsAgg = (clone $query)
-            ->reorder()
-            ->selectRaw("COUNT(*) as total_firms, COALESCE(SUM(CASE WHEN balance < 0 THEN balance ELSE 0 END), 0) as total_debt, COALESCE(SUM(CASE WHEN balance > 0 THEN balance ELSE 0 END), 0) as total_credit")
+        $firmIdsQuery = (clone $query)->reorder()->select('firms.id');
+
+        $statsAgg = AccountTransaction::query()
+            ->whereIn('firm_id', $firmIdsQuery)
+            ->selectRaw('COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) as total_debt, COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) as total_credit, COALESCE(SUM(amount), 0) as total_balance')
             ->first();
+
         $stats = [
-            'total_firms'  => (int) ($statsAgg->total_firms ?? 0),
+            'total_firms'  => (clone $query)->reorder()->count(),
             'total_debt'   => (float) ($statsAgg->total_debt ?? 0),
             'total_credit' => (float) ($statsAgg->total_credit ?? 0),
-            'total_balance' => (float) (($statsAgg->total_credit ?? 0) - abs((float) ($statsAgg->total_debt ?? 0))),
+            'total_balance' => (float) ($statsAgg->total_balance ?? 0),
         ];
 
         $firms = $query->paginate(50)->withQueryString();
@@ -62,6 +72,9 @@ class FirmController extends Controller
             ->orderByRaw('COALESCE(transaction_date, created_at) desc')
             ->get();
 
+        $debtTotal = (float) $transactions->where('amount', '<', 0)->sum(fn ($tx) => abs((float) $tx->amount));
+        $creditTotal = (float) $transactions->where('amount', '>', 0)->sum('amount');
+
         $payments = AccountTransaction::where('firm_id', $firm->id)
             ->where('type', 'payment')
             ->orderByRaw('COALESCE(transaction_date, created_at) desc')
@@ -82,6 +95,11 @@ class FirmController extends Controller
             'purchase_invoices' => $purchaseInvoices,
             'total_purchase'   => $totalPurchase,
             'total_payment'    => $totalPayment,
+            'stats'            => [
+                'debt_total' => $debtTotal,
+                'credit_total' => $creditTotal,
+                'balance' => (float) ($firm->balance ?? 0),
+            ],
         ]);
     }
 

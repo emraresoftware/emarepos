@@ -119,7 +119,11 @@
                     </tr>                </thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse($firms as $firm)
-                        @php $bal = $firm->balance ?? 0; @endphp
+                        @php
+                            $bal = $firm->balance ?? 0;
+                            $borcToplami = abs((float) ($firm->debt_total ?? 0));
+                            $alacakToplami = (float) ($firm->credit_total ?? 0);
+                        @endphp
                         <tr class="hover:bg-gray-50 transition-colors cursor-pointer" @click.stop="openDetail({{ $firm->id }})">
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-3">
@@ -155,10 +159,10 @@
                             <td class="px-4 py-3 text-gray-500">{{ $firm->email ?? '-' }}</td>
                             <td class="px-4 py-3 font-mono text-xs text-gray-500">{{ $firm->tax_number ?? '-' }}</td>
                             <td class="px-4 py-3 text-right text-red-500 font-mono font-medium">
-                                {{ formatCurrency(max(abs(min($bal, 0)), 0)) }}
+                                {{ formatCurrency($borcToplami) }}
                             </td>
                             <td class="px-4 py-3 text-right text-emerald-600 font-mono font-medium">
-                                {{ formatCurrency(max($bal, 0)) }}
+                                {{ formatCurrency($alacakToplami) }}
                             </td>
                             <td class="px-4 py-3 text-right">
                                 <span class="font-mono font-medium {{ $bal < 0 ? 'text-red-500' : ($bal > 0 ? 'text-emerald-600' : 'text-gray-500') }}">
@@ -341,15 +345,15 @@
                         <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Borç</p>
-                                <p class="text-lg font-bold text-red-500" x-text="formatCur(Math.max(Math.abs(Math.min(detailData.firm.balance || 0, 0)), 0))"></p>
+                                    <p class="text-lg font-bold text-red-500" x-text="formatCur(detailData.stats?.debt_total || 0)"></p>
                             </div>
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Alacak</p>
-                                <p class="text-lg font-bold text-emerald-600" x-text="formatCur(Math.max(detailData.firm.balance || 0, 0))"></p>
+                                    <p class="text-lg font-bold text-emerald-600" x-text="formatCur(detailData.stats?.credit_total || 0)"></p>
                             </div>
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Bakiye</p>
-                                <p class="text-lg font-bold" :class="(detailData.firm.balance||0) < 0 ? 'text-red-500' : ((detailData.firm.balance||0) > 0 ? 'text-emerald-600' : 'text-gray-800')" x-text="formatCur(detailData.firm.balance)"></p>
+                                    <p class="text-lg font-bold" :class="(detailData.stats?.balance||0) < 0 ? 'text-red-500' : ((detailData.stats?.balance||0) > 0 ? 'text-emerald-600' : 'text-gray-800')" x-text="formatCur(detailData.stats?.balance || 0)"></p>
                             </div>
                             <div class="bg-gray-50 rounded-xl p-3 text-center">
                                 <p class="text-xs text-gray-500 mb-1">Hareket Sayısı</p>

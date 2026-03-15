@@ -110,6 +110,9 @@ class CustomerController extends Controller
             ->orderByRaw('COALESCE(transaction_date, created_at) desc')
             ->get();
 
+        $debtTotal = (float) $transactions->where('amount', '<', 0)->sum(fn ($tx) => abs((float) $tx->amount));
+        $creditTotal = (float) $transactions->where('amount', '>', 0)->sum('amount');
+
         $sales = $customer->sales()
             ->with(['items', 'user'])
             ->orderBy('sold_at', 'desc')
@@ -120,6 +123,11 @@ class CustomerController extends Controller
             'phones'       => $customer->phones,
             'transactions' => $transactions,
             'recent_sales' => $sales,
+            'stats'        => [
+                'debt_total' => $debtTotal,
+                'credit_total' => $creditTotal,
+                'balance' => (float) ($customer->balance ?? 0),
+            ],
         ]);
     }
 
