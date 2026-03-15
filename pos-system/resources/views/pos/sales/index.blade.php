@@ -1417,6 +1417,51 @@
                         <i class="fas fa-times text-xs"></i>
                     </button>
                 </div>
+
+                <div x-show="selectedCustomer" class="mt-3 rounded-2xl border px-3 py-3"
+                     :class="creditSaleBlocked(mixedCredit) ? 'border-red-200 bg-red-50/80' : 'border-amber-200 bg-amber-50/70'">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Veresiye Limit Özeti</div>
+                            <div class="text-sm font-bold text-gray-900 mt-1" x-text="selectedCustomer?.name"></div>
+                        </div>
+                        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                              :class="creditSaleBlocked(mixedCredit) ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'"
+                              x-text="creditSaleBlocked(mixedCredit) ? 'Bloklu' : (mixedCredit > 0 ? 'Kontrol Edildi' : 'Hazır')"></span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mt-3">
+                        <div class="rounded-xl bg-white/80 px-3 py-2 ring-1 ring-black/5">
+                            <div class="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Mevcut Borç</div>
+                            <div class="mt-1 text-sm font-bold text-red-600" x-text="formatCurrency(-customerDebtAmount())"></div>
+                        </div>
+                        <div class="rounded-xl bg-white/80 px-3 py-2 ring-1 ring-black/5">
+                            <div class="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Kullanılabilir Limit</div>
+                            <div class="mt-1 text-sm font-bold text-gray-900" x-text="availableCreditLimitLabel()"></div>
+                        </div>
+                        <div class="rounded-xl bg-white/80 px-3 py-2 ring-1 ring-black/5">
+                            <div class="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Veresiye Sonrası Borç</div>
+                            <div class="mt-1 text-sm font-bold"
+                                 :class="creditSaleBlocked(mixedCredit) ? 'text-red-600' : 'text-amber-700'"
+                                 x-text="formatCurrency(-projectedCustomerDebtAfterCreditForAmount(mixedCredit))"></div>
+                        </div>
+                        <div class="rounded-xl bg-white/80 px-3 py-2 ring-1 ring-black/5">
+                            <div class="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Limit Kullanımı</div>
+                            <div class="mt-1 text-sm font-bold text-gray-900" x-text="creditUsageLabelForAmount(mixedCredit)"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <div class="h-2 rounded-full bg-white/80 overflow-hidden ring-1 ring-black/5">
+                            <div class="h-full rounded-full transition-all"
+                                 :class="creditSaleBlocked(mixedCredit) ? 'bg-red-500' : 'bg-amber-400'"
+                                 :style="`width: ${Math.min(100, Math.max(0, creditUsagePercentForAmount(mixedCredit)))}%`"></div>
+                        </div>
+                        <div class="mt-2 text-[11px]"
+                             :class="creditSaleBlocked(mixedCredit) ? 'text-red-600' : 'text-gray-500'"
+                             x-text="creditSaleBlocked(mixedCredit) ? creditSaleBlockMessage(mixedCredit) : 'Veresiye payı mevcut limite göre uygun görünüyor.'"></div>
+                    </div>
+                </div>
             </div>
 
             {{-- Hızlı Doldur --}}
@@ -2041,6 +2086,17 @@ function posScreen() {
             return this.customerCreditLimit() > 0 ? formatCurrency(this.customerCreditLimit()) : 'Limitsiz';
         },
 
+        availableCreditLimit() {
+            const limit = this.customerCreditLimit();
+            if (limit <= 0) return null;
+            return Math.max(0, Math.round((limit - this.customerDebtAmount()) * 100) / 100);
+        },
+
+        availableCreditLimitLabel() {
+            const available = this.availableCreditLimit();
+            return available === null ? 'Limitsiz' : formatCurrency(available);
+        },
+
         projectedCustomerBalanceAfterCreditForAmount(creditAmount = null) {
             const currentBalance = parseFloat(this.selectedCustomer?.balance) || 0;
             const amount = Math.max(0, parseFloat(creditAmount ?? this.totals.grand_total) || 0);
@@ -2069,6 +2125,13 @@ function posScreen() {
 
         creditUsagePercent() {
             return this.creditUsagePercentForAmount(this.totals.grand_total || 0);
+        },
+
+        creditUsageLabelForAmount(creditAmount = null) {
+            const limit = this.customerCreditLimit();
+            if (!this.selectedCustomer) return 'Müşteri yok';
+            if (limit <= 0) return this.projectedCustomerDebtAfterCreditForAmount(creditAmount) > 0 ? 'Limitsiz / borç oluşur' : 'Limitsiz';
+            return '%' + this.creditUsagePercentForAmount(creditAmount) + ' kullanım';
         },
 
         creditUsageLabel() {
