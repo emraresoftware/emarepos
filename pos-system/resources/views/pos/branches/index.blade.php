@@ -411,6 +411,65 @@
                 <div x-show="detailTab==='cihazlar'" class="p-5 space-y-4">
                     <div x-show="deviceLoading" class="text-center py-10 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>
                     <div x-show="!deviceLoading" class="space-y-4">
+                        <div class="rounded-2xl border border-brand-100 bg-gradient-to-r from-brand-50/80 to-indigo-50/80 p-4 space-y-4">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                <div>
+                                    <h3 class="text-sm font-semibold text-gray-900">Hızlı Satış Terminalleri</h3>
+                                    <p class="text-xs text-gray-500 mt-1">Her fiziksel kasa veya hızlı satış ekranı için ayrı terminal tanımlayın.</p>
+                                </div>
+                                <button @click="openTerminalForm()"
+                                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-brand-500 to-purple-600 rounded-lg shadow-sm hover:shadow-md transition-all">
+                                    <i class="fas fa-plus text-xs"></i>
+                                    <span>Terminal Ekle</span>
+                                </button>
+                            </div>
+
+                            <div x-show="deviceOptions.terminals.length === 0" class="rounded-xl border border-dashed border-brand-200 bg-white/80 px-4 py-8 text-center text-sm text-gray-500">
+                                Bu şubeye henüz terminal eklenmemiş.
+                            </div>
+
+                            <div x-show="deviceOptions.terminals.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                <template x-for="terminal in deviceOptions.terminals" :key="terminal.id">
+                                    <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div class="min-w-0">
+                                                <div class="flex items-center gap-2 flex-wrap">
+                                                    <h4 class="text-sm font-semibold text-gray-900 truncate" x-text="terminal.name"></h4>
+                                                    <span class="text-[10px] px-2 py-0.5 rounded-full"
+                                                          :class="terminal.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500'"
+                                                          x-text="terminal.is_active ? 'Aktif' : 'Pasif'"></span>
+                                                </div>
+                                                <p class="text-xs text-gray-400 mt-1">ID: <span x-text="terminal.id"></span></p>
+                                            </div>
+                                            <div class="flex items-center gap-1 shrink-0">
+                                                <button @click="openTerminalForm(terminal)" class="w-9 h-9 rounded-lg border border-gray-200 text-gray-500 hover:text-brand-600 hover:border-brand-200 hover:bg-brand-50 transition-colors">
+                                                    <i class="fas fa-pen text-xs"></i>
+                                                </button>
+                                                <button @click="deleteTerminal(terminal.id)" class="w-9 h-9 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors">
+                                                    <i class="fas fa-trash text-xs"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                                            <div class="rounded-xl bg-gray-50 px-3 py-2 border border-gray-100">
+                                                <div class="text-gray-400 uppercase tracking-wide text-[10px]">Fiş</div>
+                                                <div class="text-gray-700 font-medium mt-1 truncate" x-text="printerName(terminal.receipt_printer_id)"></div>
+                                            </div>
+                                            <div class="rounded-xl bg-gray-50 px-3 py-2 border border-gray-100">
+                                                <div class="text-gray-400 uppercase tracking-wide text-[10px]">Mutfak</div>
+                                                <div class="text-gray-700 font-medium mt-1 truncate" x-text="printerName(terminal.kitchen_printer_id)"></div>
+                                            </div>
+                                            <div class="rounded-xl bg-gray-50 px-3 py-2 border border-gray-100">
+                                                <div class="text-gray-400 uppercase tracking-wide text-[10px]">Çekmece</div>
+                                                <div class="text-gray-700 font-medium mt-1 truncate" x-text="cashDrawerName(terminal.cash_drawer_id)"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1.5">Fiş Yazıcısı</label>
                             <select x-model="deviceSettings.receipt_printer_id" class="w-full border border-gray-200 text-gray-800 text-sm rounded-lg px-4 py-2.5 bg-white">
@@ -446,6 +505,74 @@
                                 class="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-brand-500 to-purple-600 rounded-lg disabled:opacity-50">
                             <span x-text="deviceSaving ? 'Kaydediliyor...' : 'Cihazları Kaydet'"></span>
                         </button>
+                    </div>
+
+                    <div x-show="terminalFormOpen" x-transition.opacity class="fixed inset-0 z-[60] flex items-center justify-center p-4" style="display:none;">
+                        <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" @click="terminalFormOpen = false"></div>
+                        <div class="relative w-full max-w-2xl rounded-2xl border border-gray-100 bg-white shadow-2xl overflow-hidden" @click.stop>
+                            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                                <div>
+                                    <h3 class="text-base font-semibold text-gray-900" x-text="terminalForm.id ? 'Terminal Düzenle' : 'Yeni Terminal'"></h3>
+                                    <p class="text-xs text-gray-500 mt-1">Kasa ekranı ve hızlı satış ayrımı için terminal tanımlayın.</p>
+                                </div>
+                                <button @click="terminalFormOpen = false" class="p-2 text-gray-400 hover:text-gray-700 rounded-lg">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+
+                            <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Terminal Adı</label>
+                                    <input type="text" x-model="terminalForm.name" class="w-full border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 bg-white" placeholder="Örn: Ön Kasa 1">
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Fiş Yazıcısı</label>
+                                        <select x-model="terminalForm.receipt_printer_id" class="w-full border border-gray-200 text-gray-800 text-sm rounded-lg px-4 py-2.5 bg-white">
+                                            <option value="">Otomatik</option>
+                                            <template x-for="pr in deviceOptions.printers" :key="'terminal-receipt-' + pr.id">
+                                                <option :value="String(pr.id)" x-text="pr.name"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Mutfak Yazıcısı</label>
+                                        <select x-model="terminalForm.kitchen_printer_id" class="w-full border border-gray-200 text-gray-800 text-sm rounded-lg px-4 py-2.5 bg-white">
+                                            <option value="">Otomatik</option>
+                                            <template x-for="pr in deviceOptions.printers" :key="'terminal-kitchen-' + pr.id">
+                                                <option :value="String(pr.id)" x-text="pr.name"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Para Çekmecesi</label>
+                                        <select x-model="terminalForm.cash_drawer_id" class="w-full border border-gray-200 text-gray-800 text-sm rounded-lg px-4 py-2.5 bg-white">
+                                            <option value="">Otomatik</option>
+                                            <template x-for="drawer in deviceOptions.cash_drawers" :key="'terminal-drawer-' + drawer.id">
+                                                <option :value="String(drawer.id)" x-text="drawer.name"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-end">
+                                        <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer h-[42px]">
+                                            <input type="checkbox" x-model="terminalForm.is_active" class="rounded text-brand-500 border-gray-300 w-4 h-4">
+                                            Terminal aktif
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/80">
+                                <button @click="terminalFormOpen = false" class="px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg">İptal</button>
+                                <button @click="saveTerminal()" :disabled="terminalSaving" class="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-brand-500 to-purple-600 rounded-lg disabled:opacity-50">
+                                    <span x-text="terminalSaving ? 'Kaydediliyor...' : (terminalForm.id ? 'Güncelle' : 'Terminali Kaydet')"></span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -552,7 +679,7 @@ function branchManager() {
         
         terminalFormOpen: false,
         terminalSaving: false,
-        terminalForm: { id: '', name: '', receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_id: '' },
+        terminalForm: { id: '', name: '', receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_id: '', is_active: true },
 
         editSaving: false, editForm: {},
 
@@ -576,6 +703,14 @@ function branchManager() {
         fmtShort(v) {
             const n = parseFloat(v||0);
             return n>=1000 ? (n/1000).toFixed(1)+'K' : String(Math.round(n));
+        },
+        printerName(id) {
+            if (!id) return 'Otomatik';
+            return this.deviceOptions.printers.find(pr => Number(pr.id) === Number(id))?.name || 'Tanımsız';
+        },
+        cashDrawerName(id) {
+            if (!id) return 'Otomatik';
+            return this.deviceOptions.cash_drawers.find(drawer => Number(drawer.id) === Number(id))?.name || 'Tanımsız';
         },
 
         openCreate() {
@@ -602,7 +737,7 @@ function branchManager() {
             this.detail = b;
             this.detailTab = 'rapor';
             this.reportData = this.emptyReportData(); this.branchProducts = []; this.branchStaff = []; this.modulesList = [];
-            this.deviceOptions = { printers:[], cash_drawers:[] };
+            this.deviceOptions = { printers:[], cash_drawers:[], terminals:[] };
             this.deviceSettings = { receipt_printer_id:'', kitchen_printer_id:'', cash_drawer_device_id:'' };
             this.editForm = { name:b.name||'', code:b.code||'', address:b.address||'', phone:b.phone||'',
                               city:b.city||'', district:b.district||'', is_active:!!b.is_active,
@@ -615,7 +750,7 @@ function branchManager() {
             this.detailTab = tab;
             if ((tab==='urunler'||tab==='personel') && !this.reportData) await this.loadReport();
             if (tab==='moduller' && !this.modulesList.length) await this.loadModules();
-            if (tab==='cihazlar' && !this.deviceOptions.printers.length && !this.deviceOptions.cash_drawers.length) await this.loadDeviceOptions();
+            if (tab==='cihazlar' && !this.deviceOptions.printers.length && !this.deviceOptions.cash_drawers.length && !this.deviceOptions.terminals.length) await this.loadDeviceOptions();
         },
 
         setReportPeriod(period) {
@@ -699,9 +834,9 @@ function branchManager() {
 
         openTerminalForm(term = null) {
             if (term) {
-                this.terminalForm = { id: term.id, name: term.name, receipt_printer_id: String(term.receipt_printer_id || ''), kitchen_printer_id: String(term.kitchen_printer_id || ''), cash_drawer_id: String(term.cash_drawer_id || '') };
+                this.terminalForm = { id: term.id, name: term.name, receipt_printer_id: String(term.receipt_printer_id || ''), kitchen_printer_id: String(term.kitchen_printer_id || ''), cash_drawer_id: String(term.cash_drawer_id || ''), is_active: !!term.is_active };
             } else {
-                this.terminalForm = { id: '', name: '', receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_id: '' };
+                this.terminalForm = { id: '', name: '', receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_id: '', is_active: true };
             }
             this.terminalFormOpen = true;
         },
