@@ -391,6 +391,20 @@
 
         {{-- Genel İndirim + Detaylı Özet Bölümü --}}
         <div class="border-t border-gray-200 px-3 py-2 sm:px-4 sm:py-3 bg-white space-y-2 shrink-0">
+            <div x-show="criticalSummaryAlert()" class="rounded-2xl border px-3 py-3 shadow-sm"
+                 :class="criticalSummaryAlert()?.tone === 'danger' ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'">
+                <div class="flex items-start gap-3">
+                    <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                         :class="criticalSummaryAlert()?.tone === 'danger' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'">
+                        <i :class="criticalSummaryAlert()?.icon"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-sm font-bold text-gray-900" x-text="criticalSummaryAlert()?.title"></div>
+                        <div class="text-xs text-gray-600 mt-1" x-text="criticalSummaryAlert()?.detail"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 via-white to-slate-100 p-3 shadow-sm">
                 <div class="flex items-start justify-between gap-3">
                     <div>
@@ -493,6 +507,35 @@
                     <div class="mt-1 flex items-center justify-between text-[11px] text-gray-400" x-show="totals.discount_total > 0">
                         <span>Toplam indirim</span>
                         <span class="font-semibold text-amber-600" x-text="'-' + formatCurrency(totals.discount_total)"></span>
+                    </div>
+                </div>
+
+                <div class="mt-3 rounded-2xl border border-violet-200 bg-violet-50/80 p-3 space-y-2" x-show="cart.length > 0">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <div class="text-[11px] font-semibold uppercase tracking-wider text-violet-500">Kârlılık Özeti</div>
+                            <div class="text-xs text-violet-700 mt-0.5">Tahmini maliyet ve brüt kâr görünümü</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm font-bold" :class="profitAmount() >= 0 ? 'text-violet-700' : 'text-red-600'" x-text="formatCurrency(profitAmount())"></div>
+                            <div class="text-[11px] text-violet-500" x-text="profitMarginLabel()"></div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="rounded-xl bg-white/90 px-3 py-2 ring-1 ring-violet-100">
+                            <div class="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Tahmini Maliyet</div>
+                            <div class="mt-1 text-sm font-bold text-gray-900" x-text="formatCurrency(costAmount())"></div>
+                        </div>
+                        <div class="rounded-xl bg-white/90 px-3 py-2 ring-1 ring-violet-100">
+                            <div class="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Kâr / Zarar</div>
+                            <div class="mt-1 text-sm font-bold" :class="profitAmount() >= 0 ? 'text-emerald-600' : 'text-red-600'" x-text="formatCurrency(profitAmount())"></div>
+                        </div>
+                    </div>
+                    <div class="h-2 rounded-full bg-white/80 overflow-hidden ring-1 ring-violet-100">
+                        <div class="h-full rounded-full transition-all"
+                             :class="profitAmount() >= 0 ? 'bg-gradient-to-r from-violet-400 to-fuchsia-600' : 'bg-gradient-to-r from-red-400 to-red-600'"
+                             :style="'width:' + Math.min(100, Math.max(8, Math.abs(profitMarginPercent()))) + '%'">
+                        </div>
                     </div>
                 </div>
 
@@ -1756,6 +1799,7 @@ function posScreen() {
                     product_name: product.name,
                     barcode: product.barcode,
                     unit_price: product.sale_price,
+                    purchase_price: parseFloat(product.purchase_price || 0),
                     price_label: 'Standart',
                     price_options: priceOptions,
                     custom_price: null,
@@ -2148,6 +2192,67 @@ function posScreen() {
             }
         },
 
+        costAmount() {
+            return Math.round(this.cart.reduce((sum, item) => {
+                return sum + ((parseFloat(item.purchase_price) || 0) * (parseFloat(item.quantity) || 0));
+            }, 0) * 100) / 100;
+        },
+
+        profitAmount() {
+            return Math.round(((this.totals.grand_total || 0) - this.costAmount()) * 100) / 100;
+        },
+
+        profitMarginPercent() {
+            if (!(this.totals.grand_total > 0)) return 0;
+            return Math.round((this.profitAmount() / this.totals.grand_total) * 100);
+        },
+
+        profitMarginLabel() {
+            return '%' + this.profitMarginPercent() + ' marj';
+        },
+
+        criticalSummaryAlert() {
+            if (!this.cart.length) return null;
+
+            if (this.creditRiskTone() === 'danger') {
+                return {
+                    tone: 'danger',
+                    icon: 'fas fa-shield-halved text-sm',
+                    title: 'Veresiye riski kritik seviyede',
+                    detail: 'Bu satış mevcut müşteri borç/limit görünümünü tehlikeli seviyeye taşıyor. Tahsilat veya parçalı ödeme öncelikli düşünülmeli.',
+                };
+            }
+
+            if (!this.selectedCustomer && (this.totals.grand_total || 0) >= 1000) {
+                return {
+                    tone: 'warning',
+                    icon: 'fas fa-user-lock text-sm',
+                    title: 'Yüksek tutarlı satış müşteri olmadan ilerliyor',
+                    detail: 'Takip ve tahsilat güvenliği için satış tamamlanmadan önce müşteri ilişkilendirmesi önerilir.',
+                };
+            }
+
+            if (this.remainingAmount() > 0 && (parseFloat(this.paidAmount) || 0) > 0) {
+                return {
+                    tone: 'warning',
+                    icon: 'fas fa-cash-register text-sm',
+                    title: 'Tahsilat eksik',
+                    detail: 'Satış tamamlanmadan önce kalan ' + formatCurrency(this.remainingAmount()) + ' tutarın kapatılması gerekiyor.',
+                };
+            }
+
+            if (this.profitAmount() < 0) {
+                return {
+                    tone: 'danger',
+                    icon: 'fas fa-chart-line-down text-sm',
+                    title: 'Satış zarar gösteriyor',
+                    detail: 'Tahmini maliyet, satış toplamını aşıyor. Fiyat veya iskonto kontrol edilmeli.',
+                };
+            }
+
+            return null;
+        },
+
         removeFromCart(index) {
             this.cart.splice(index, 1);
             this.recalcTotals();
@@ -2184,6 +2289,7 @@ function posScreen() {
 
             normalized.price_options = priceOptions;
             normalized.custom_price = null;
+            normalized.purchase_price = parseFloat(normalized.purchase_price || 0);
 
             const activeOption = priceOptions.find(option => option.label === normalized.price_label);
             if (normalized.price_label === 'Diğer' || !activeOption) {
@@ -2278,6 +2384,7 @@ function posScreen() {
                     const p = data.product;
                     const newProd = {
                         id: p.id, name: p.name, sale_price: parseFloat(p.sale_price),
+                        purchase_price: parseFloat(p.purchase_price || 0),
                         barcode: p.barcode, unit: p.unit, stock_quantity: p.stock_quantity,
                         category_id: p.category_id, category: '', vat_rate: p.vat_rate,
                         is_service: false,
@@ -2742,6 +2849,7 @@ function posScreen() {
                         product_name: product.name,
                         barcode: product.barcode,
                         unit_price: price,
+                        purchase_price: parseFloat(product.purchase_price || 0),
                         price_label: label,
                         price_options: priceOptions,
                         custom_price: null,
