@@ -1653,13 +1653,42 @@ function posScreen() {
             } catch (e) { /* ignore */ }
         },
 
+        normalizeCartItem(item) {
+            if (!item || typeof item !== 'object') return item;
+
+            const normalized = { ...item };
+            const priceOptions = Array.isArray(normalized.price_options)
+                ? normalized.price_options.filter(option => option && option.label !== 'Diğer')
+                : [];
+
+            normalized.price_options = priceOptions;
+            normalized.custom_price = null;
+
+            const activeOption = priceOptions.find(option => option.label === normalized.price_label);
+            if (normalized.price_label === 'Diğer' || !activeOption) {
+                const fallbackOption = priceOptions[0];
+                if (fallbackOption) {
+                    normalized.price_label = fallbackOption.label;
+                    normalized.unit_price = parseFloat(fallbackOption.price || 0);
+                } else {
+                    normalized.price_label = 'Standart';
+                }
+            }
+
+            if ((!normalized.unit_price || Number(normalized.unit_price) <= 0) && priceOptions[0]) {
+                normalized.unit_price = parseFloat(priceOptions[0].price || 0);
+            }
+
+            return normalized;
+        },
+
         loadCart() {
             try {
                 const raw = localStorage.getItem(this.cartStorageKey);
                 if (!raw) return;
                 const data = JSON.parse(raw);
                 if (Array.isArray(data.cart)) {
-                    this.cart = data.cart;
+                    this.cart = data.cart.map(item => this.normalizeCartItem(item));
                 }
                 if (data.selectedCustomer) {
                     this.selectedCustomer = data.selectedCustomer;
@@ -1671,6 +1700,7 @@ function posScreen() {
                     this.generalDiscountType = data.generalDiscountType;
                 }
                 this.recalcTotals();
+                this.saveCart();
             } catch (e) { /* ignore */ }
         },
 
