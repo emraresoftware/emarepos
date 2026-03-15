@@ -14,6 +14,7 @@ class PosTerminal extends Model
     protected $fillable = [
         'tenant_id',
         'branch_id',
+        'responsible_user_id',
         'name',
         'code',
         'receipt_printer_id',
@@ -33,6 +34,11 @@ class PosTerminal extends Model
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function responsibleUser()
+    {
+        return $this->belongsTo(User::class, 'responsible_user_id');
     }
 
     public function receiptPrinter()

@@ -189,9 +189,15 @@ class BranchController extends Controller
             ->orderBy('type')
             ->orderByDesc('is_default')
             ->get();
+
+        $users = \App\Models\User::where('tenant_id', session('tenant_id'))
+            ->where('branch_id', $branch->id)
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
             
         $terminals = \App\Models\PosTerminal::where('tenant_id', session('tenant_id'))
             ->where('branch_id', $branch->id)
+            ->with('responsibleUser:id,name,email')
             ->orderBy('name')
             ->get();
 
@@ -199,6 +205,7 @@ class BranchController extends Controller
             'success' => true,
             'printers' => $devices->where('type', 'printer')->values(),
             'cash_drawers' => $devices->where('type', 'cash_drawer')->values(),
+            'users' => $users,
             'terminals' => $terminals,
             'settings' => [
                 'receipt_printer_id' => $branch->settings['receipt_printer_id'] ?? null,
@@ -256,12 +263,20 @@ class BranchController extends Controller
             'id' => 'nullable|integer',
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50',
+            'responsible_user_id' => 'nullable|integer',
             'receipt_printer_id' => 'nullable|integer',
             'kitchen_printer_id' => 'nullable|integer',
             'cash_drawer_id' => 'nullable|integer',
             'description' => 'nullable|string|max:1000',
             'is_active' => 'boolean'
         ]);
+
+        $allowedUserIds = \App\Models\User::where('tenant_id', session('tenant_id'))
+            ->where('branch_id', $branch->id)
+            ->pluck('id')
+            ->all();
+
+        $responsibleUserId = isset($data['responsible_user_id']) ? (int) $data['responsible_user_id'] : null;
 
         $terminal = null;
         if (!empty($data['id'])) {
@@ -277,6 +292,7 @@ class BranchController extends Controller
         $terminal->fill([
             'name' => $data['name'],
             'code' => $data['code'] ?? null,
+            'responsible_user_id' => in_array($responsibleUserId, $allowedUserIds, true) ? $responsibleUserId : null,
             'receipt_printer_id' => $data['receipt_printer_id'],
             'kitchen_printer_id' => $data['kitchen_printer_id'],
             'cash_drawer_id' => $data['cash_drawer_id'],
@@ -285,7 +301,7 @@ class BranchController extends Controller
         ]);
         $terminal->save();
 
-        return response()->json(['success' => true, 'terminal' => $terminal]);
+        return response()->json(['success' => true, 'terminal' => $terminal->load('responsibleUser:id,name,email')]);
     }
 
     public function deleteTerminal(Branch $branch, \App\Models\PosTerminal $terminal)

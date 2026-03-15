@@ -443,6 +443,9 @@
                                                     <span x-show="terminal.code">#<span x-text="terminal.code"></span></span>
                                                     <span x-show="!terminal.code">ID: <span x-text="terminal.id"></span></span>
                                                 </p>
+                                                <p class="text-xs text-gray-500 mt-2" x-show="terminal.responsible_user || terminal.responsible_user_id">
+                                                    Sorumlu: <span class="font-medium text-gray-700" x-text="terminal.responsible_user?.name || userName(terminal.responsible_user_id)"></span>
+                                                </p>
                                                 <p x-show="terminal.description" class="text-xs text-gray-500 mt-2 line-clamp-2" x-text="terminal.description"></p>
                                             </div>
                                             <div class="flex items-center gap-1 shrink-0">
@@ -533,6 +536,16 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Terminal Kodu</label>
                                     <input type="text" x-model="terminalForm.code" class="w-full border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 bg-white" placeholder="Örn: ONK-01">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Sorumlu Personel</label>
+                                    <select x-model="terminalForm.responsible_user_id" class="w-full border border-gray-200 text-gray-800 text-sm rounded-lg px-4 py-2.5 bg-white">
+                                        <option value="">Atanmadı</option>
+                                        <template x-for="user in deviceOptions.users" :key="'terminal-user-' + user.id">
+                                            <option :value="String(user.id)" x-text="user.name"></option>
+                                        </template>
+                                    </select>
                                 </div>
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -688,12 +701,12 @@ function branchManager() {
 
         modulesLoading: false, modulesSaving: false, modulesList: [],
         deviceLoading: false, deviceSaving: false,
-        deviceOptions: { printers:[], cash_drawers:[], terminals:[] },
+        deviceOptions: { printers:[], cash_drawers:[], terminals:[], users:[] },
         deviceSettings: { receipt_printer_id:'', kitchen_printer_id:'', cash_drawer_device_id:'' },
         
         terminalFormOpen: false,
         terminalSaving: false,
-        terminalForm: { id: '', name: '', code: '', receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_id: '', description: '', is_active: true },
+        terminalForm: { id: '', name: '', code: '', responsible_user_id: '', receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_id: '', description: '', is_active: true },
 
         editSaving: false, editForm: {},
 
@@ -726,6 +739,10 @@ function branchManager() {
             if (!id) return 'Otomatik';
             return this.deviceOptions.cash_drawers.find(drawer => Number(drawer.id) === Number(id))?.name || 'Tanımsız';
         },
+        userName(id) {
+            if (!id) return 'Atanmadı';
+            return this.deviceOptions.users.find(user => Number(user.id) === Number(id))?.name || 'Bilinmiyor';
+        },
 
         openCreate() {
             this.createForm = { name:'', code:'', address:'', phone:'', city:'', district:'', is_center:false, price_edit_locked:false };
@@ -751,7 +768,7 @@ function branchManager() {
             this.detail = b;
             this.detailTab = 'rapor';
             this.reportData = this.emptyReportData(); this.branchProducts = []; this.branchStaff = []; this.modulesList = [];
-            this.deviceOptions = { printers:[], cash_drawers:[], terminals:[] };
+            this.deviceOptions = { printers:[], cash_drawers:[], terminals:[], users:[] };
             this.deviceSettings = { receipt_printer_id:'', kitchen_printer_id:'', cash_drawer_device_id:'' };
             this.editForm = { name:b.name||'', code:b.code||'', address:b.address||'', phone:b.phone||'',
                               city:b.city||'', district:b.district||'', is_active:!!b.is_active,
@@ -830,6 +847,7 @@ function branchManager() {
                 this.deviceOptions.printers = r.printers||[];
                 this.deviceOptions.cash_drawers = r.cash_drawers||[];
                 this.deviceOptions.terminals = r.terminals||[];
+                this.deviceOptions.users = r.users||[];
                 this.deviceSettings.receipt_printer_id = r.settings?.receipt_printer_id ? String(r.settings.receipt_printer_id) : '';
                 this.deviceSettings.kitchen_printer_id = r.settings?.kitchen_printer_id ? String(r.settings.kitchen_printer_id) : '';
                 this.deviceSettings.cash_drawer_device_id = r.settings?.cash_drawer_device_id ? String(r.settings.cash_drawer_device_id) : '';
@@ -848,9 +866,9 @@ function branchManager() {
 
         openTerminalForm(term = null) {
             if (term) {
-                this.terminalForm = { id: term.id, name: term.name, code: term.code || '', receipt_printer_id: String(term.receipt_printer_id || ''), kitchen_printer_id: String(term.kitchen_printer_id || ''), cash_drawer_id: String(term.cash_drawer_id || ''), description: term.description || '', is_active: !!term.is_active };
+                this.terminalForm = { id: term.id, name: term.name, code: term.code || '', responsible_user_id: String(term.responsible_user_id || ''), receipt_printer_id: String(term.receipt_printer_id || ''), kitchen_printer_id: String(term.kitchen_printer_id || ''), cash_drawer_id: String(term.cash_drawer_id || ''), description: term.description || '', is_active: !!term.is_active };
             } else {
-                this.terminalForm = { id: '', name: '', code: '', receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_id: '', description: '', is_active: true };
+                this.terminalForm = { id: '', name: '', code: '', responsible_user_id: '', receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_id: '', description: '', is_active: true };
             }
             this.terminalFormOpen = true;
         },
