@@ -562,6 +562,28 @@
                         <div class="mt-1 text-sm font-bold text-emerald-600" x-text="formatCurrency(changeAmount())"></div>
                     </div>
                 </div>
+
+                <div class="rounded-2xl bg-white/90 border border-emerald-100 p-3 space-y-2.5">
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">İşlem Önerileri</span>
+                        <span class="text-[11px] font-semibold text-emerald-700" x-text="'Önerilen: ' + suggestedPaymentMethodLabel()"></span>
+                    </div>
+                    <div class="space-y-2">
+                        <template x-for="(suggestion, suggestionIndex) in summarySuggestions()" :key="suggestion.label + '-' + suggestionIndex">
+                            <div class="rounded-xl px-3 py-2.5 border flex items-start gap-2"
+                                 :class="suggestion.tone === 'warning' ? 'bg-amber-50 border-amber-200' : suggestion.tone === 'danger' ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'">
+                                <div class="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                                     :class="suggestion.tone === 'warning' ? 'bg-amber-100 text-amber-700' : suggestion.tone === 'danger' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'">
+                                    <i :class="suggestion.icon"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-xs font-bold text-gray-900" x-text="suggestion.label"></div>
+                                    <div class="text-[11px] text-gray-600 mt-0.5" x-text="suggestion.detail"></div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1810,6 +1832,85 @@ function posScreen() {
             if (!(this.totals.grand_total > 0)) return '%0 pay';
             const ratio = Math.round(((parseFloat(amount) || 0) / this.totals.grand_total) * 100);
             return '%' + ratio + ' pay';
+        },
+
+        suggestedPaymentMethodLabel() {
+            if (!this.cart.length) return 'İşlem yok';
+            if (this.changeAmount() > 0) return 'Nakit / Para Üstü';
+            if (this.remainingAmount() === 0 && (parseFloat(this.paidAmount) || 0) > 0) return 'Nakit Tahsilat';
+            if (this.selectedCustomer && (this.selectedCustomer.balance ?? 0) < 0) return 'Tahsilat Öncelikli';
+            if (this.totals.grand_total >= 1000) return 'Kart veya Havale';
+            if (this.cartQuantityTotal() >= 8) return 'Parçalı Ödeme';
+            return 'Nakit';
+        },
+
+        summarySuggestions() {
+            const suggestions = [];
+            const paidAmount = parseFloat(this.paidAmount) || 0;
+            const customerBalance = this.selectedCustomer?.balance ?? 0;
+
+            if (this.remainingAmount() > 0 && paidAmount > 0) {
+                suggestions.push({
+                    tone: 'warning',
+                    icon: 'fas fa-money-check-dollar text-xs',
+                    label: 'Eksik tahsilat',
+                    detail: 'Kasada ' + formatCurrency(this.remainingAmount()) + ' daha tahsil edilmesi gerekiyor.',
+                });
+            }
+
+            if (this.changeAmount() > 0) {
+                suggestions.push({
+                    tone: 'info',
+                    icon: 'fas fa-arrow-rotate-left text-xs',
+                    label: 'Para üstü hazırla',
+                    detail: 'Müşteriye ' + formatCurrency(this.changeAmount()) + ' para üstü verilecek.',
+                });
+            }
+
+            if (this.selectedCustomer && customerBalance < 0) {
+                suggestions.push({
+                    tone: 'danger',
+                    icon: 'fas fa-triangle-exclamation text-xs',
+                    label: 'Müşteri borçlu',
+                    detail: 'Seçili müşterinin mevcut bakiyesi ' + formatCurrency(customerBalance) + '. Yeni veresiye öncesi kontrol et.',
+                });
+            } else if (!this.selectedCustomer && this.totals.grand_total >= 500) {
+                suggestions.push({
+                    tone: 'info',
+                    icon: 'fas fa-user-plus text-xs',
+                    label: 'Müşteri ilişkilendir',
+                    detail: 'Bu tutardaki satışları müşteriye bağlamak takip ve rapor için faydalı olur.',
+                });
+            }
+
+            if (this.cartQuantityTotal() >= 8 || this.totals.grand_total >= 1500) {
+                suggestions.push({
+                    tone: 'warning',
+                    icon: 'fas fa-layer-group text-xs',
+                    label: 'Parçalı ödeme uygun',
+                    detail: 'Yüksek tutar veya yoğun sepet nedeniyle parçalı ödeme seçeneği daha kontrollü olabilir.',
+                });
+            }
+
+            if (this.totals.discount_total > 0) {
+                suggestions.push({
+                    tone: 'info',
+                    icon: 'fas fa-badge-percent text-xs',
+                    label: 'İskonto uygulandı',
+                    detail: 'Toplam iskonto ' + formatCurrency(this.totals.discount_total) + '. Satış öncesi indirim kontrolünü doğrula.',
+                });
+            }
+
+            if (!suggestions.length) {
+                suggestions.push({
+                    tone: 'info',
+                    icon: 'fas fa-circle-check text-xs',
+                    label: 'İşlem hazır',
+                    detail: 'Sepet ve tahsilat görünümü normal. Uygun ödeme türü ile satış tamamlanabilir.',
+                });
+            }
+
+            return suggestions.slice(0, 3);
         },
 
         removeFromCart(index) {
