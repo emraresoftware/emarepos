@@ -844,7 +844,7 @@
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-auto max-h-[92vh] overflow-y-auto" @click.away="showOdemeAlModal = false">
             <div class="flex items-center justify-between px-5 py-3 bg-emerald-700 rounded-t-2xl sticky top-0 z-10">
-                <h3 class="text-base font-bold text-white"><i class="fas fa-hand-holding-usd mr-2"></i>Ödeme Al / Hesap İşlemi</h3>
+                <h3 class="text-base font-bold text-white"><i class="fas fa-hand-holding-usd mr-2"></i>Hızlı Ödeme / Hesap İşlemi</h3>
                 <button @click="showOdemeAlModal = false" class="text-white/70 hover:text-white"><i class="fas fa-times-circle text-lg"></i></button>
             </div>
             <div class="p-5 space-y-4">
@@ -920,7 +920,7 @@
                         </div>
                         <div class="text-right">
                             <div class="text-xs font-bold" :class="(odemeCustomer?.balance ?? 0) < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCurrency(odemeCustomer?.balance ?? 0)"></div>
-                            <div class="text-[10px] text-gray-400">Mevcut Bakiye</div>
+                            <div class="text-[10px] text-gray-400" x-text="odemeCustomerBalanceStatus()"></div>
                         </div>
                         <button @click="odemeCustomer = null; odemeSearch = ''" class="text-gray-400 hover:text-red-500 transition-colors">
                             <i class="fas fa-times"></i>
@@ -1020,6 +1020,17 @@
                         <span class="text-gray-500" x-text="odemeType === 'payment' ? 'Tahsilat' : 'Borç'"></span>
                         <span :class="odemeType === 'payment' ? 'text-emerald-600' : 'text-red-500'" x-text="(odemeType === 'payment' ? '+' : '-') + formatCurrency(odemeAmount || 0)"></span>
                     </div>
+                    <div x-show="odemeType === 'payment' && odemeTahsilatBorctanDusulen() > 0" class="flex justify-between text-sm">
+                        <span class="text-gray-500">Borçtan Düşecek</span>
+                        <span class="text-emerald-600 font-medium" x-text="formatCurrency(odemeTahsilatBorctanDusulen())"></span>
+                    </div>
+                    <div x-show="odemeType === 'payment' && odemeTahsilatBakiyeyeEklenen() > 0" class="flex justify-between text-sm">
+                        <span class="text-gray-500">Bakiyeye Eklenecek</span>
+                        <span class="text-sky-600 font-medium" x-text="formatCurrency(odemeTahsilatBakiyeyeEklenen())"></span>
+                    </div>
+                    <div x-show="odemeType === 'payment'" class="rounded-lg px-2.5 py-2 text-xs"
+                         :class="odemeTahsilatBakiyeyeEklenen() > 0 ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'"
+                         x-text="odemeTahsilatBakiyeyeEklenen() > 0 ? 'Ödeme önce borcu kapatacak, kalan tutar müşterinin alacak bakiyesine eklenecek.' : 'Ödeme doğrudan mevcut borçtan düşülecek.'"></div>
                     <div class="flex justify-between text-sm font-bold border-t border-gray-200 pt-1.5">
                         <span class="text-gray-700">Yeni Bakiye</span>
                         <span x-text="formatCurrency((odemeCustomer?.balance ?? 0) + (odemeType === 'payment' ? parseFloat(odemeAmount||0) : -parseFloat(odemeAmount||0)))"
@@ -1035,7 +1046,7 @@
                             class="flex-1 py-2.5 text-sm text-white rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                             :class="odemeType === 'payment' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'">
                         <i :class="odemedSaving ? 'fas fa-spinner fa-spin' : (odemeType === 'payment' ? 'fas fa-check-circle' : 'fas fa-file-invoice')"></i>
-                        <span x-text="odemedSaving ? 'Kaydediliyor...' : (odemeType === 'payment' ? 'Tahsilatı Kaydet' : 'Borcu Kaydet')"></span>
+                        <span x-text="odemedSaving ? 'Kaydediliyor...' : (odemeType === 'payment' ? 'Hızlı Ödemeyi Kaydet' : 'Borcu Kaydet')"></span>
                     </button>
                 </div>
             </div>
@@ -2925,6 +2936,30 @@ function posScreen() {
             this.odemeCustomerResults = [];
         },
 
+        odemeCustomerDebtAmount() {
+            const balance = parseFloat(this.odemeCustomer?.balance) || 0;
+            return balance < 0 ? Math.abs(balance) : 0;
+        },
+
+        odemeCustomerBalanceStatus() {
+            const balance = parseFloat(this.odemeCustomer?.balance) || 0;
+            if (balance < 0) return 'Borçlu';
+            if (balance > 0) return 'Alacaklı';
+            return 'Bakiye 0';
+        },
+
+        odemeTahsilatBorctanDusulen() {
+            if (this.odemeType !== 'payment') return 0;
+            const amount = Math.max(0, parseFloat(this.odemeAmount) || 0);
+            return Math.min(amount, this.odemeCustomerDebtAmount());
+        },
+
+        odemeTahsilatBakiyeyeEklenen() {
+            if (this.odemeType !== 'payment') return 0;
+            const amount = Math.max(0, parseFloat(this.odemeAmount) || 0);
+            return Math.max(0, Math.round((amount - this.odemeTahsilatBorctanDusulen()) * 100) / 100);
+        },
+
         async createAndSelectOdemeCustomer() {
             if (!this.odemeNewName.trim()) return;
             try {
@@ -2945,6 +2980,9 @@ function posScreen() {
             if (!this.odemeCustomer || !this.odemeAmount || parseFloat(this.odemeAmount) <= 0) return;
             this.odemedSaving = true;
             try {
+                const isTahsilat = this.odemeType === 'payment';
+                const islemTutari = parseFloat(this.odemeAmount);
+                const oncekiBakiye = parseFloat(this.odemeCustomer?.balance) || 0;
                 const url = this.odemeType === 'payment'
                     ? '/customers/' + this.odemeCustomer.id + '/payment'
                     : '/customers/' + this.odemeCustomer.id + '/debt';
@@ -2953,17 +2991,24 @@ function posScreen() {
                         ? ('Tahsilat — ' + this.odemePaymentMethod)
                         : ('Borç — ' + this.odemeDebtType));
                 const res = await posAjax(url, {
-                    amount: parseFloat(this.odemeAmount),
+                    amount: islemTutari,
                     description: description,
                     payment_method: this.odemeType === 'payment' ? this.odemePaymentMethod : null,
                 });
                 if (res.success) {
-                    showToast(
-                        this.odemeType === 'payment'
-                            ? formatCurrency(this.odemeAmount) + ' tahsilat kaydedildi'
-                            : formatCurrency(this.odemeAmount) + ' borç kaydedildi',
-                        'success'
-                    );
+                    if (isTahsilat) {
+                        const dusulenBorc = Math.min(islemTutari, Math.max(0, oncekiBakiye < 0 ? Math.abs(oncekiBakiye) : 0));
+                        const eklenenBakiye = Math.max(0, Math.round((islemTutari - dusulenBorc) * 100) / 100);
+
+                        showToast(
+                            eklenenBakiye > 0
+                                ? formatCurrency(dusulenBorc) + ' borçtan düştü, ' + formatCurrency(eklenenBakiye) + ' bakiyeye eklendi'
+                                : formatCurrency(islemTutari) + ' tahsilat kaydedildi',
+                            'success'
+                        );
+                    } else {
+                        showToast(formatCurrency(islemTutari) + ' borç kaydedildi', 'success');
+                    }
                     // Bakiyeyi güncelle
                     if (res.customer) {
                         this.odemeCustomer = { ...this.odemeCustomer, balance: res.customer.balance };
