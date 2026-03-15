@@ -91,7 +91,7 @@
                     @foreach($movements as $m)
                     <tr class="hover:bg-gray-50 transition-colors">
                         <td class="px-4 py-2.5 text-xs text-gray-500 whitespace-nowrap">
-                            {{ \Carbon\Carbon::parse($m['date'])->format('d.m.Y H:i') }}
+                            {{ $m['date_label'] ?? $m['date'] }}
                         </td>
                         <td class="px-4 py-2.5">
                             @php

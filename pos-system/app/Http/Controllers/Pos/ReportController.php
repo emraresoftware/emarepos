@@ -609,12 +609,24 @@ class ReportController extends Controller
     {
         $branchId  = session('branch_id');
         $tenantId  = session('tenant_id');
-        $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
-        $endDate   = $request->get('end_date', Carbon::today()->format('Y-m-d'));
+        $startDate = Carbon::parse($request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d')))->toDateString();
+        $endDate   = Carbon::parse($request->get('end_date', Carbon::today()->format('Y-m-d')))->toDateString();
         $typeFilter = $request->get('type', 'all'); // all|sale|income|expense|account
 
         $start = $startDate . ' 00:00:00';
         $end   = $endDate   . ' 23:59:59';
+        $hareketTarihiHazirla = static function ($value, bool $gunBaslangici = false): array {
+            $tarih = Carbon::parse($value);
+
+            if ($gunBaslangici) {
+                $tarih = $tarih->startOfDay();
+            }
+
+            return [
+                'siralanan' => $tarih->toDateTimeString(),
+                'gosterim' => $tarih->format('d.m.Y H:i'),
+            ];
+        };
 
         // ── Satışlar ────────────────────────────────────────────
         $salesStats = \App\Models\Sale::where('branch_id', $branchId)
@@ -663,16 +675,21 @@ class ReportController extends Controller
                 ->orderByDesc('sold_at')
                 ->limit(500)
                 ->get()
-                ->map(fn($s) => [
-                    'date'        => $s->date,
-                    'type'        => 'sale',
-                    'type_label'  => 'Satış',
-                    'direction'   => 'in',
-                    'description' => 'Satış #' . ($s->receipt_no ?? $s->id) . ($s->staff_name ? ' — ' . $s->staff_name : ''),
-                    'sub'         => $s->customer?->name ?? '-',
-                    'amount'      => (float) $s->amount,
-                    'payment'     => match($s->payment_method) { 'cash' => 'Nakit', 'card' => 'Kart', 'credit' => 'Veresiye', default => 'Karma' },
-                ]);
+                ->map(function ($s) use ($hareketTarihiHazirla) {
+                    $tarih = $hareketTarihiHazirla($s->date);
+
+                    return [
+                        'date'        => $tarih['siralanan'],
+                        'date_label'  => $tarih['gosterim'],
+                        'type'        => 'sale',
+                        'type_label'  => 'Satış',
+                        'direction'   => 'in',
+                        'description' => 'Satış #' . ($s->receipt_no ?? $s->id) . ($s->staff_name ? ' — ' . $s->staff_name : ''),
+                        'sub'         => $s->customer?->name ?? '-',
+                        'amount'      => (float) $s->amount,
+                        'payment'     => match($s->payment_method) { 'cash' => 'Nakit', 'card' => 'Kart', 'credit' => 'Veresiye', default => 'Karma' },
+                    ];
+                });
             $movements = $movements->concat($sales);
         }
 
@@ -683,16 +700,21 @@ class ReportController extends Controller
                 ->orderByDesc('date')
                 ->limit(300)
                 ->get()
-                ->map(fn($i) => [
-                    'date'        => $i->date . ' 00:00:00',
-                    'type'        => 'income',
-                    'type_label'  => 'Gelir',
-                    'direction'   => 'in',
-                    'description' => $i->note ?: ($i->type?->name ?? 'Manuel Gelir'),
-                    'sub'         => $i->type?->name ?? '-',
-                    'amount'      => (float) $i->amount,
-                    'payment'     => $i->payment_type ?? '-',
-                ]);
+                ->map(function ($i) use ($hareketTarihiHazirla) {
+                    $tarih = $hareketTarihiHazirla($i->date, true);
+
+                    return [
+                        'date'        => $tarih['siralanan'],
+                        'date_label'  => $tarih['gosterim'],
+                        'type'        => 'income',
+                        'type_label'  => 'Gelir',
+                        'direction'   => 'in',
+                        'description' => $i->note ?: ($i->type?->name ?? 'Manuel Gelir'),
+                        'sub'         => $i->type?->name ?? '-',
+                        'amount'      => (float) $i->amount,
+                        'payment'     => $i->payment_type ?? '-',
+                    ];
+                });
             $movements = $movements->concat($incomes);
         }
 
@@ -703,16 +725,21 @@ class ReportController extends Controller
                 ->orderByDesc('date')
                 ->limit(300)
                 ->get()
-                ->map(fn($e) => [
-                    'date'        => $e->date . ' 00:00:00',
-                    'type'        => 'expense',
-                    'type_label'  => 'Gider',
-                    'direction'   => 'out',
-                    'description' => $e->note ?: ($e->type?->name ?? 'Gider'),
-                    'sub'         => $e->type?->name ?? '-',
-                    'amount'      => (float) $e->amount,
-                    'payment'     => $e->payment_type ?? '-',
-                ]);
+                ->map(function ($e) use ($hareketTarihiHazirla) {
+                    $tarih = $hareketTarihiHazirla($e->date, true);
+
+                    return [
+                        'date'        => $tarih['siralanan'],
+                        'date_label'  => $tarih['gosterim'],
+                        'type'        => 'expense',
+                        'type_label'  => 'Gider',
+                        'direction'   => 'out',
+                        'description' => $e->note ?: ($e->type?->name ?? 'Gider'),
+                        'sub'         => $e->type?->name ?? '-',
+                        'amount'      => (float) $e->amount,
+                        'payment'     => $e->payment_type ?? '-',
+                    ];
+                });
             $movements = $movements->concat($expenses);
         }
 
@@ -723,16 +750,21 @@ class ReportController extends Controller
                 ->orderByDesc('created_at')
                 ->limit(300)
                 ->get()
-                ->map(fn($t) => [
-                    'date'        => (string) $t->created_at,
-                    'type'        => 'account',
-                    'type_label'  => $t->type === 'payment' ? 'Tahsilat' : ($t->type === 'debt' ? 'Borç' : 'Hesap'),
-                    'direction'   => $t->amount >= 0 ? 'in' : 'out',
-                    'description' => $t->description ?: ($t->type === 'payment' ? 'Tahsilat' : 'Borç'),
-                    'sub'         => $t->customer?->name ?? '-',
-                    'amount'      => abs((float) $t->amount),
-                    'payment'     => '-',
-                ]);
+                ->map(function ($t) use ($hareketTarihiHazirla) {
+                    $tarih = $hareketTarihiHazirla($t->created_at);
+
+                    return [
+                        'date'        => $tarih['siralanan'],
+                        'date_label'  => $tarih['gosterim'],
+                        'type'        => 'account',
+                        'type_label'  => $t->type === 'payment' ? 'Tahsilat' : ($t->type === 'debt' ? 'Borç' : 'Hesap'),
+                        'direction'   => $t->amount >= 0 ? 'in' : 'out',
+                        'description' => $t->description ?: ($t->type === 'payment' ? 'Tahsilat' : 'Borç'),
+                        'sub'         => $t->customer?->name ?? '-',
+                        'amount'      => abs((float) $t->amount),
+                        'payment'     => '-',
+                    ];
+                });
             $movements = $movements->concat($accountTx);
         }
 
