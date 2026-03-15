@@ -389,50 +389,101 @@
             </div>
         </div>
 
-        {{-- Genel İndirim + Toplam Bölümü --}}
-        <div class="border-t border-gray-200 px-3 py-1.5 sm:px-4 sm:py-3 bg-white space-y-1 sm:space-y-1.5 shrink-0">
-            {{-- Genel İndirim --}}
-            <div class="flex items-center justify-between">
-                <button @click="showGeneralDiscount = !showGeneralDiscount" class="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1.5">
-                    <i class="fas fa-cut text-[11px]"></i> Genel İndirim
-                </button>
-                <div x-show="showGeneralDiscount" class="flex items-center gap-1">
+        {{-- Genel İndirim + Detaylı Özet Bölümü --}}
+        <div class="border-t border-gray-200 px-3 py-2 sm:px-4 sm:py-3 bg-white space-y-2 shrink-0">
+            <div class="rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 via-white to-slate-100 p-3 shadow-sm">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">Özet</p>
+                        <h4 class="text-sm font-bold text-gray-900">Satış Dökümü</h4>
+                    </div>
+                    <button @click="showGeneralDiscount = !showGeneralDiscount" class="inline-flex items-center gap-1.5 rounded-xl bg-white px-2.5 py-1.5 text-[11px] font-semibold text-gray-500 shadow-sm ring-1 ring-gray-200 transition hover:text-gray-700">
+                        <i class="fas fa-cut text-[11px]"></i>
+                        <span>Genel İndirim</span>
+                    </button>
+                </div>
+
+                <div class="mt-3 grid grid-cols-2 gap-2">
+                    <div class="rounded-xl bg-white/90 px-3 py-2 ring-1 ring-gray-200">
+                        <div class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Kalem</div>
+                        <div class="mt-1 text-base font-bold text-gray-900" x-text="cart.length"></div>
+                    </div>
+                    <div class="rounded-xl bg-white/90 px-3 py-2 ring-1 ring-gray-200">
+                        <div class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Toplam Adet</div>
+                        <div class="mt-1 text-base font-bold text-gray-900" x-text="cartQuantityTotal()"></div>
+                    </div>
+                </div>
+
+                <div x-show="showGeneralDiscount" class="mt-3 flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-2 py-2">
                     <input type="number" x-model.number="generalDiscount" @input="recalcTotals()"
-                           class="w-20 px-2 py-0.5 bg-white border border-gray-200 rounded text-gray-800 text-xs focus:outline-none focus:border-brand-500"
-                           min="0" step="0.01">
+                           class="flex-1 min-w-0 px-2.5 py-1.5 bg-white border border-amber-200 rounded-lg text-gray-800 text-xs focus:outline-none focus:border-amber-400"
+                           min="0" step="0.01" placeholder="İndirim girin">
                     <button @click="generalDiscountType = generalDiscountType === '%' ? 'TL' : '%'; recalcTotals()"
-                            class="px-2 py-0.5 text-xs rounded font-bold transition-colors"
-                            :class="generalDiscountType === '%' ? 'bg-amber-100 text-amber-700' : 'bg-gray-200 text-gray-600'"
+                            class="px-2.5 py-1.5 text-xs rounded-lg font-bold transition-colors"
+                            :class="generalDiscountType === '%' ? 'bg-amber-200 text-amber-700' : 'bg-white text-gray-600 border border-gray-200'"
                             x-text="generalDiscountType === '%' ? '%' : '₺'"></button>
                 </div>
-                <div x-show="!showGeneralDiscount && totals.discount_total > 0" class="text-xs text-amber-600 font-medium" x-text="'-' + formatCurrency(totals.discount_total)"></div>
-            </div>
-            {{-- Ara Toplam --}}
-            <div class="flex justify-between text-xs sm:text-sm text-gray-600">
-                <span>Ara Toplam</span>
-                <span class="font-medium" x-text="formatCurrency(totals.subtotal)"></span>
-            </div>
-            {{-- KDV --}}
-            <div class="flex justify-between text-xs sm:text-sm text-gray-600">
-                <span>KDV</span>
-                <span class="font-medium" x-text="formatCurrency(totals.vat_total)"></span>
-            </div>
-            {{-- Ayırıcı --}}
-            <div class="border-t border-gray-200 pt-1 sm:pt-2">
-                <div class="flex justify-between items-center">
-                    <span class="text-base sm:text-lg font-bold text-gray-900">TOPLAM</span>
-                    <span class="text-base sm:text-lg font-bold text-red-600" x-text="formatCurrency(totals.grand_total)"></span>
+
+                <div class="mt-3 space-y-1.5">
+                    <div class="flex items-center justify-between text-xs text-gray-500">
+                        <span>Brüt Sepet</span>
+                        <span class="font-semibold text-gray-700" x-text="formatCurrency(grossCartTotal())"></span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-gray-500">
+                        <span>Ürün İskontosu</span>
+                        <span class="font-semibold text-amber-600" x-text="'-' + formatCurrency(itemDiscountTotal())"></span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-gray-500">
+                        <span>Genel İskonto</span>
+                        <span class="font-semibold text-amber-600" x-text="'-' + formatCurrency(generalDiscountAmount())"></span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs sm:text-sm text-gray-600">
+                        <span>Ara Toplam</span>
+                        <span class="font-semibold text-gray-800" x-text="formatCurrency(totals.subtotal)"></span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs sm:text-sm text-gray-600">
+                        <span>KDV</span>
+                        <span class="font-semibold text-gray-800" x-text="formatCurrency(totals.vat_total)"></span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-gray-500" x-show="selectedCustomer">
+                        <span>Müşteri Bakiyesi</span>
+                        <span class="font-semibold" :class="(selectedCustomer?.balance ?? 0) < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCurrency(selectedCustomer?.balance ?? 0)"></span>
+                    </div>
+                </div>
+
+                <div class="mt-3 border-t border-dashed border-gray-200 pt-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-base sm:text-lg font-bold text-gray-900">TOPLAM</span>
+                        <span class="text-base sm:text-lg font-bold text-red-600" x-text="formatCurrency(totals.grand_total)"></span>
+                    </div>
+                    <div class="mt-1 flex items-center justify-between text-[11px] text-gray-400" x-show="totals.discount_total > 0">
+                        <span>Toplam indirim</span>
+                        <span class="font-semibold text-amber-600" x-text="'-' + formatCurrency(totals.discount_total)"></span>
+                    </div>
                 </div>
             </div>
-            {{-- Ödenen / Para Üstü --}}
-            <div class="flex items-center gap-2 pt-1" x-show="cart.length > 0">
-                <span class="text-xs text-gray-500 whitespace-nowrap">Ödenen:</span>
-                <input type="number" x-model.number="paidAmount"
-                       class="flex-1 min-w-0 px-2 py-1 bg-gray-50 border border-gray-200 rounded text-gray-800 text-sm focus:outline-none focus:border-emerald-500"
-                       min="0" step="0.01" placeholder="Nakit tutar...">
-                <span class="text-sm font-semibold text-emerald-600 whitespace-nowrap"
-                      x-show="(paidAmount || 0) >= totals.grand_total && paidAmount > 0"
-                      x-text="'Üstü: ' + formatCurrency((paidAmount||0) - totals.grand_total)"></span>
+
+            <div class="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 space-y-2" x-show="cart.length > 0">
+                <div class="flex items-center justify-between gap-3">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-emerald-700">Tahsilat Özeti</span>
+                    <span class="text-xs text-emerald-600" x-text="remainingAmount() > 0 ? 'Eksik ödeme var' : 'Ödeme tamam'"></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500 whitespace-nowrap">Ödenen:</span>
+                    <input type="number" x-model.number="paidAmount"
+                           class="flex-1 min-w-0 px-2.5 py-2 bg-white border border-emerald-200 rounded-xl text-gray-800 text-sm focus:outline-none focus:border-emerald-500"
+                           min="0" step="0.01" placeholder="Nakit tutar...">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="rounded-xl bg-white px-3 py-2 border border-emerald-100">
+                        <div class="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Kalan</div>
+                        <div class="mt-1 text-sm font-bold" :class="remainingAmount() > 0 ? 'text-amber-600' : 'text-emerald-600'" x-text="formatCurrency(remainingAmount())"></div>
+                    </div>
+                    <div class="rounded-xl bg-white px-3 py-2 border border-emerald-100">
+                        <div class="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Para Üstü</div>
+                        <div class="mt-1 text-sm font-bold text-emerald-600" x-text="formatCurrency(changeAmount())"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1625,6 +1676,41 @@ function posScreen() {
                 grand_total: Math.round((subtotal + vatTotal - genDiscAmt) * 100) / 100,
             };
             this.saveCart();
+        },
+
+        cartQuantityTotal() {
+            return this.cart.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0);
+        },
+
+        grossCartTotal() {
+            return Math.round(this.cart.reduce((sum, item) => {
+                return sum + ((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0));
+            }, 0) * 100) / 100;
+        },
+
+        itemDiscountTotal() {
+            return Math.round(this.cart.reduce((sum, item) => {
+                return sum + (parseFloat(item.discountAmount) || 0);
+            }, 0) * 100) / 100;
+        },
+
+        generalDiscountAmount() {
+            const baseTotal = (this.totals.subtotal || 0) + (this.totals.vat_total || 0);
+            if (!this.generalDiscount) return 0;
+
+            const amount = this.generalDiscountType === '%'
+                ? (baseTotal * (this.generalDiscount || 0) / 100)
+                : (this.generalDiscount || 0);
+
+            return Math.round(amount * 100) / 100;
+        },
+
+        remainingAmount() {
+            return Math.max(0, Math.round(((this.totals.grand_total || 0) - (parseFloat(this.paidAmount) || 0)) * 100) / 100);
+        },
+
+        changeAmount() {
+            return Math.max(0, Math.round(((parseFloat(this.paidAmount) || 0) - (this.totals.grand_total || 0)) * 100) / 100);
         },
 
         removeFromCart(index) {
