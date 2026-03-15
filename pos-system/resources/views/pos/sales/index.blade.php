@@ -414,6 +414,22 @@
                     </div>
                 </div>
 
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                          :class="cart.length ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' : 'bg-gray-100 text-gray-500 ring-1 ring-gray-200'">
+                        <i class="fas fa-shopping-basket text-[10px]"></i>
+                        <span x-text="cart.length ? 'Aktif sepet' : 'Sepet boş'"></span>
+                    </span>
+                    <span x-show="totals.discount_total > 0" class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-200">
+                        <i class="fas fa-badge-percent text-[10px]"></i>
+                        <span x-text="'İndirim: ' + formatCurrency(totals.discount_total)"></span>
+                    </span>
+                    <span x-show="selectedCustomer" class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200 max-w-full">
+                        <i class="fas fa-user-check text-[10px]"></i>
+                        <span class="truncate max-w-[150px]" x-text="selectedCustomer?.name"></span>
+                    </span>
+                </div>
+
                 <div x-show="showGeneralDiscount" class="mt-3 flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-2 py-2">
                     <input type="number" x-model.number="generalDiscount" @input="recalcTotals()"
                            class="flex-1 min-w-0 px-2.5 py-1.5 bg-white border border-amber-200 rounded-lg text-gray-800 text-xs focus:outline-none focus:border-amber-400"
@@ -445,6 +461,24 @@
                         <span>KDV</span>
                         <span class="font-semibold text-gray-800" x-text="formatCurrency(totals.vat_total)"></span>
                     </div>
+                    <div class="grid grid-cols-2 gap-2 pt-1" x-show="totals.vat_total > 0">
+                        <div class="rounded-xl bg-white/80 px-2.5 py-2 ring-1 ring-gray-200 text-center">
+                            <div class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">%1 KDV</div>
+                            <div class="mt-1 text-xs font-bold text-gray-800" x-text="formatCurrency(vatByRate(1))"></div>
+                        </div>
+                        <div class="rounded-xl bg-white/80 px-2.5 py-2 ring-1 ring-gray-200 text-center">
+                            <div class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">%10 KDV</div>
+                            <div class="mt-1 text-xs font-bold text-gray-800" x-text="formatCurrency(vatByRate(10))"></div>
+                        </div>
+                        <div class="rounded-xl bg-white/80 px-2.5 py-2 ring-1 ring-gray-200 text-center">
+                            <div class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">%20 KDV</div>
+                            <div class="mt-1 text-xs font-bold text-gray-800" x-text="formatCurrency(vatByRate(20))"></div>
+                        </div>
+                        <div class="rounded-xl bg-white/80 px-2.5 py-2 ring-1 ring-gray-200 text-center">
+                            <div class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">%0 KDV</div>
+                            <div class="mt-1 text-xs font-bold text-gray-800" x-text="formatCurrency(vatByRate(0))"></div>
+                        </div>
+                    </div>
                     <div class="flex items-center justify-between text-xs text-gray-500" x-show="selectedCustomer">
                         <span>Müşteri Bakiyesi</span>
                         <span class="font-semibold" :class="(selectedCustomer?.balance ?? 0) < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatCurrency(selectedCustomer?.balance ?? 0)"></span>
@@ -466,7 +500,20 @@
             <div class="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 space-y-2" x-show="cart.length > 0">
                 <div class="flex items-center justify-between gap-3">
                     <span class="text-xs font-semibold uppercase tracking-wider text-emerald-700">Tahsilat Özeti</span>
-                    <span class="text-xs text-emerald-600" x-text="remainingAmount() > 0 ? 'Eksik ödeme var' : 'Ödeme tamam'"></span>
+                    <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold"
+                          :class="remainingAmount() > 0 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'"
+                          x-text="remainingAmount() > 0 ? 'Eksik ödeme var' : 'Ödeme tamam'"></span>
+                </div>
+                <div class="space-y-1">
+                    <div class="h-2 rounded-full bg-white/80 overflow-hidden ring-1 ring-emerald-100">
+                        <div class="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all"
+                             :style="'width:' + Math.min(100, Math.max(0, ((parseFloat(paidAmount) || 0) / Math.max(totals.grand_total || 1, 1)) * 100)) + '%'">
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-emerald-700/80">
+                        <span x-text="'Tahsilat: ' + formatCurrency(parseFloat(paidAmount) || 0)"></span>
+                        <span x-text="totals.grand_total > 0 ? Math.min(100, Math.max(0, Math.round(((parseFloat(paidAmount) || 0) / totals.grand_total) * 100))) + '%' : '0%'"></span>
+                    </div>
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="text-xs text-gray-500 whitespace-nowrap">Ödenen:</span>
