@@ -15,17 +15,22 @@ class DashboardController extends Controller
     public function index()
     {
         $branchId = session('branch_id');
+        $terminalId = session('terminal_id');
         $today = Carbon::today();
         
         // Today's stats
         $todaySales = Sale::where('branch_id', $branchId)
+            ->when($terminalId, fn ($q) => $q->where('terminal_id', $terminalId))
             ->where('status', 'completed')
             ->whereDate('sold_at', $today)
             ->selectRaw('COUNT(*) as count, COALESCE(SUM(grand_total), 0) as total, COALESCE(SUM(cash_amount), 0) as cash, COALESCE(SUM(card_amount), 0) as card')
             ->first();
         
         // Active cash register
-        $activeRegister = CashRegister::where('branch_id', $branchId)->where('status', 'open')->first();
+        $activeRegister = CashRegister::where('branch_id', $branchId)
+            ->when($terminalId, fn ($q) => $q->where('terminal_id', $terminalId))
+            ->where('status', 'open')
+            ->first();
         
         // Low stock products
         $lowStockCount = Product::where('is_active', true)
@@ -47,6 +52,7 @@ class DashboardController extends Controller
         
         // Recent sales (last 10)
         $recentSales = Sale::where('branch_id', $branchId)
+            ->when($terminalId, fn ($q) => $q->where('terminal_id', $terminalId))
             ->where('status', 'completed')
             ->orderBy('sold_at', 'desc')
             ->limit(10)
@@ -56,6 +62,7 @@ class DashboardController extends Controller
         $driver = DB::getDriverName();
         $dateExpr = $driver === 'sqlite' ? "date(sold_at)" : "DATE(sold_at)";
         $weeklyRaw = Sale::where('branch_id', $branchId)
+            ->when($terminalId, fn ($q) => $q->where('terminal_id', $terminalId))
             ->where('status', 'completed')
             ->where('sold_at', '>=', Carbon::today()->subDays(6)->startOfDay())
             ->selectRaw("{$dateExpr} as day_date, COALESCE(SUM(grand_total), 0) as total")

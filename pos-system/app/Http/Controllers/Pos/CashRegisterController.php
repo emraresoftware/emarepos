@@ -3,6 +3,7 @@ namespace App\Http\Controllers\Pos;
 
 use App\Http\Controllers\Controller;
 use App\Models\CashRegister;
+use App\Models\PosTerminal;
 use App\Models\Sale;
 use App\Services\CashRegisterService;
 use Illuminate\Http\Request;
@@ -20,12 +21,32 @@ class CashRegisterController extends Controller
     public function index()
     {
         $branchId = session('branch_id');
-        $register = $this->service->getActiveRegister($branchId);
+        $terminals = PosTerminal::where('tenant_id', session('tenant_id'))
+            ->where('branch_id', $branchId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $selectedTerminalId = $this->resolveTerminalId(request()->query('terminal_id'));
+        if (! $selectedTerminalId && $terminals->count() === 1) {
+            $selectedTerminalId = $terminals->first()->id;
+        }
+
+        if ($selectedTerminalId && ! $terminals->contains('id', $selectedTerminalId)) {
+            $selectedTerminalId = $terminals->first()?->id;
+        }
+
+        session(['terminal_id' => $selectedTerminalId]);
+
+        $selectedTerminal = $terminals->firstWhere('id', $selectedTerminalId);
+        $register = $this->service->getActiveRegister($branchId, $selectedTerminalId);
+        $register?->load(['user', 'terminal']);
         
         // Sales stats for current register period
         $stats = ['cash_total' => 0, 'card_total' => 0, 'credit_total' => 0, 'transfer_total' => 0, 'total_sales' => 0, 'sale_count' => 0];
         if ($register) {
             $salesQuery = Sale::where('branch_id', $branchId)
+                ->when($selectedTerminalId, fn ($query) => $query->where('terminal_id', $selectedTerminalId))
                 ->where('status', 'completed')
                 ->where('sold_at', '>=', $register->opened_at);
             $stats['cash_total']     = (clone $salesQuery)->sum('cash_amount');
@@ -37,48 +58,78 @@ class CashRegisterController extends Controller
         }
         
         $zReports = CashRegister::where('branch_id', $branchId)
+            ->when($selectedTerminalId, fn ($query) => $query->where('terminal_id', $selectedTerminalId))
             ->where('status', 'closed')
             ->orderBy('closed_at', 'desc')
             ->limit(10)
-            ->with('user')
+            ->with(['user', 'terminal'])
             ->get();
         
-        return view('pos.cash-register.index', compact('register', 'stats', 'zReports'));
+        return view('pos.cash-register.index', compact('register', 'stats', 'zReports', 'terminals', 'selectedTerminal', 'selectedTerminalId'));
     }
 
     public function open(Request $request)
     {
+        $data = $request->validate([
+            'opening_amount' => 'required|numeric|min:0',
+            'terminal_id' => 'nullable|integer',
+            'notes' => 'nullable|string',
+        ]);
+
+        $terminalId = $this->resolveTerminalId($data['terminal_id'] ?? null);
+        session(['terminal_id' => $terminalId]);
+
         try {
             $register = $this->service->openRegister(
                 session('branch_id'),
                 auth()->id(),
-                $request->opening_amount ?? 0,
-                $request->notes
+                (float) ($data['opening_amount'] ?? 0),
+                $data['notes'] ?? null,
+                $terminalId
             );
-            return redirect()->route('pos.cash-register')->with('success', 'Kasa başarıyla açıldı.');
+
+            return redirect()->route('pos.cash-register', array_filter([
+                'terminal_id' => $register->terminal_id,
+            ]))->with('success', 'Kasa başarıyla açıldı.');
         } catch (\Exception $e) {
-            return redirect()->route('pos.cash-register')->with('error', $e->getMessage());
+            return redirect()->route('pos.cash-register', array_filter([
+                'terminal_id' => $terminalId,
+            ]))->with('error', $e->getMessage());
         }
     }
 
     public function close(Request $request)
     {
-        $request->validate(['actual_cash' => 'required|numeric|min:0']);
+        $data = $request->validate([
+            'actual_cash' => 'required|numeric|min:0',
+            'terminal_id' => 'nullable|integer',
+            'notes' => 'nullable|string',
+        ]);
+
+        $terminalId = $this->resolveTerminalId($data['terminal_id'] ?? null);
+        session(['terminal_id' => $terminalId]);
         
-        $active = $this->service->getActiveRegister(session('branch_id'));
+        $active = $this->service->getActiveRegister(session('branch_id'), $terminalId);
         if (!$active) {
-            return redirect()->route('pos.cash-register')->with('error', 'Açık kasa bulunamadı.');
+            return redirect()->route('pos.cash-register', array_filter([
+                'terminal_id' => $terminalId,
+            ]))->with('error', 'Açık kasa bulunamadı.');
         }
 
         try {
             $register = $this->service->closeRegister(
                 $active->id,
-                $request->actual_cash,
-                $request->notes
+                (float) $data['actual_cash'],
+                $data['notes'] ?? null
             );
-            return redirect()->route('pos.cash-register')->with('success', 'Kasa başarıyla kapatıldı.');
+
+            return redirect()->route('pos.cash-register', array_filter([
+                'terminal_id' => $register->terminal_id,
+            ]))->with('success', 'Kasa başarıyla kapatıldı.');
         } catch (\Exception $e) {
-            return redirect()->route('pos.cash-register')->with('error', $e->getMessage());
+            return redirect()->route('pos.cash-register', array_filter([
+                'terminal_id' => $terminalId,
+            ]))->with('error', $e->getMessage());
         }
     }
 
@@ -91,6 +142,7 @@ class CashRegisterController extends Controller
         
         // Get sales breakdown for this register period
         $salesQuery = Sale::where('branch_id', $register->branch_id)
+            ->when($register->terminal_id !== null, fn ($query) => $query->where('terminal_id', $register->terminal_id))
             ->where('status', 'completed')
             ->where('sold_at', '>=', $register->opened_at);
         
@@ -116,9 +168,11 @@ class CashRegisterController extends Controller
     public function salesDetail(Request $request)
     {
         $branchId = session('branch_id');
-        $register = $this->service->getActiveRegister($branchId);
+        $terminalId = $this->resolveTerminalId($request->get('terminal_id'));
+        $register = $this->service->getActiveRegister($branchId, $terminalId);
 
         $query = Sale::where('branch_id', $branchId)
+            ->when($terminalId, fn ($q) => $q->where('terminal_id', $terminalId))
             ->where('status', 'completed')
             ->with(['customer', 'user'])
             ->orderBy('sold_at', 'desc');
@@ -157,6 +211,18 @@ class CashRegisterController extends Controller
         ]);
 
         return response()->json(['success' => true, 'sales' => $sales]);
+    }
+
+    private function resolveTerminalId(mixed $terminalId): ?int
+    {
+        if ($terminalId === null || $terminalId === '') {
+            return null;
+        }
+
+        return PosTerminal::where('tenant_id', session('tenant_id'))
+            ->where('branch_id', session('branch_id'))
+            ->whereKey((int) $terminalId)
+            ->value('id');
     }
 
     /**

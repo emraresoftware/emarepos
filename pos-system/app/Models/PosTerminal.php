@@ -47,4 +47,14 @@ class PosTerminal extends Model
     {
         return $this->belongsTo(HardwareDevice::class, 'cash_drawer_id');
     }
+
+    public function cashRegisters()
+    {
+        return $this->hasMany(CashRegister::class, 'terminal_id');
+    }
+
+    public function sales()
+    {
+        return $this->hasMany(Sale::class, 'terminal_id');
+    }
 }

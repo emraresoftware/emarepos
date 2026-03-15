@@ -3,6 +3,7 @@ namespace App\Http\Controllers\Pos;
 
 use App\Http\Controllers\Controller;
 use App\Models\CashRegister;
+use App\Models\PosTerminal;
 use App\Models\Sale;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -12,9 +13,25 @@ class CashReportController extends Controller
     public function index(Request $request)
     {
         $branchId = session('branch_id');
+        $terminals = PosTerminal::where('tenant_id', session('tenant_id'))
+            ->where('branch_id', $branchId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+        $selectedTerminalId = null;
+        if ($request->filled('terminal_id')) {
+            $selectedTerminalId = $terminals
+                ->where('id', (int) $request->input('terminal_id'))
+                ->value('id');
+        }
+
+        if ($selectedTerminalId && ! $terminals->contains('id', $selectedTerminalId)) {
+            $selectedTerminalId = null;
+        }
 
         $query = CashRegister::with('user')
             ->where('branch_id', $branchId)
+            ->when($selectedTerminalId, fn ($q) => $q->where('terminal_id', $selectedTerminalId))
             ->orderBy('opened_at', 'desc');
 
         if ($request->filled('status')) {
@@ -41,6 +58,7 @@ class CashReportController extends Controller
                        COALESCE(SUM(s.card_amount), 0) as total_card
                 FROM cash_registers r
                 LEFT JOIN sales s ON s.branch_id = r.branch_id
+                    AND ((r.terminal_id IS NULL AND s.terminal_id IS NULL) OR s.terminal_id = r.terminal_id)
                     AND s.status = 'completed'
                     AND s.sold_at >= r.opened_at
                     AND (r.closed_at IS NULL OR s.sold_at <= r.closed_at)
@@ -58,16 +76,17 @@ class CashReportController extends Controller
         }
 
         $salesStatsQuery = Sale::where('branch_id', $branchId)
+            ->when($selectedTerminalId, fn ($q) => $q->where('terminal_id', $selectedTerminalId))
             ->where('status', 'completed')
             ->when($request->filled('start_date'), fn($q) => $q->whereDate('sold_at', '>=', $request->start_date))
             ->when($request->filled('end_date'), fn($q) => $q->whereDate('sold_at', '<=', $request->end_date));
 
         $stats = [
-            'total_registers' => CashRegister::where('branch_id', $branchId)->count(),
+            'total_registers' => CashRegister::where('branch_id', $branchId)->when($selectedTerminalId, fn ($q) => $q->where('terminal_id', $selectedTerminalId))->count(),
             'total_sales_all' => (clone $salesStatsQuery)->sum('grand_total'),
             'total_cash_all'  => (clone $salesStatsQuery)->sum('cash_amount'),
             'total_card_all'  => (clone $salesStatsQuery)->sum('card_amount'),
-            'avg_difference'  => CashRegister::where('branch_id', $branchId)->where('status', 'closed')->avg('difference') ?? 0,
+            'avg_difference'  => CashRegister::where('branch_id', $branchId)->when($selectedTerminalId, fn ($q) => $q->where('terminal_id', $selectedTerminalId))->where('status', 'closed')->avg('difference') ?? 0,
             // Veresiye: Sales tablosundan hesapla (cash_register'da sütun yok)
             'total_credit_all' => (clone $salesStatsQuery)->where('credit_amount', '>', 0)->sum('credit_amount'),
         ];
@@ -81,6 +100,7 @@ class CashReportController extends Controller
                 SELECT r.id, COALESCE(SUM(s.credit_amount), 0) as credit_total
                 FROM cash_registers r
                 LEFT JOIN sales s ON s.branch_id = r.branch_id
+                    AND ((r.terminal_id IS NULL AND s.terminal_id IS NULL) OR s.terminal_id = r.terminal_id)
                     AND s.status = 'completed'
                     AND s.credit_amount > 0
                     AND s.sold_at >= r.opened_at
@@ -93,7 +113,7 @@ class CashReportController extends Controller
             }
         }
 
-        return view('pos.cash-report.index', compact('registers', 'stats', 'creditByRegister', 'registerSalesTotals'));
+        return view('pos.cash-report.index', compact('registers', 'stats', 'creditByRegister', 'registerSalesTotals', 'terminals', 'selectedTerminalId'));
     }
 
     public function show(CashRegister $register)
@@ -105,6 +125,7 @@ class CashReportController extends Controller
 
         // Bu kasanın satışları
         $sales = Sale::where('branch_id', $register->branch_id)
+            ->when($register->terminal_id !== null, fn ($q) => $q->where('terminal_id', $register->terminal_id))
             ->whereBetween('sold_at', [$register->opened_at, $register->closed_at ?? now()])
             ->orderBy('sold_at', 'desc')
             ->get();

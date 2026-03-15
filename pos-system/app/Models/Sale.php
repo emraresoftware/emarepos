@@ -16,6 +16,7 @@ class Sale extends Model
         'external_id',
         'receipt_no',
         'branch_id',
+        'terminal_id',
         'customer_id',
         'user_id',
         'payment_method',
@@ -68,6 +69,11 @@ class Sale extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function terminal()
+    {
+        return $this->belongsTo(PosTerminal::class, 'terminal_id');
     }
 
     public function user()

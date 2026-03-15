@@ -41,9 +41,9 @@
     @stack('styles')
 </head>
 <body class="h-full bg-gray-50 font-sans antialiased text-gray-800">
-            <div x-data="(() => { const collapseOnLoad = @json(request()->routeIs('pos.sales', 'pos.kitchen', 'pos.tables*')) || @json(request()->is('pos', 'kitchen', 'tables*')); return { collapseOnLoad, sidebarOpen: window.innerWidth >= 1024 && !collapseOnLoad, sidebarMobile: false }; })()" 
+            <div x-data="(() => { const collapseOnLoad = @json(request()->routeIs('pos.sales', 'pos.kitchen', 'pos.tables*')) || @json(request()->is('pos', 'kitchen', 'tables*')); return { collapseOnLoad, sidebarOpen: window.innerWidth >= 1024 && !collapseOnLoad, sidebarHover: false, sidebarMobile: false, get sidebarExpanded() { return this.sidebarOpen || this.sidebarHover || this.sidebarMobile; }, handleSidebarEnter() { if (window.innerWidth >= 1024 && !this.sidebarOpen) this.sidebarHover = true; }, handleSidebarLeave() { this.sidebarHover = false; } }; })()" 
                 x-init="if (collapseOnLoad && window.innerWidth >= 1024) sidebarOpen = false"
-                @resize.window="sidebarOpen = window.innerWidth >= 1024 && !collapseOnLoad; if(window.innerWidth >= 1024) sidebarMobile = false" 
+                @resize.window="sidebarOpen = window.innerWidth >= 1024 && !collapseOnLoad; sidebarHover = false; if(window.innerWidth >= 1024) sidebarMobile = false" 
          class="h-full flex">
 
         <!-- Mobile Hamburger -->
@@ -62,15 +62,17 @@
         <aside class="no-print transition-all duration-300 bg-white border-r border-gray-200 flex flex-col shadow-sm
                       fixed lg:relative inset-y-0 left-0 z-40
                       w-60 lg:w-60"
+               @mouseenter="handleSidebarEnter()"
+               @mouseleave="handleSidebarLeave()"
                :class="{
-                   'lg:w-[68px]': !sidebarOpen,
+                   'lg:w-[68px]': !sidebarExpanded,
                    '-translate-x-full lg:translate-x-0': !sidebarMobile && window.innerWidth < 1024,
                    'translate-x-0': sidebarMobile || window.innerWidth >= 1024
                }"
                x-cloak>
             <!-- Logo -->
-            <div class="p-3.5 border-b border-gray-100 flex items-center" :class="(sidebarOpen || sidebarMobile) ? 'justify-between' : 'justify-center'">
-                <div x-show="sidebarOpen || sidebarMobile" class="flex items-center gap-2.5">
+            <div class="p-3.5 border-b border-gray-100 flex items-center" :class="sidebarExpanded ? 'justify-between' : 'justify-center'">
+                <div x-show="sidebarExpanded" class="flex items-center gap-2.5">
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center shadow-lg shadow-brand-500/30">
                         <span class="text-white font-bold text-sm">EP</span>
                     </div>
@@ -128,35 +130,35 @@
                               {{ request()->routeIs($item['route'].'*')
                                     ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white shadow-md shadow-brand-500/25'
                                     : 'text-gray-600 hover:text-brand-700 hover:bg-brand-50' }}"
-                       :class="(sidebarOpen || sidebarMobile) ? '' : 'lg:justify-center'"
+                       :class="sidebarExpanded ? '' : 'lg:justify-center'"
                        @click="if(window.innerWidth < 1024) sidebarMobile = false"
                        title="{{ $item['label'] }}">
                         <i class="fas {{ $item['icon'] }} w-5 text-center text-[13px]"></i>
-                        <span x-show="sidebarOpen || sidebarMobile">{{ $item['label'] }}</span>
+                        <span x-show="sidebarExpanded">{{ $item['label'] }}</span>
                     </a>
                 @endforeach
             </nav>
 
             <!-- User & Logout -->
             <div class="border-t border-gray-100 p-3.5">
-                <div x-show="sidebarOpen || sidebarMobile" class="mb-2">
+                <div x-show="sidebarExpanded" class="mb-2">
                     <div class="text-sm text-gray-900 font-semibold">{{ auth()->user()->name }}</div>
                     <div class="text-xs text-gray-500">{{ auth()->user()->role?->name ?? 'Yönetici' }}</div>
                 </div>
                 @if(auth()->user()->is_super_admin)
                     <a href="{{ route('admin.dashboard') }}"
                        class="flex items-center gap-2 text-brand-500 hover:text-brand-700 text-sm rounded-lg hover:bg-brand-50 px-2 py-1.5 transition-colors mb-2 border border-brand-200"
-                       :class="(sidebarOpen || sidebarMobile) ? '' : 'justify-center'">
+                       :class="sidebarExpanded ? '' : 'justify-center'">
                         <i class="fas fa-shield-halved w-5 text-center text-xs"></i>
-                        <span x-show="sidebarOpen || sidebarMobile">Admin Panel</span>
+                        <span x-show="sidebarExpanded">Admin Panel</span>
                     </a>
                 @endif
                 <form method="POST" action="{{ route('pos.logout') }}">
                     @csrf
                     <button type="submit" class="flex items-center gap-2 text-gray-400 hover:text-red-500 text-sm w-full rounded-lg hover:bg-red-50 px-2 py-1.5 transition-colors"
-                            :class="(sidebarOpen || sidebarMobile) ? '' : 'justify-center'">
+                            :class="sidebarExpanded ? '' : 'justify-center'">
                         <i class="fas fa-sign-out-alt w-5 text-center"></i>
-                        <span x-show="sidebarOpen || sidebarMobile">Çıkış</span>
+                        <span x-show="sidebarExpanded">Çıkış</span>
                     </button>
                 </form>
             </div>

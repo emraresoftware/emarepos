@@ -10,22 +10,28 @@ use Carbon\Carbon;
 
 class CashRegisterService
 {
-    public function openRegister(int $branchId, int $userId, float $openingAmount = 0, ?string $notes = null): CashRegister
+    public function openRegister(int $branchId, int $userId, float $openingAmount = 0, ?string $notes = null, ?int $terminalId = null): CashRegister
     {
-        return DB::transaction(function () use ($branchId, $userId, $openingAmount, $notes) {
-            // Check if there's already an open register for this branch
+        return DB::transaction(function () use ($branchId, $userId, $openingAmount, $notes, $terminalId) {
             $existing = CashRegister::where('branch_id', $branchId)
                 ->where('status', 'open')
+                ->when($terminalId !== null,
+                    fn ($query) => $query->where('terminal_id', $terminalId),
+                    fn ($query) => $query->whereNull('terminal_id')
+                )
                 ->lockForUpdate()
                 ->first();
 
             if ($existing) {
-                throw new \Exception('Bu şube için zaten açık bir kasa var.');
+                throw new \Exception($terminalId
+                    ? 'Bu terminal için zaten açık bir kasa var.'
+                    : 'Bu şube için zaten açık bir kasa var.');
             }
 
             return CashRegister::create([
                 'tenant_id' => session('tenant_id'),
                 'branch_id' => $branchId,
+                'terminal_id' => $terminalId,
                 'user_id' => $userId,
                 'opening_amount' => $openingAmount,
                 'status' => 'open',
@@ -48,6 +54,7 @@ class CashRegisterService
             $salesData = Sale::where('branch_id', $register->branch_id)
                 ->where('status', 'completed')
                 ->where('sold_at', '>=', $register->opened_at)
+                ->when($register->terminal_id !== null, fn ($query) => $query->where('terminal_id', $register->terminal_id))
                 ->selectRaw('
                     COUNT(*) as total_transactions,
                     COALESCE(SUM(grand_total), 0) as total_sales,
@@ -59,6 +66,7 @@ class CashRegisterService
             $refundsData = Sale::where('branch_id', $register->branch_id)
                 ->whereIn('status', ['refunded', 'cancelled'])
                 ->where('updated_at', '>=', $register->opened_at)
+                ->when($register->terminal_id !== null, fn ($query) => $query->where('terminal_id', $register->terminal_id))
                 ->selectRaw('COALESCE(SUM(grand_total), 0) as total_refunds, COALESCE(SUM(cash_amount), 0) as cash_refunds')
                 ->first();
             
@@ -95,10 +103,12 @@ class CashRegisterService
         });
     }
     
-    public function getActiveRegister(int $branchId): ?CashRegister
+    public function getActiveRegister(int $branchId, ?int $terminalId = null): ?CashRegister
     {
         return CashRegister::where('branch_id', $branchId)
             ->where('status', 'open')
+            ->when($terminalId !== null, fn ($query) => $query->where('terminal_id', $terminalId))
+            ->latest('opened_at')
             ->first();
     }
 }

@@ -19,6 +19,44 @@
         </button>
     </div>
 
+    <div class="shrink-0 border-b border-gray-200 bg-gradient-to-r from-slate-50 via-white to-sky-50 px-3 py-3 sm:px-4">
+        <div class="flex items-center justify-between gap-3 mb-2">
+            <div>
+                <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700">Çoklu Satış Oturumu</div>
+                <div class="text-sm text-gray-600 mt-0.5">Aynı anda 5 farklı müşteri için ayrı sepet tutabilirsiniz.</div>
+            </div>
+            <div class="hidden sm:flex items-center gap-2 rounded-full bg-white px-3 py-1.5 ring-1 ring-sky-100 text-xs text-gray-600">
+                <i class="fas fa-layer-group text-sky-500"></i>
+                <span x-text="activeSlotLabel() + ' aktif'"></span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-2">
+            <template x-for="(slot, slotIndex) in saleSlots" :key="'sale-slot-' + slot.id">
+                <button @click="activateSaleSlot(slotIndex)"
+                        class="rounded-2xl border px-3 py-3 text-left transition-all min-w-0"
+                        :class="activeSaleSlotIndex === slotIndex ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-sm'">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-bold uppercase tracking-wider"
+                              :class="activeSaleSlotIndex === slotIndex ? 'text-blue-100' : 'text-gray-400'"
+                              x-text="'Müşteri ' + slot.id"></span>
+                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold"
+                              :class="(slot.cart?.length || 0) > 0 ? (activeSaleSlotIndex === slotIndex ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-700') : (activeSaleSlotIndex === slotIndex ? 'bg-white/10 text-blue-100' : 'bg-gray-100 text-gray-400')"
+                              x-text="slot.cart?.length || 0"></span>
+                    </div>
+                    <div class="mt-2 text-sm font-bold truncate"
+                         :class="activeSaleSlotIndex === slotIndex ? 'text-white' : 'text-gray-900'"
+                         x-text="slot.selectedCustomer?.name || 'Müşteri bekleniyor'"></div>
+                    <div class="mt-1 flex items-center justify-between gap-2 text-[11px]"
+                         :class="activeSaleSlotIndex === slotIndex ? 'text-blue-100' : 'text-gray-500'">
+                        <span class="truncate" x-text="saleSlotSummary(slot)"></span>
+                        <span class="font-semibold shrink-0" x-text="formatCurrency(saleSlotTotal(slot))"></span>
+                    </div>
+                </button>
+            </template>
+        </div>
+    </div>
+
     {{-- ─── Hızı Ürün Ekleme Modalı ─── --}}
     <div x-show="showProductModal" x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
@@ -377,8 +415,9 @@
             </div>
         </div>
 
+        <div class="flex-1 min-h-0 overflow-y-auto bg-white">
         {{-- Sepet Listesi --}}
-        <div class="flex-1 overflow-y-auto bg-white">
+        <div>
             <template x-if="cart.length === 0">
                 <div class="flex flex-col items-center justify-center h-full text-gray-300 py-12">
                     <i class="fas fa-shopping-cart text-5xl mb-3"></i>
@@ -436,7 +475,7 @@
         </div>
 
         {{-- Genel İndirim + Detaylı Özet Bölümü --}}
-        <div class="border-t border-gray-200 px-3 py-2 sm:px-4 sm:py-3 bg-white space-y-2 shrink-0">
+        <div class="border-t border-gray-200 px-3 py-2 sm:px-4 sm:py-3 bg-white space-y-2">
             <div x-show="criticalSummaryAlert()" class="rounded-2xl border px-3 py-3 shadow-sm"
                  :class="criticalSummaryAlert()?.tone === 'danger' ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'">
                 <div class="flex items-start gap-3">
@@ -487,6 +526,10 @@
                     <span x-show="selectedCustomer" class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200 max-w-full">
                         <i class="fas fa-user-check text-[10px]"></i>
                         <span class="truncate max-w-[150px]" x-text="selectedCustomer?.name"></span>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700 ring-1 ring-sky-200 max-w-full">
+                        <i class="fas fa-layer-group text-[10px]"></i>
+                        <span x-text="activeSlotLabel()"></span>
                     </span>
                 </div>
 
@@ -674,7 +717,7 @@
                     </div>
                 </div>
 
-                <div class="rounded-2xl p-3 space-y-2.5 border"
+                 <div class="rounded-2xl p-3 space-y-2.5 border"
                      x-show="cart.length > 0"
                      :class="creditRiskTone() === 'danger' ? 'bg-red-50 border-red-200' : creditRiskTone() === 'warning' ? 'bg-amber-50 border-amber-200' : 'bg-sky-50 border-sky-200'">
                     <div class="flex items-center justify-between gap-3">
@@ -746,6 +789,7 @@
                 </div>
             </div>
         </div>
+        </div>
 
         {{-- Müşteri Seçimi --}}
         <div class="border-t border-gray-200 shrink-0">
@@ -760,7 +804,7 @@
                 <i class="fas fa-user-check text-white text-sm shrink-0"></i>
                 <span class="flex-1 text-sm text-white font-medium truncate cursor-pointer" x-text="selectedCustomer?.name" @click="showCustomerModal = true; customerModalTab = 'list'"></span>
                 <span class="text-xs text-blue-200 whitespace-nowrap" :class="(selectedCustomer?.balance ?? 0) < 0 ? 'text-red-300' : 'text-blue-200'" x-text="formatCurrency(selectedCustomer?.balance ?? 0)"></span>
-                <button @click="selectedCustomer = null; customerSearch = ''" class="text-blue-200 hover:text-white transition-colors shrink-0">
+                <button @click="clearSelectedCustomer()" class="text-blue-200 hover:text-white transition-colors shrink-0">
                     <i class="fas fa-times text-xs"></i>
                 </button>
             </div>
@@ -1295,7 +1339,7 @@
             </button>
                 <button @click="handleCreditPayment()"
                     class="flex flex-col items-center justify-center gap-2 pt-4 pb-3 min-h-[96px] rounded-full text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0"
-                    :class="!cart.length || creditSaleBlocked(this.totals.grand_total) ? 'opacity-55' : ''"
+                    :class="!cart.length || creditSaleBlocked(totals?.grand_total || 0) ? 'opacity-55' : ''"
                     style="background: linear-gradient(135deg, #f4a84b, #e8913a);">
                 <span class="w-9 h-9 rounded-full bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
                     <i class="fas fa-file-invoice-dollar text-lg leading-none"></i>
@@ -1478,7 +1522,7 @@
                 <div x-show="selectedCustomer" class="mt-2 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
                     <i class="fas fa-user-check text-amber-500 text-xs"></i>
                     <span class="text-sm text-amber-700 font-medium" x-text="selectedCustomer?.name"></span>
-                    <button @click="selectedCustomer = null; customerSearch = ''" class="ml-auto text-amber-400 hover:text-red-500">
+                    <button @click="clearSelectedCustomer()" class="ml-auto text-amber-400 hover:text-red-500">
                         <i class="fas fa-times text-xs"></i>
                     </button>
                 </div>
@@ -1694,8 +1738,112 @@ function posScreen() {
         panelResizeEnabled: {{ auth()->user()->is_super_admin ? 'true' : 'false' }},
         panelResizeStorageKey: 'pos_cart_width',
         cartStorageKey: 'pos_cart_state',
+        saleSlotCount: 5,
+        saleSlots: [],
+        activeSaleSlotIndex: 0,
+
+        emptySaleSlot(index = 0) {
+            return {
+                id: index + 1,
+                cart: [],
+                selectedCustomer: null,
+                generalDiscount: 0,
+                generalDiscountType: 'TL',
+                paidAmount: '',
+            };
+        },
+
+        normalizeSaleSlot(slot, index = 0) {
+            const base = this.emptySaleSlot(index);
+
+            return {
+                ...base,
+                ...(slot || {}),
+                id: index + 1,
+                cart: Array.isArray(slot?.cart) ? slot.cart.map(item => this.normalizeCartItem(item)) : [],
+                selectedCustomer: slot?.selectedCustomer || null,
+                generalDiscount: slot?.generalDiscount ?? 0,
+                generalDiscountType: slot?.generalDiscountType || 'TL',
+                paidAmount: slot?.paidAmount ?? '',
+            };
+        },
+
+        ensureSaleSlots() {
+            if (Array.isArray(this.saleSlots) && this.saleSlots.length === this.saleSlotCount) {
+                return;
+            }
+
+            this.saleSlots = Array.from({ length: this.saleSlotCount }, (_, index) => this.emptySaleSlot(index));
+        },
+
+        activeSaleSlot() {
+            this.ensureSaleSlots();
+            return this.saleSlots[this.activeSaleSlotIndex] || this.saleSlots[0];
+        },
+
+        syncCurrentStateToActiveSlot() {
+            this.ensureSaleSlots();
+
+            this.saleSlots[this.activeSaleSlotIndex] = {
+                ...this.activeSaleSlot(),
+                cart: this.cart.map(item => ({ ...item })),
+                selectedCustomer: this.selectedCustomer ? { ...this.selectedCustomer } : null,
+                generalDiscount: this.generalDiscount,
+                generalDiscountType: this.generalDiscountType,
+                paidAmount: this.paidAmount,
+            };
+        },
+
+        loadStateFromSlot(index = 0) {
+            this.ensureSaleSlots();
+            const safeIndex = Math.max(0, Math.min(this.saleSlotCount - 1, index));
+            const slot = this.saleSlots[safeIndex] || this.emptySaleSlot(safeIndex);
+
+            this.activeSaleSlotIndex = safeIndex;
+            this.cart = Array.isArray(slot.cart) ? slot.cart.map(item => this.normalizeCartItem(item)) : [];
+            this.selectedCustomer = slot.selectedCustomer || null;
+            this.generalDiscount = slot.generalDiscount ?? 0;
+            this.generalDiscountType = slot.generalDiscountType || 'TL';
+            this.paidAmount = slot.paidAmount ?? '';
+            this.customerSearch = this.selectedCustomer?.name || '';
+            this.showCustomerDropdown = false;
+            this.showMixedPayment = false;
+            this.showOtherPayments = false;
+            this.recalcTotals();
+        },
+
+        activateSaleSlot(index) {
+            if (index === this.activeSaleSlotIndex) return;
+
+            this.syncCurrentStateToActiveSlot();
+            this.saveCart();
+            this.loadStateFromSlot(index);
+            showToast('Satış oturumu değiştirildi', 'success');
+        },
+
+        activeSlotLabel() {
+            return 'Müşteri ' + (this.activeSaleSlotIndex + 1);
+        },
+
+        saleSlotSummary(slot) {
+            const count = Array.isArray(slot?.cart) ? slot.cart.length : 0;
+            return count > 0 ? count + ' kalem' : 'Boş sepet';
+        },
+
+        saleSlotTotal(slot) {
+            if (!Array.isArray(slot?.cart) || slot.cart.length === 0) return 0;
+
+            return Math.round(slot.cart.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0) * 100) / 100;
+        },
+
+        clearSelectedCustomer() {
+            this.selectedCustomer = null;
+            this.customerSearch = '';
+            this.saveCart();
+        },
 
         init() {
+            this.ensureSaleSlots();
             this.showAllProducts();
             this.initPanelResize();
             this.loadCart();
@@ -2475,16 +2623,23 @@ function posScreen() {
             this.cart = [];
             this.selectedCustomer = null;
             this.generalDiscount = 0;
+            this.generalDiscountType = 'TL';
             this.paidAmount = '';
             this.recalcTotals();
         },
 
         saveCart() {
+            this.syncCurrentStateToActiveSlot();
+
             const payload = {
+                version: 2,
+                activeSaleSlotIndex: this.activeSaleSlotIndex,
+                saleSlots: this.saleSlots,
                 cart: this.cart,
                 selectedCustomer: this.selectedCustomer,
                 generalDiscount: this.generalDiscount,
                 generalDiscountType: this.generalDiscountType,
+                paidAmount: this.paidAmount,
             };
             try {
                 localStorage.setItem(this.cartStorageKey, JSON.stringify(payload));
@@ -2524,21 +2679,38 @@ function posScreen() {
         loadCart() {
             try {
                 const raw = localStorage.getItem(this.cartStorageKey);
-                if (!raw) return;
+                if (!raw) {
+                    this.loadStateFromSlot(0);
+                    return;
+                }
+
                 const data = JSON.parse(raw);
-                if (Array.isArray(data.cart)) {
-                    this.cart = data.cart.map(item => this.normalizeCartItem(item));
+
+                if (Array.isArray(data.saleSlots)) {
+                    this.saleSlots = Array.from({ length: this.saleSlotCount }, (_, index) => {
+                        return this.normalizeSaleSlot(data.saleSlots[index], index);
+                    });
+
+                    this.loadStateFromSlot(parseInt(data.activeSaleSlotIndex ?? 0, 10) || 0);
+                    this.saveCart();
+                    return;
                 }
-                if (data.selectedCustomer) {
-                    this.selectedCustomer = data.selectedCustomer;
-                }
-                if (data.generalDiscount !== undefined) {
-                    this.generalDiscount = data.generalDiscount;
-                }
-                if (data.generalDiscountType) {
-                    this.generalDiscountType = data.generalDiscountType;
-                }
-                this.recalcTotals();
+
+                this.saleSlots = Array.from({ length: this.saleSlotCount }, (_, index) => {
+                    if (index === 0) {
+                        return this.normalizeSaleSlot({
+                            cart: Array.isArray(data.cart) ? data.cart : [],
+                            selectedCustomer: data.selectedCustomer || null,
+                            generalDiscount: data.generalDiscount ?? 0,
+                            generalDiscountType: data.generalDiscountType || 'TL',
+                            paidAmount: data.paidAmount ?? '',
+                        }, index);
+                    }
+
+                    return this.emptySaleSlot(index);
+                });
+
+                this.loadStateFromSlot(0);
                 this.saveCart();
             } catch (e) { /* ignore */ }
         },
@@ -2814,6 +2986,7 @@ function posScreen() {
             this.cart = [];
             this.selectedCustomer = null;
             this.generalDiscount = 0;
+            this.generalDiscountType = 'TL';
             this.paidAmount = '';
             this.recalcTotals();
             this.mobileTab = 'products';
@@ -2848,6 +3021,7 @@ function posScreen() {
                     this.customerSearch = '';
                     this.customerResults = [];
                     this.customerModalTab = 'list';
+                    this.saveCart();
                     showToast('Müşteri eklendi!', 'success');
                 }
             } catch(e) { showToast(e.message || 'Müşteri eklenemedi.', 'error'); }
@@ -3112,6 +3286,7 @@ function posScreen() {
                         this.odemeCustomer = { ...this.odemeCustomer, balance: res.customer.balance };
                         if (this.selectedCustomer?.id === this.odemeCustomer.id) {
                             this.selectedCustomer = { ...this.selectedCustomer, balance: res.customer.balance };
+                            this.saveCart();
                         }
                     }
                     this.odemeAmount = '';

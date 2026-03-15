@@ -14,10 +14,12 @@ class DayOperationController extends Controller
     {
         $today = Carbon::today();
         $branchId = session('branch_id');
+        $terminalId = session('terminal_id');
 
         // Bugünün özet bilgileri — tek sorguda çek
         $salesStats = DB::table('sales')
             ->where('branch_id', $branchId)
+            ->when($terminalId, fn ($q) => $q->where('terminal_id', $terminalId))
             ->whereDate('sold_at', $today)
             ->where('status', 'completed')
             ->selectRaw('SUM(grand_total) as total_sales, COUNT(*) as sale_count, SUM(cash_amount) as cash_total, SUM(card_amount) as card_total, AVG(grand_total) as avg_basket')
@@ -25,6 +27,7 @@ class DayOperationController extends Controller
 
         $refundTotal = DB::table('sales')
             ->where('branch_id', $branchId)
+            ->when($terminalId, fn ($q) => $q->where('terminal_id', $terminalId))
             ->whereDate('sold_at', $today)
             ->where('status', 'refunded')
             ->sum('grand_total');
@@ -47,10 +50,15 @@ class DayOperationController extends Controller
         ];
 
         // Aktif kasa
-        $activeRegister = CashRegister::where('branch_id', $branchId)->where('status', 'open')->first();
+        $activeRegister = CashRegister::where('branch_id', $branchId)
+            ->when($terminalId, fn ($q) => $q->where('terminal_id', $terminalId))
+            ->where('status', 'open')
+            ->first();
 
         // Son Z raporları
-        $zReports = CashRegister::where('branch_id', $branchId)->where('status', 'closed')
+        $zReports = CashRegister::where('branch_id', $branchId)
+            ->when($terminalId, fn ($q) => $q->where('terminal_id', $terminalId))
+            ->where('status', 'closed')
             ->with('user')
             ->orderBy('closed_at', 'desc')
             ->limit(10)
@@ -63,6 +71,7 @@ class DayOperationController extends Controller
             : "LPAD(HOUR(sold_at), 2, '0') as hour";
         
         $hourlySales = Sale::where('branch_id', $branchId)->whereDate('sold_at', $today)
+            ->when($terminalId, fn ($q) => $q->where('terminal_id', $terminalId))
             ->where('status', 'completed')
             ->selectRaw("{$hourExpr}, SUM(grand_total) as total, COUNT(*) as count")
             ->groupBy('hour')

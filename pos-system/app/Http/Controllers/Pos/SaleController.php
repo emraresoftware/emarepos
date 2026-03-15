@@ -163,6 +163,7 @@ class SaleController extends Controller
         try {
             $sale = $this->saleService->createSale([
                 'branch_id' => session('branch_id'),
+                'terminal_id' => session('terminal_id'),
                 'tenant_id' => session('tenant_id'),
                 'customer_id' => $request->customer_id,
                 'user_id' => auth()->id(),

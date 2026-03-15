@@ -25,6 +25,30 @@
         </div>
     </div>
 
+    <div class="px-3 sm:px-6 pt-3 sm:pt-4">
+        <div class="bg-white rounded-xl border border-gray-200 p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div>
+                <div class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">Aktif Kasa Bağlamı</div>
+                <div class="mt-1 text-sm text-gray-700">
+                    <span class="font-semibold text-gray-900">{{ $selectedTerminal?->name ?? 'Genel Şube Kasası' }}</span>
+                    <span class="text-gray-400">·</span>
+                    <span>{{ $selectedTerminal ? 'Terminal bazlı kasa yönetimi aktif' : 'Terminal seçilmezse genel şube kasası mantığı çalışır' }}</span>
+                </div>
+            </div>
+            @if($terminals->count() > 0)
+            <form method="GET" action="{{ route('pos.cash-register') }}" class="flex items-center gap-2">
+                <label class="text-sm font-medium text-gray-600 whitespace-nowrap">Terminal</label>
+                <select name="terminal_id" onchange="this.form.submit()" class="min-w-[220px] border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm text-gray-800">
+                    <option value="">Genel Şube Kasası</option>
+                    @foreach($terminals as $terminal)
+                    <option value="{{ $terminal->id }}" {{ (int) ($selectedTerminalId ?? 0) === $terminal->id ? 'selected' : '' }}>{{ $terminal->name }}</option>
+                    @endforeach
+                </select>
+            </form>
+            @endif
+        </div>
+    </div>
+
     <div class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
 
         @if(!$register)
@@ -41,6 +65,22 @@
 
                 <form method="POST" action="{{ route('pos.cash-register.open') }}" class="space-y-4 text-left">
                     @csrf
+
+                    @if($selectedTerminalId)
+                    <input type="hidden" name="terminal_id" value="{{ $selectedTerminalId }}">
+                    @elseif($terminals->count() > 0)
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Terminal</label>
+                        <select name="terminal_id" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-transparent">
+                            <option value="">Genel Şube Kasası</option>
+                            @foreach($terminals as $terminal)
+                            <option value="{{ $terminal->id }}">{{ $terminal->name }}</option>
+                            @endforeach
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1.5">Açılacak kasa hangi hızlı satış ekranına aitse onu seçin</p>
+                    </div>
+                    @endif
+
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Açılış Bakiyesi (₺)</label>
                         <div class="relative">
@@ -87,6 +127,10 @@
                     <div class="flex justify-between">
                         <span class="text-gray-500">Açan:</span>
                         <span class="text-gray-900 font-medium">{{ $register->user->name ?? '-' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Terminal:</span>
+                        <span class="text-gray-900 font-medium">{{ $register->terminal?->name ?? 'Genel Şube Kasası' }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-500">Açılış Bakiye:</span>
@@ -200,6 +244,7 @@
                     <thead class="bg-gray-50">
                         <tr class="text-gray-500 text-xs uppercase tracking-wider">
                             <th class="text-left py-3 px-4 font-medium">Tarih</th>
+                            <th class="text-left py-3 px-4 font-medium">Terminal</th>
                             <th class="text-left py-3 px-4 font-medium">Açılış</th>
                             <th class="text-left py-3 px-4 font-medium">Kapanış</th>
                             <th class="text-right py-3 px-4 font-medium">Açılış Bakiye</th>
@@ -214,6 +259,9 @@
                         <tr class="hover:bg-gray-50 transition-colors">
                             <td class="py-3 px-4 text-gray-900 font-medium">
                                 {{ $report->opened_at->format('d.m.Y') }}
+                            </td>
+                            <td class="py-3 px-4 text-gray-700">
+                                {{ $report->terminal?->name ?? 'Genel Şube Kasası' }}
                             </td>
                             <td class="py-3 px-4 text-gray-700">
                                 {{ $report->opened_at->format('H:i') }}
@@ -337,6 +385,7 @@
                 {{-- Sayılan Nakit Girişi --}}
                 <form method="POST" action="{{ route('pos.cash-register.close') }}" class="space-y-4" id="closeRegisterForm">
                     @csrf
+                    <input type="hidden" name="terminal_id" value="{{ $selectedTerminalId ?? '' }}">
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Sayılan Nakit (₺)</label>
@@ -556,6 +605,8 @@
 <script>
 function cashRegisterScreen() {
     return {
+        selectedTerminalId: @json($selectedTerminalId),
+        selectedTerminalName: @json($selectedTerminal?->name ?? 'Genel Şube Kasası'),
         showCloseModal: false,
         actualCash: null,
 
@@ -584,7 +635,11 @@ function cashRegisterScreen() {
             this.salesLoading = true;
             this.salesList = [];
             try {
-                const data = await posAjax('{{ route("pos.cash-register.sales-detail") }}?type=' + type, {}, 'GET');
+                const params = new URLSearchParams({ type });
+                if (this.selectedTerminalId) {
+                    params.append('terminal_id', this.selectedTerminalId);
+                }
+                const data = await posAjax('{{ route("pos.cash-register.sales-detail") }}?' + params.toString(), {}, 'GET');
                 this.salesList = data.sales || [];
             } catch(e) {
                 showToast('Satışlar yüklenemedi', 'error');
@@ -645,6 +700,7 @@ function cashRegisterScreen() {
                 <div class="center bold" style="font-size:14px">{{ config('app.name', 'EMARE POS') }}</div>
                 <div class="center bold" style="font-size:12px;margin:4px 0">X RAPORU (Ara Rapor)</div>
                 <div class="center" style="font-size:10px">${now}</div>
+                <div class="center" style="font-size:10px">Terminal: ${this.selectedTerminalName}</div>
                 <div class="line"></div>
                 <div class="row"><span>Açılış Saati:</span><span>{{ $register ? $register->opened_at->format('H:i') : '-' }}</span></div>
                 <div class="row"><span>Açan:</span><span>{{ $register ? ($register->user->name ?? '-') : '-' }}</span></div>

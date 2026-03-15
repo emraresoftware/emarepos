@@ -6,6 +6,26 @@
 <div x-data="{ activeTab: 'branch' }" class="p-3 sm:p-6 overflow-y-auto h-full">
     <h1 class="text-2xl font-bold text-gray-900 mb-6">Ayarlar</h1>
 
+    <div class="mb-6 rounded-2xl border border-sky-200 bg-gradient-to-r from-sky-50 via-white to-cyan-50 p-4 sm:p-5 shadow-sm">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <div class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Sunucu Zamanı</div>
+                <div class="mt-1 text-2xl font-bold text-gray-900">{{ $sunucuTarihiSaati->format('d.m.Y H:i:s') }}</div>
+                <div class="mt-1 text-sm text-gray-600">Aktif zaman dilimi: <span class="font-semibold text-gray-800">{{ $aktifSaatDilimi }}</span></div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm min-w-0 lg:min-w-[360px]">
+                <div class="rounded-xl border border-sky-100 bg-white/90 px-4 py-3">
+                    <div class="text-xs font-medium uppercase tracking-wide text-gray-400">Durum</div>
+                    <div class="mt-1 font-semibold text-emerald-700">Saat senkronize görünüyor</div>
+                </div>
+                <div class="rounded-xl border border-sky-100 bg-white/90 px-4 py-3">
+                    <div class="text-xs font-medium uppercase tracking-wide text-gray-400">Not</div>
+                    <div class="mt-1 text-gray-700">Bu alan sunucudan okunur. Sistem saatini değil, uygulamanın gördüğü zamanı gösterir.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Tabs --}}
     <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-100 pb-3 overflow-x-auto hide-scrollbar">
         <button @click="activeTab = 'branch'" :class="activeTab === 'branch' ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white' : 'bg-white text-gray-500 hover:text-gray-800'" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors">
@@ -120,6 +140,34 @@
                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">%</span>
                     </div>
                     <p class="text-xs text-gray-500 mt-1">Hızlı satış ekranındaki Diğer menüsünden açılan hizmet bedeli bu orana göre toplama eklenir.</p>
+                </div>
+            </div>
+
+            <div class="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:p-5 space-y-4">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <h3 class="text-sm font-semibold text-amber-900">İşletme Tarihi / Saati Override</h3>
+                        <p class="text-xs text-amber-800/80 mt-1">Vardiya kapanışı, gece devri veya test senaryoları için uygulamanın kullanacağı işletme tarihini ve saatini ayrıca kaydedebilirsiniz.</p>
+                    </div>
+                    <label class="inline-flex items-center gap-2 text-sm font-medium text-amber-900 cursor-pointer">
+                        <input type="checkbox" name="isletme_saati_override_aktif" value="1" {{ ($tenant->meta['isletme_saati_override_aktif'] ?? false) ? 'checked' : '' }} class="w-4 h-4 rounded bg-white border-amber-300 text-amber-600 focus:ring-amber-500/20">
+                        Aktif
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-amber-900 mb-1">İşletme Tarihi</label>
+                        <input type="date" name="isletme_tarihi_override" value="{{ $tenant->meta['isletme_tarihi_override'] ?? '' }}" class="w-full bg-white border border-amber-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-amber-500/20 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-amber-900 mb-1">İşletme Saati</label>
+                        <input type="time" name="isletme_saati_override" value="{{ $tenant->meta['isletme_saati_override'] ?? '' }}" class="w-full bg-white border border-amber-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-amber-500/20 focus:border-transparent">
+                    </div>
+                </div>
+
+                <div class="rounded-xl border border-amber-100 bg-white/85 px-4 py-3 text-xs text-amber-900/80">
+                    Bu adım sadece ayar alanını hazırlar. Sonraki adımda satışlar, fişler ve raporlar bu override değerini kullanacak şekilde bağlanacaktır.
                 </div>
             </div>
 

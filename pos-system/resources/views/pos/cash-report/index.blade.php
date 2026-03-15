@@ -41,6 +41,14 @@
                 <option value="open" {{ request('status') == 'open' ? 'selected' : '' }}>Açık</option>
                 <option value="closed" {{ request('status') == 'closed' ? 'selected' : '' }}>Kapalı</option>
             </select>
+            @if(($terminals ?? collect())->count() > 0)
+            <select name="terminal_id" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-2">
+                <option value="">Tüm Terminaller</option>
+                @foreach($terminals as $terminal)
+                <option value="{{ $terminal->id }}" {{ (int) ($selectedTerminalId ?? 0) === $terminal->id ? 'selected' : '' }}>{{ $terminal->name }}</option>
+                @endforeach
+            </select>
+            @endif
             <input type="date" name="start_date" value="{{ request('start_date') }}" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-2">
             <input type="date" name="end_date" value="{{ request('end_date') }}" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-2">
             <button type="submit" class="bg-gradient-to-r from-brand-500 to-purple-600 hover:shadow-lg hover:shadow-brand-200 text-white text-sm font-medium px-4 py-2 rounded-lg">Filtrele</button>
@@ -54,6 +62,7 @@
                 <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
                     <tr>
                         <th class="px-4 py-3.5">Açılış</th>
+                        <th class="px-4 py-3.5 hidden xl:table-cell">Terminal</th>
                         <th class="px-4 py-3.5 hidden md:table-cell">Kapanış</th>
                         <th class="px-4 py-3.5">Personel</th>
                         <th class="px-4 py-3.5 text-right hidden lg:table-cell">Açılış Tutarı</th>
@@ -75,6 +84,7 @@
                         @endphp
                         <tr class="hover:bg-gray-50 transition-colors">
                             <td class="px-4 py-3 text-xs">{{ $reg->opened_at ? \Carbon\Carbon::parse($reg->opened_at)->format('d.m.Y H:i') : '-' }}</td>
+                            <td class="px-4 py-3 text-xs hidden xl:table-cell">{{ $reg->terminal?->name ?? 'Genel Şube Kasası' }}</td>
                             <td class="px-4 py-3 text-xs hidden md:table-cell">{{ $reg->closed_at ? \Carbon\Carbon::parse($reg->closed_at)->format('d.m.Y H:i') : '-' }}</td>
                             <td class="px-4 py-3">{{ $reg->user->name ?? '-' }}</td>
                             <td class="px-4 py-3 text-right font-mono hidden lg:table-cell">{{ formatCurrency($reg->opening_amount) }}</td>
@@ -95,7 +105,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="px-4 py-12 text-center">
+                            <td colspan="11" class="px-4 py-12 text-center">
                                 <p class="text-gray-500 text-sm">Kasa raporu bulunamadı</p>
                             </td>
                         </tr>

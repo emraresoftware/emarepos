@@ -7,6 +7,7 @@ use App\Models\Branch;
 use App\Models\PaymentType;
 use App\Models\TaxRate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class SettingController extends Controller
 {
@@ -16,11 +17,22 @@ class SettingController extends Controller
         $branch = Branch::find(session('branch_id'));
         $paymentTypes = PaymentType::orderBy('sort_order')->get();
         $taxRates = TaxRate::orderBy('rate')->get();
+        $aktifSaatDilimi = $branch?->settings['timezone'] ?? config('app.timezone', 'Europe/Istanbul');
+        $sunucuTarihiSaati = Carbon::now()->timezone($aktifSaatDilimi);
 
         $isCenter = (bool) ($branch?->settings['is_center'] ?? false);
         $canManagePaymentTypes = $isCenter && (auth()->user()->is_super_admin || auth()->user()->hasPermission('payment_types.manage'));
 
-        return view('pos.settings.index', compact('tenant', 'branch', 'paymentTypes', 'taxRates', 'isCenter', 'canManagePaymentTypes'));
+        return view('pos.settings.index', compact(
+            'tenant',
+            'branch',
+            'paymentTypes',
+            'taxRates',
+            'isCenter',
+            'canManagePaymentTypes',
+            'aktifSaatDilimi',
+            'sunucuTarihiSaati'
+        ));
     }
 
     public function updateBranch(Request $request)
@@ -57,6 +69,8 @@ class SettingController extends Controller
             'receipt_business_title' => 'nullable|string|max:120',
             'receipt_paper_width' => 'nullable|in:58,80',
             'receipt_font_size' => 'nullable|integer|min:9|max:14',
+            'isletme_tarihi_override' => 'nullable|date_format:Y-m-d',
+            'isletme_saati_override' => 'nullable|date_format:H:i',
         ]);
 
         $meta['receipt_header'] = $request->input('receipt_header', '');
@@ -78,6 +92,13 @@ class SettingController extends Controller
         $meta['receipt_show_tax_breakdown'] = $request->boolean('receipt_show_tax_breakdown');
         $meta['receipt_show_service_fee'] = $request->boolean('receipt_show_service_fee');
         $meta['receipt_show_notes'] = $request->boolean('receipt_show_notes');
+        $meta['isletme_saati_override_aktif'] = $request->boolean('isletme_saati_override_aktif');
+        $meta['isletme_tarihi_override'] = $request->filled('isletme_tarihi_override')
+            ? $request->input('isletme_tarihi_override')
+            : null;
+        $meta['isletme_saati_override'] = $request->filled('isletme_saati_override')
+            ? $request->input('isletme_saati_override')
+            : null;
 
         $tenant->update(['meta' => $meta]);
 

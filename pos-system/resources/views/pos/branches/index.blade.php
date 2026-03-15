@@ -513,6 +513,24 @@
 <script>
 function branchManager() {
     return {
+        emptyReportData() {
+            return {
+                kpi: {
+                    totalRevenue: 0,
+                    totalCount: 0,
+                    avgTicket: 0,
+                    totalDiscount: 0,
+                    creditTotal: 0,
+                },
+                payments: [],
+                daily: [],
+                top_products: [],
+                top_customers: [],
+                products: [],
+                staff: [],
+            };
+        },
+
         showCreateModal: false, createSaving: false,
         createForm: { name:'', code:'', address:'', phone:'', city:'', district:'', is_center:false, price_edit_locked:false },
 
@@ -562,6 +580,11 @@ function branchManager() {
             this.createForm = { name:'', code:'', address:'', phone:'', city:'', district:'', is_center:false, price_edit_locked:false };
             this.showCreateModal = true;
         },
+
+        init() {
+            this.reportData = this.emptyReportData();
+        },
+
         async submitCreate() {
             this.createSaving = true;
             try {
@@ -576,7 +599,7 @@ function branchManager() {
         openDetail(b) {
             this.detail = b;
             this.detailTab = 'rapor';
-            this.reportData = null; this.branchProducts = []; this.branchStaff = []; this.modulesList = [];
+            this.reportData = this.emptyReportData(); this.branchProducts = []; this.branchStaff = []; this.modulesList = [];
             this.deviceOptions = { printers:[], cash_drawers:[] };
             this.deviceSettings = { receipt_printer_id:'', kitchen_printer_id:'', cash_drawer_device_id:'' };
             this.editForm = { name:b.name||'', code:b.code||'', address:b.address||'', phone:b.phone||'',
@@ -609,10 +632,23 @@ function branchManager() {
             this.reportLoading = true;
             try {
                 const r = await posAjax('/branches/'+this.detail.id+'/report?from='+this.reportFrom+'&to='+this.reportTo, {}, 'GET');
-                this.reportData = r;
+                this.reportData = {
+                    ...this.emptyReportData(),
+                    ...(r || {}),
+                    kpi: {
+                        ...this.emptyReportData().kpi,
+                        ...((r && r.kpi) || {}),
+                    },
+                    payments: Array.isArray(r?.payments) ? r.payments : [],
+                    daily: Array.isArray(r?.daily) ? r.daily : [],
+                    top_products: Array.isArray(r?.top_products) ? r.top_products : [],
+                    top_customers: Array.isArray(r?.top_customers) ? r.top_customers : [],
+                    products: Array.isArray(r?.products) ? r.products : [],
+                    staff: Array.isArray(r?.staff) ? r.staff : [],
+                };
                 this.branchProducts = r.products || [];
                 this.branchStaff = r.staff || [];
-            } catch(e) { showToast(e.message||'Rapor yüklenemedi','error'); this.reportData=null; }
+            } catch(e) { showToast(e.message||'Rapor yüklenemedi','error'); this.reportData = this.emptyReportData(); }
             finally { this.reportLoading = false; }
         },
 

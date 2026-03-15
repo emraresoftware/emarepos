@@ -1,6 +1,7 @@
 <?php
 namespace App\Services;
 
+use App\Models\PosTerminal;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Product;
@@ -97,6 +98,11 @@ class SaleService
         return DB::transaction(function () use ($data) {
             $branchId = $data['branch_id'] ?? session('branch_id');
             $tenantId = $data['tenant_id'] ?? session('tenant_id');
+            $terminalId = $this->gecerliTerminalIdGetir(
+                $data['terminal_id'] ?? session('terminal_id'),
+                (int) $tenantId,
+                (int) $branchId
+            );
             
             // Generate receipt number
             $receiptNo = $this->generateReceiptNo($branchId);
@@ -116,6 +122,7 @@ class SaleService
                 'tenant_id' => $tenantId,
                 'receipt_no' => $receiptNo,
                 'branch_id' => $branchId,
+                'terminal_id' => $terminalId,
                 'customer_id' => $data['customer_id'] ?? null,
                 'user_id' => $data['user_id'] ?? auth()->id(),
                 'payment_method' => $data['payment_method'] ?? 'cash',
@@ -557,6 +564,18 @@ class SaleService
             
             return $sale;
         });
+    }
+
+    private function gecerliTerminalIdGetir(mixed $terminalId, int $tenantId, int $branchId): ?int
+    {
+        if (empty($terminalId) || (int) $terminalId <= 0) {
+            return null;
+        }
+
+        return PosTerminal::where('tenant_id', $tenantId)
+            ->where('branch_id', $branchId)
+            ->whereKey((int) $terminalId)
+            ->value('id');
     }
     
     /**

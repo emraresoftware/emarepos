@@ -15,6 +15,7 @@ class CashRegister extends Model
     protected $fillable = [
         'tenant_id',
         'branch_id',
+        'terminal_id',
         'user_id',
         'opening_amount',
         'closing_amount',
@@ -58,5 +59,10 @@ class CashRegister extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function terminal()
+    {
+        return $this->belongsTo(PosTerminal::class, 'terminal_id');
     }
 }
