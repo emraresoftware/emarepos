@@ -18,6 +18,30 @@ use Carbon\Carbon;
 
 class SaleService
 {
+    private function musteriKrediLimitiniDogrula(?int $customerId, int $tenantId, float $creditAmount): void
+    {
+        if ($creditAmount <= 0 || ! $customerId) {
+            return;
+        }
+
+        $customer = Customer::where('tenant_id', $tenantId)
+            ->where('id', $customerId)
+            ->lockForUpdate()
+            ->first();
+
+        if (! $customer) {
+            throw new \Exception('Geçersiz müşteri seçimi.');
+        }
+
+        $creditLimit = (float) ($customer->credit_limit ?? 0);
+        $projectedBalance = (float) $customer->balance - $creditAmount;
+        $projectedDebt = $projectedBalance < 0 ? abs($projectedBalance) : 0;
+
+        if ($creditLimit > 0 && $projectedDebt > $creditLimit) {
+            throw new \Exception('Müşteri kredi limiti yetersiz. Limit: ' . formatCurrency($creditLimit) . ', satış sonrası borç: ' . formatCurrency($projectedDebt));
+        }
+    }
+
     private function odemeDagiliminiDogrula(array $data, float $grandTotal): array
     {
         $paymentMethod = $data['payment_method'] ?? 'cash';
@@ -81,6 +105,11 @@ class SaleService
             $items = $data['items'] ?? [];
             $calculated = $this->calculateTotals($items, $data['discount'] ?? 0, $data['service_fee'] ?? 0);
             $paymentBreakdown = $this->odemeDagiliminiDogrula($data, (float) $calculated['grand_total']);
+            $this->musteriKrediLimitiniDogrula(
+                !empty($data['customer_id']) ? (int) $data['customer_id'] : null,
+                (int) $tenantId,
+                (float) ($paymentBreakdown['credit_amount'] ?? 0)
+            );
             
             // Create sale record
             $sale = Sale::create([

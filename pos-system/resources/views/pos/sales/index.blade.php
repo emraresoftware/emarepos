@@ -166,7 +166,7 @@
             <div class="flex-1 overflow-y-auto px-4 py-3">
                 <div class="max-w-xl mx-auto space-y-2">
                     <template x-for="c in customerResults" :key="c.id">
-                        <button @click="selectedCustomer = c; showCustomerModal = false; customerSearch = ''; customerResults = []; showToast(c.name + ' seçildi', 'success')"
+                        <button @click="selectCustomer(c, { closeModal: true, clearSearch: true })"
                                 class="w-full text-left bg-white border border-gray-200 rounded-2xl px-4 py-3 hover:border-blue-400 hover:shadow-md transition-all flex items-center gap-4 group">
                             <div class="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm" x-text="c.name?.charAt(0)?.toUpperCase()"></div>
                             <div class="flex-1 min-w-0">
@@ -1228,7 +1228,7 @@
                 </span>
                 <span class="leading-none">Kart</span>
             </button>
-            <button @click="cart.length ? (showMixedPayment = true, mixedRemaining = totals.grand_total) : showToast('Önce sepete ürün ekleyin.', 'warning')"
+                <button @click="cart.length ? openMixedPayment() : showToast('Önce sepete ürün ekleyin.', 'warning')"
                     class="flex flex-col items-center justify-center gap-2 pt-4 pb-3 min-h-[96px] rounded-full text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0"
                     style="background: linear-gradient(135deg, #a855f7, #7c3aed);">
                 <span class="w-9 h-9 rounded-full bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
@@ -1236,9 +1236,9 @@
                 </span>
                 <span class="leading-none">Parçalı</span>
             </button>
-            <button @click="!cart.length ? showToast('Önce sepete ürün ekleyin.', 'warning') : !selectedCustomer ? showToast('Veresiye için müşteri seçiniz.', 'error') : processPayment('credit')"
+                <button @click="handleCreditPayment()"
                     class="flex flex-col items-center justify-center gap-2 pt-4 pb-3 min-h-[96px] rounded-full text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0"
-                    :class="!cart.length || !selectedCustomer ? 'opacity-55' : ''"
+                    :class="!cart.length || creditSaleBlocked(this.totals.grand_total) ? 'opacity-55' : ''"
                     style="background: linear-gradient(135deg, #f4a84b, #e8913a);">
                 <span class="w-9 h-9 rounded-full bg-white/18 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
                     <i class="fas fa-file-invoice-dollar text-lg leading-none"></i>
@@ -1402,7 +1402,7 @@
                            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/20 focus:border-amber-400">
                     <div x-show="showCustomerDropdown" class="absolute z-10 left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg max-h-32 overflow-y-auto">
                         <template x-for="c in customerResults" :key="c.id">
-                            <button @click="selectedCustomer = c; customerSearch = c.name; showCustomerDropdown = false"
+                                <button @click="selectCustomer(c, { setSearch: true, closeDropdown: true })"
                                     class="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0">
                                 <span class="font-medium text-gray-900" x-text="c.name"></span>
                                 <span class="text-xs text-gray-400 ml-2" x-text="c.phone || ''"></span>
@@ -1429,7 +1429,7 @@
                         class="flex-1 py-1.5 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition-colors">
                     <i class="fas fa-credit-card mr-1"></i>Tümü Kart
                 </button>
-                <button @click="mixedCredit = totals.grand_total; mixedCash = 0; mixedCard = 0; mixedTransfer = 0; recalcMixedRemaining()"
+                        <button @click="mixedCredit = totals.grand_total; mixedCash = 0; mixedCard = 0; mixedTransfer = 0; recalcMixedRemaining()"
                         class="flex-1 py-1.5 text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg border border-amber-200 transition-colors">
                     <i class="fas fa-user-clock mr-1"></i>Tümü Veresiye
                 </button>
@@ -1438,12 +1438,12 @@
             <div class="flex gap-2">
                 <button @click="showMixedPayment = false" class="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors">İptal</button>
                 <button @click="processMixedPayment()"
-                        :disabled="Math.abs(mixedRemaining) > 0.01 || (mixedCredit > 0 && !selectedCustomer)"
+                        :disabled="Math.abs(mixedRemaining) > 0.01 || creditSaleBlocked(mixedCredit)"
                         class="flex-1 py-2.5 bg-gradient-to-r from-brand-500 to-purple-600 text-white hover:shadow-lg hover:shadow-brand-200 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                     <i class="fas fa-check-circle mr-1"></i>Ödemeyi Tamamla
                 </button>
             </div>
-            <p x-show="mixedCredit > 0 && !selectedCustomer" class="text-xs text-red-500 text-center mt-2">Veresiye için müşteri seçimi zorunludur.</p>
+            <p x-show="creditSaleBlocked(mixedCredit)" class="text-xs text-red-500 text-center mt-2" x-text="creditSaleBlockMessage(mixedCredit)"></p>
         </div>
     </div>
 
@@ -2041,21 +2041,34 @@ function posScreen() {
             return this.customerCreditLimit() > 0 ? formatCurrency(this.customerCreditLimit()) : 'Limitsiz';
         },
 
-        projectedCustomerBalanceAfterCredit() {
+        projectedCustomerBalanceAfterCreditForAmount(creditAmount = null) {
             const currentBalance = parseFloat(this.selectedCustomer?.balance) || 0;
-            return Math.round((currentBalance - (this.totals.grand_total || 0)) * 100) / 100;
+            const amount = Math.max(0, parseFloat(creditAmount ?? this.totals.grand_total) || 0);
+            return Math.round((currentBalance - amount) * 100) / 100;
         },
 
-        projectedCustomerDebtAfterCredit() {
-            const projectedBalance = this.projectedCustomerBalanceAfterCredit();
+        projectedCustomerBalanceAfterCredit() {
+            return this.projectedCustomerBalanceAfterCreditForAmount(this.totals.grand_total || 0);
+        },
+
+        projectedCustomerDebtAfterCreditForAmount(creditAmount = null) {
+            const projectedBalance = this.projectedCustomerBalanceAfterCreditForAmount(creditAmount);
             return projectedBalance < 0 ? Math.abs(projectedBalance) : 0;
         },
 
-        creditUsagePercent() {
+        projectedCustomerDebtAfterCredit() {
+            return this.projectedCustomerDebtAfterCreditForAmount(this.totals.grand_total || 0);
+        },
+
+        creditUsagePercentForAmount(creditAmount = null) {
             const limit = this.customerCreditLimit();
             if (!this.selectedCustomer) return 0;
-            if (limit <= 0) return this.projectedCustomerDebtAfterCredit() > 0 ? 100 : 0;
-            return Math.round((this.projectedCustomerDebtAfterCredit() / limit) * 100);
+            if (limit <= 0) return this.projectedCustomerDebtAfterCreditForAmount(creditAmount) > 0 ? 100 : 0;
+            return Math.round((this.projectedCustomerDebtAfterCreditForAmount(creditAmount) / limit) * 100);
+        },
+
+        creditUsagePercent() {
+            return this.creditUsagePercentForAmount(this.totals.grand_total || 0);
         },
 
         creditUsageLabel() {
@@ -2117,6 +2130,76 @@ function posScreen() {
             }
 
             return warnings.slice(0, 3);
+        },
+
+        creditSaleBlocked(creditAmount = null) {
+            const amount = Math.max(0, parseFloat(creditAmount) || 0);
+            if (amount <= 0) return false;
+            if (!this.selectedCustomer) return true;
+
+            const limit = this.customerCreditLimit();
+            if (limit <= 0) return false;
+
+            return this.projectedCustomerDebtAfterCreditForAmount(amount) > limit;
+        },
+
+        creditSaleBlockMessage(creditAmount = null) {
+            const amount = Math.max(0, parseFloat(creditAmount) || 0);
+            if (amount <= 0) return '';
+            if (!this.selectedCustomer) return 'Veresiye için müşteri seçimi zorunludur.';
+
+            const limit = this.customerCreditLimit();
+            if (limit <= 0) return '';
+
+            const projectedDebt = this.projectedCustomerDebtAfterCreditForAmount(amount);
+            if (projectedDebt <= limit) return '';
+
+            return 'Kredi limiti aşılır. Limit ' + formatCurrency(limit) + ', satış sonrası borç ' + formatCurrency(projectedDebt) + '.';
+        },
+
+        selectCustomer(customer, options = {}) {
+            this.selectedCustomer = customer;
+
+            if (options.closeModal) {
+                this.showCustomerModal = false;
+            }
+
+            if (options.clearSearch) {
+                this.customerSearch = '';
+                this.customerResults = [];
+            }
+
+            if (options.setSearch) {
+                this.customerSearch = customer?.name || '';
+            }
+
+            if (options.closeDropdown) {
+                this.showCustomerDropdown = false;
+            }
+
+            this.saveCart();
+            showToast((customer?.name || 'Müşteri') + ' seçildi', 'success');
+        },
+
+        openMixedPayment() {
+            this.showMixedPayment = true;
+            this.mixedRemaining = this.totals.grand_total;
+            this.recalcMixedRemaining();
+        },
+
+        handleCreditPayment() {
+            if (!this.cart.length) {
+                showToast('Önce sepete ürün ekleyin.', 'warning');
+                return;
+            }
+
+            const blockedMessage = this.creditSaleBlockMessage(this.totals.grand_total);
+            if (blockedMessage) {
+                showToast(blockedMessage, 'error');
+                return;
+            }
+
+            this.processPayment('credit');
         },
 
         riskActionButtons() {
@@ -2182,8 +2265,7 @@ function posScreen() {
             }
 
             if (action === 'open-mixed') {
-                this.showMixedPayment = true;
-                this.mixedRemaining = this.totals.grand_total;
+                this.openMixedPayment();
                 return;
             }
 
@@ -2431,6 +2513,13 @@ function posScreen() {
                 showToast('Veresiye satış için müşteri seçiniz.', 'error');
                 return;
             }
+            if (method === 'credit') {
+                const blockedMessage = this.creditSaleBlockMessage(this.totals.grand_total);
+                if (blockedMessage) {
+                    showToast(blockedMessage, 'error');
+                    return;
+                }
+            }
 
             // "other_xxx" formatında gelen özel ödeme türleri
             const isOther = method.startsWith('other_');
@@ -2491,6 +2580,13 @@ function posScreen() {
             if (this.mixedCredit > 0 && !this.selectedCustomer) {
                 showToast('Veresiye tutarı için müşteri seçiniz.', 'error');
                 return;
+            }
+            if (this.mixedCredit > 0) {
+                const blockedMessage = this.creditSaleBlockMessage(this.mixedCredit);
+                if (blockedMessage) {
+                    showToast(blockedMessage, 'error');
+                    return;
+                }
             }
 
             // Genel iskonto TL cinsinden hesapla
