@@ -495,6 +495,37 @@
                         <span class="font-semibold text-amber-600" x-text="'-' + formatCurrency(totals.discount_total)"></span>
                     </div>
                 </div>
+
+                <div class="mt-3 rounded-2xl bg-white/90 ring-1 ring-gray-200 p-3 space-y-2" x-show="cart.length > 0">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Mini Sepet Özeti</span>
+                        <span class="text-[11px] text-gray-500" x-text="'Ort. Kalem: ' + formatCurrency(averageLineAmount())"></span>
+                    </div>
+                    <div class="rounded-xl bg-slate-50 px-3 py-2 border border-slate-200" x-show="topCartItem()">
+                        <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">En Yüksek Kalem</div>
+                        <div class="mt-1 flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="text-sm font-bold text-slate-900 truncate" x-text="topCartItem()?.product_name || '-' "></div>
+                                <div class="text-[11px] text-slate-500" x-text="(topCartItem()?.quantity || 0) + ' adet' "></div>
+                            </div>
+                            <div class="text-sm font-bold text-slate-900" x-text="formatCurrency(topCartItem()?.total || 0)"></div>
+                        </div>
+                    </div>
+                    <div class="space-y-1.5">
+                        <template x-for="(item, itemIndex) in topCartItems(3)" :key="item.product_id + '-' + itemIndex">
+                            <div class="flex items-center justify-between gap-2 text-xs rounded-xl px-2.5 py-2 bg-gray-50 border border-gray-100">
+                                <div class="min-w-0 flex-1">
+                                    <div class="font-semibold text-gray-800 truncate" x-text="item.product_name"></div>
+                                    <div class="text-[11px] text-gray-400" x-text="item.quantity + ' × ' + formatCurrency(item.unit_price)"></div>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <div class="font-bold text-gray-900" x-text="formatCurrency(item.total)"></div>
+                                    <div class="text-[10px] text-gray-400" x-text="cartShareLabel(item.total)"></div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
             </div>
 
             <div class="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 space-y-2" x-show="cart.length > 0">
@@ -1758,6 +1789,27 @@ function posScreen() {
 
         changeAmount() {
             return Math.max(0, Math.round(((parseFloat(this.paidAmount) || 0) - (this.totals.grand_total || 0)) * 100) / 100);
+        },
+
+        averageLineAmount() {
+            if (!this.cart.length) return 0;
+            return Math.round(((this.totals.grand_total || 0) / this.cart.length) * 100) / 100;
+        },
+
+        topCartItems(limit = 3) {
+            return [...this.cart]
+                .sort((left, right) => (parseFloat(right.total) || 0) - (parseFloat(left.total) || 0))
+                .slice(0, limit);
+        },
+
+        topCartItem() {
+            return this.topCartItems(1)[0] || null;
+        },
+
+        cartShareLabel(amount) {
+            if (!(this.totals.grand_total > 0)) return '%0 pay';
+            const ratio = Math.round(((parseFloat(amount) || 0) / this.totals.grand_total) * 100);
+            return '%' + ratio + ' pay';
         },
 
         removeFromCart(index) {
