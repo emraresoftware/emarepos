@@ -201,14 +201,18 @@
                             <td class="px-4 py-3 hidden lg:table-cell">
                                 <span class="font-mono text-xs text-gray-500">{{ $customer->tax_number ?? '-' }}</span>
                             </td>
-                            @php $balance = $customer->balance ?? 0; @endphp
+                            @php
+                                $balance = $customer->balance ?? 0;
+                                $borcToplami = abs((float) ($customer->debt_total ?? 0));
+                                $alacakToplami = (float) ($customer->credit_total ?? 0);
+                            @endphp
                             {{-- Debt --}}
                             <td class="px-4 py-3 text-right font-mono hidden md:table-cell text-red-500">
-                                {{ formatCurrency(max(abs(min($balance, 0)), 0)) }}
+                                {{ formatCurrency($borcToplami) }}
                             </td>
                             {{-- Credit --}}
                             <td class="px-4 py-3 text-right font-mono hidden md:table-cell text-emerald-600">
-                                {{ formatCurrency(max($balance, 0)) }}
+                                {{ formatCurrency($alacakToplami) }}
                             </td>
                             {{-- Balance --}}
                             <td class="px-4 py-3 text-right">

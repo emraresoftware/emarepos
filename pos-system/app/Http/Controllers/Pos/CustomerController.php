@@ -18,6 +18,12 @@ class CustomerController extends Controller
         $query = Customer::where('is_active', true)
             ->with(['group', 'phones'])
             ->withMax('sales', 'sold_at')
+            ->withSum(['accountTransactions as debt_total' => function ($q) {
+                $q->where('amount', '<', 0);
+            }], 'amount')
+            ->withSum(['accountTransactions as credit_total' => function ($q) {
+                $q->where('amount', '>', 0);
+            }], 'amount')
             ->orderBy('name');
         
         if ($request->filled('search')) {
@@ -33,15 +39,18 @@ class CustomerController extends Controller
             $query->where('customer_group_id', $request->group_id);
         }
         
-        $statsAgg = (clone $query)
-            ->reorder()
-            ->selectRaw('COUNT(*) as total_customers, COALESCE(SUM(CASE WHEN balance < 0 THEN balance ELSE 0 END), 0) as total_debt, COALESCE(SUM(CASE WHEN balance > 0 THEN balance ELSE 0 END), 0) as total_credit')
+        $customerIdsQuery = (clone $query)->reorder()->select('customers.id');
+
+        $statsAgg = AccountTransaction::query()
+            ->whereIn('customer_id', $customerIdsQuery)
+            ->selectRaw('COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) as total_debt, COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) as total_credit, COALESCE(SUM(amount), 0) as total_balance')
             ->first();
+
         $stats = [
-            'total_customers' => (int) ($statsAgg->total_customers ?? 0),
+            'total_customers' => (clone $query)->reorder()->count(),
             'total_debt' => (float) ($statsAgg->total_debt ?? 0),
             'total_credit' => (float) ($statsAgg->total_credit ?? 0),
-            'total_balance' => (float) (($statsAgg->total_credit ?? 0) - abs((float) ($statsAgg->total_debt ?? 0))),
+            'total_balance' => (float) ($statsAgg->total_balance ?? 0),
         ];
         $customers = $query->paginate(50)->withQueryString();
         $groups = CustomerGroup::where('is_active', true)->withCount('customers')->orderBy('name')->get();
