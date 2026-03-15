@@ -198,6 +198,16 @@ class BranchController extends Controller
         $terminals = \App\Models\PosTerminal::where('tenant_id', session('tenant_id'))
             ->where('branch_id', $branch->id)
             ->with('responsibleUser:id,name,email')
+            ->withCount([
+                'sales as total_sales_count' => fn ($query) => $query->where('status', 'completed'),
+                'cashRegisters as open_register_count' => fn ($query) => $query->where('status', 'open'),
+            ])
+            ->withMax([
+                'sales as last_sale_at' => fn ($query) => $query->where('status', 'completed'),
+            ], 'sold_at')
+            ->withMax([
+                'cashRegisters as active_register_opened_at' => fn ($query) => $query->where('status', 'open'),
+            ], 'opened_at')
             ->orderBy('name')
             ->get();
 

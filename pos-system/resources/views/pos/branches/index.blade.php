@@ -446,6 +446,17 @@
                                                 <p class="text-xs text-gray-500 mt-2" x-show="terminal.responsible_user || terminal.responsible_user_id">
                                                     Sorumlu: <span class="font-medium text-gray-700" x-text="terminal.responsible_user?.name || userName(terminal.responsible_user_id)"></span>
                                                 </p>
+                                                <div class="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                                                    <span class="inline-flex items-center gap-1 rounded-full px-2 py-1"
+                                                          :class="Number(terminal.open_register_count || 0) > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'">
+                                                        <i class="fas fa-cash-register text-[10px]"></i>
+                                                        <span x-text="Number(terminal.open_register_count || 0) > 0 ? 'Kasa Açık' : 'Kasa Kapalı'"></span>
+                                                    </span>
+                                                    <span class="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-1 text-sky-700">
+                                                        <i class="fas fa-receipt text-[10px]"></i>
+                                                        <span x-text="(terminal.total_sales_count || 0) + ' satış'"></span>
+                                                    </span>
+                                                </div>
                                                 <p x-show="terminal.description" class="text-xs text-gray-500 mt-2 line-clamp-2" x-text="terminal.description"></p>
                                             </div>
                                             <div class="flex items-center gap-1 shrink-0">
@@ -470,6 +481,17 @@
                                             <div class="rounded-xl bg-gray-50 px-3 py-2 border border-gray-100">
                                                 <div class="text-gray-400 uppercase tracking-wide text-[10px]">Çekmece</div>
                                                 <div class="text-gray-700 font-medium mt-1 truncate" x-text="cashDrawerName(terminal.cash_drawer_id)"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                            <div class="rounded-xl bg-gray-50 px-3 py-2 border border-gray-100">
+                                                <div class="text-gray-400 uppercase tracking-wide text-[10px]">Son Satış</div>
+                                                <div class="text-gray-700 font-medium mt-1" x-text="dateTimeLabel(terminal.last_sale_at)"></div>
+                                            </div>
+                                            <div class="rounded-xl bg-gray-50 px-3 py-2 border border-gray-100">
+                                                <div class="text-gray-400 uppercase tracking-wide text-[10px]">Açık Kasa Başlangıcı</div>
+                                                <div class="text-gray-700 font-medium mt-1" x-text="dateTimeLabel(terminal.active_register_opened_at)"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -742,6 +764,20 @@ function branchManager() {
         userName(id) {
             if (!id) return 'Atanmadı';
             return this.deviceOptions.users.find(user => Number(user.id) === Number(id))?.name || 'Bilinmiyor';
+        },
+        dateTimeLabel(value) {
+            if (!value) return 'Henüz yok';
+
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return 'Henüz yok';
+
+            return date.toLocaleString('tr-TR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
         },
 
         openCreate() {
