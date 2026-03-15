@@ -83,6 +83,52 @@
         </div>
     </div>
 
+    {{-- ─── Muhtelif Tutar Modalı ─── --}}
+    <div x-show="showMuhtelifModal" x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+         @keydown.escape.window="showMuhtelifModal = false">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto" @click.stop>
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-base font-semibold text-gray-900"><i class="fas fa-pen-ruler mr-2 text-sky-500"></i>Muhtelif Tutar Ekle</h3>
+                <button @click="showMuhtelifModal = false" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Açıklama *</label>
+                    <input type="text" x-model="muhtelifForm.aciklama" @keydown.enter="saveMuhtelifItem()"
+                           placeholder="Örn: Paketleme hizmeti, özel sipariş, ekstra servis..."
+                           class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Tutar *</label>
+                    <input type="number" x-model="muhtelifForm.tutar" min="0.01" step="0.01" placeholder="0.00"
+                           class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">KDV Oranı</label>
+                    <select x-model.number="muhtelifForm.vat_rate"
+                            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-sky-500">
+                        <option :value="0">%0</option>
+                        <option :value="1">%1</option>
+                        <option :value="10">%10</option>
+                        <option :value="20">%20</option>
+                    </select>
+                </div>
+                <div class="rounded-xl bg-sky-50 border border-sky-200 px-3 py-3 text-xs text-sky-700">
+                    Muhtelif satır sepete tek kalem olarak eklenir. İsterseniz sonrasında satır bazlı iskonto uygulayabilirsiniz.
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button @click="showMuhtelifModal = false"
+                            class="flex-1 px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">İptal</button>
+                    <button @click="saveMuhtelifItem()" :disabled="!muhtelifForm.aciklama.trim() || !muhtelifForm.tutar || parseFloat(muhtelifForm.tutar) <= 0"
+                            class="flex-1 px-4 py-2 text-sm text-white bg-gradient-to-r from-sky-500 to-cyan-600 rounded-xl hover:opacity-90 disabled:opacity-50 font-medium">
+                        <i class="fas fa-plus mr-1"></i> Sepete Ekle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- ─── Hızı Kategori Ekleme Modalı ─── --}}
     <div x-show="showCatModal" x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
@@ -1293,7 +1339,7 @@
             </button>
         </div>
 
-        <div class="grid grid-cols-3 lg:grid-cols-5 gap-3 mt-3">
+        <div class="grid grid-cols-3 lg:grid-cols-6 gap-3 mt-3">
             <button @click="loadRecentSales()"
                     class="flex flex-col items-center justify-center gap-2 pt-4 pb-3 min-h-[92px] rounded-full text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0"
                     style="background: linear-gradient(135deg, #64748b, #475569);">
@@ -1333,6 +1379,14 @@
                     <i class="fas fa-hand-holding-usd text-lg leading-none"></i>
                 </span>
                 <span class="leading-none">Ödeme Al</span>
+            </button>
+            <button @click="openMuhtelifModal()"
+                    class="flex flex-col items-center justify-center gap-2 pt-4 pb-3 min-h-[92px] rounded-full text-white font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg active:translate-y-0"
+                    style="background: linear-gradient(135deg, #06b6d4, #0891b2);">
+                <span class="w-9 h-9 rounded-full bg-white/16 inline-flex items-center justify-center backdrop-blur-sm shadow-inner shadow-white/10 shrink-0">
+                    <i class="fas fa-pen-ruler text-lg leading-none"></i>
+                </span>
+                <span class="leading-none">Muhtelif</span>
             </button>
         </div>
     </div>
@@ -1586,6 +1640,8 @@ function posScreen() {
         showProductModal: false,
         productSaving: false,
         productForm: { name: '', sale_price: '', category_id: '', barcode: '', unit: 'Adet' },
+        showMuhtelifModal: false,
+        muhtelifForm: { aciklama: '', tutar: '', vat_rate: 20 },
         generalDiscountType: 'TL',
         paidAmount: '',
         showPaymentMenu: false,
@@ -2509,6 +2565,12 @@ function posScreen() {
             this.$nextTick(() => this.$el.querySelector('[x-model="productForm.name"]')?.focus());
         },
 
+        openMuhtelifModal() {
+            this.muhtelifForm = { aciklama: '', tutar: '', vat_rate: 20 };
+            this.showMuhtelifModal = true;
+            this.$nextTick(() => this.$el.querySelector('[x-model="muhtelifForm.aciklama"]')?.focus());
+        },
+
         openQuickProductWithBarcode() {
             this.productForm = {
                 name: '',
@@ -2558,6 +2620,42 @@ function posScreen() {
             } finally {
                 this.productSaving = false;
             }
+        },
+
+        saveMuhtelifItem() {
+            const aciklama = this.muhtelifForm.aciklama.trim();
+            const tutar = parseFloat(this.muhtelifForm.tutar);
+            const vatRate = parseFloat(this.muhtelifForm.vat_rate) || 0;
+
+            if (!aciklama || !(tutar > 0)) {
+                return;
+            }
+
+            this.cart.unshift({
+                product_id: null,
+                product_name: 'Muhtelif - ' + aciklama,
+                barcode: null,
+                unit_price: tutar,
+                purchase_price: 0,
+                price_label: 'Standart',
+                price_options: [{ label: 'Standart', price: tutar }],
+                custom_price: null,
+                quantity: 1,
+                discount: 0,
+                discountType: 'TL',
+                discountAmount: 0,
+                vat_rate: vatRate,
+                vat_amount: 0,
+                additional_tax_amount: 0,
+                total: tutar,
+                showDiscount: false,
+            });
+
+            this.recalcItem(0);
+            this.showMuhtelifModal = false;
+            this.muhtelifForm = { aciklama: '', tutar: '', vat_rate: 20 };
+            showToast('Muhtelif tutar sepete eklendi.', 'success');
+            if (window.innerWidth < 1024) this.mobileTab = 'cart';
         },
 
         async searchCustomers(query) {
