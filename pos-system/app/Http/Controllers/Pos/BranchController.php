@@ -255,9 +255,11 @@ class BranchController extends Controller
         $data = $request->validate([
             'id' => 'nullable|integer',
             'name' => 'required|string|max:255',
+            'code' => 'nullable|string|max:50',
             'receipt_printer_id' => 'nullable|integer',
             'kitchen_printer_id' => 'nullable|integer',
             'cash_drawer_id' => 'nullable|integer',
+            'description' => 'nullable|string|max:1000',
             'is_active' => 'boolean'
         ]);
 
@@ -274,9 +276,11 @@ class BranchController extends Controller
 
         $terminal->fill([
             'name' => $data['name'],
+            'code' => $data['code'] ?? null,
             'receipt_printer_id' => $data['receipt_printer_id'],
             'kitchen_printer_id' => $data['kitchen_printer_id'],
             'cash_drawer_id' => $data['cash_drawer_id'],
+            'description' => $data['description'] ?? null,
             'is_active' => $data['is_active'] ?? true,
         ]);
         $terminal->save();

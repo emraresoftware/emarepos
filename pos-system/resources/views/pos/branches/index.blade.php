@@ -439,7 +439,11 @@
                                                           :class="terminal.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500'"
                                                           x-text="terminal.is_active ? 'Aktif' : 'Pasif'"></span>
                                                 </div>
-                                                <p class="text-xs text-gray-400 mt-1">ID: <span x-text="terminal.id"></span></p>
+                                                <p class="text-xs text-gray-400 mt-1">
+                                                    <span x-show="terminal.code">#<span x-text="terminal.code"></span></span>
+                                                    <span x-show="!terminal.code">ID: <span x-text="terminal.id"></span></span>
+                                                </p>
+                                                <p x-show="terminal.description" class="text-xs text-gray-500 mt-2 line-clamp-2" x-text="terminal.description"></p>
                                             </div>
                                             <div class="flex items-center gap-1 shrink-0">
                                                 <button @click="openTerminalForm(terminal)" class="w-9 h-9 rounded-lg border border-gray-200 text-gray-500 hover:text-brand-600 hover:border-brand-200 hover:bg-brand-50 transition-colors">
@@ -526,6 +530,11 @@
                                     <input type="text" x-model="terminalForm.name" class="w-full border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 bg-white" placeholder="Örn: Ön Kasa 1">
                                 </div>
 
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Terminal Kodu</label>
+                                    <input type="text" x-model="terminalForm.code" class="w-full border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 bg-white" placeholder="Örn: ONK-01">
+                                </div>
+
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Fiş Yazıcısı</label>
@@ -563,6 +572,11 @@
                                             Terminal aktif
                                         </label>
                                     </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Açıklama</label>
+                                    <textarea x-model="terminalForm.description" rows="3" class="w-full border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-2.5 bg-white resize-none" placeholder="Örn: Ön banko sağ kasa, akşam vardiyası kullanıyor"></textarea>
                                 </div>
                             </div>
 
@@ -679,7 +693,7 @@ function branchManager() {
         
         terminalFormOpen: false,
         terminalSaving: false,
-        terminalForm: { id: '', name: '', receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_id: '', is_active: true },
+        terminalForm: { id: '', name: '', code: '', receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_id: '', description: '', is_active: true },
 
         editSaving: false, editForm: {},
 
@@ -834,9 +848,9 @@ function branchManager() {
 
         openTerminalForm(term = null) {
             if (term) {
-                this.terminalForm = { id: term.id, name: term.name, receipt_printer_id: String(term.receipt_printer_id || ''), kitchen_printer_id: String(term.kitchen_printer_id || ''), cash_drawer_id: String(term.cash_drawer_id || ''), is_active: !!term.is_active };
+                this.terminalForm = { id: term.id, name: term.name, code: term.code || '', receipt_printer_id: String(term.receipt_printer_id || ''), kitchen_printer_id: String(term.kitchen_printer_id || ''), cash_drawer_id: String(term.cash_drawer_id || ''), description: term.description || '', is_active: !!term.is_active };
             } else {
-                this.terminalForm = { id: '', name: '', receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_id: '', is_active: true };
+                this.terminalForm = { id: '', name: '', code: '', receipt_printer_id: '', kitchen_printer_id: '', cash_drawer_id: '', description: '', is_active: true };
             }
             this.terminalFormOpen = true;
         },

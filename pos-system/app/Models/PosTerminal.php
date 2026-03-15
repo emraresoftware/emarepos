@@ -15,9 +15,11 @@ class PosTerminal extends Model
         'tenant_id',
         'branch_id',
         'name',
+        'code',
         'receipt_printer_id',
         'kitchen_printer_id',
         'cash_drawer_id',
+        'description',
         'is_active',
     ];
 
