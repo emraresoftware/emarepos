@@ -148,7 +148,9 @@
     ═══════════════════════════════════ --}}
     <div x-show="showDetailModal" x-transition.opacity class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4 overflow-hidden" style="display:none;">
         <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" @click="showDetailModal = false"></div>
-        <div class="relative bg-white w-full max-w-5xl h-[calc(100vh-1rem)] sm:h-auto sm:max-h-[92vh] rounded-2xl border border-gray-100 shadow-2xl flex flex-col overflow-hidden m-auto min-h-0" x-transition @click.stop>
+        <div class="relative bg-white w-full max-w-5xl rounded-2xl border border-gray-100 shadow-2xl flex flex-col overflow-hidden m-auto min-h-0"
+             style="height: calc(100vh - 1rem); max-height: calc(100vh - 1rem);"
+             x-transition @click.stop>
 
             {{-- Modal Başlık --}}
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
@@ -178,7 +180,7 @@
             </div>
 
             {{-- Tab İçerikleri --}}
-            <div class="flex-1 overflow-y-auto min-h-0 overscroll-contain">
+            <div class="flex-1 overflow-y-auto min-h-0" style="overscroll-behavior: contain; -webkit-overflow-scrolling: touch;">
 
                 {{-- ── RAPOR ── --}}
                 <div x-show="detailTab==='rapor'" class="p-5 space-y-5">
