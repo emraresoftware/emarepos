@@ -548,7 +548,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="text-xs text-gray-500 whitespace-nowrap">Ödenen:</span>
-                    <input type="number" x-model.number="paidAmount"
+                    <input type="number" x-model.number="paidAmount" x-ref="summaryPaidInput"
                            class="flex-1 min-w-0 px-2.5 py-2 bg-white border border-emerald-200 rounded-xl text-gray-800 text-sm focus:outline-none focus:border-emerald-500"
                            min="0" step="0.01" placeholder="Nakit tutar...">
                 </div>
@@ -631,6 +631,28 @@
 
                     <div x-show="!selectedCustomer" class="rounded-xl bg-white/85 px-3 py-2 text-[11px] text-gray-700 ring-1 ring-black/5">
                         Veresiye satış ihtimali varsa önce müşteri seçin. Seçilmeden limit, bakiye ve risk hesaplaması yapılamaz.
+                    </div>
+
+                    <div class="rounded-2xl bg-white/85 px-3 py-3 ring-1 ring-black/5 space-y-2" x-show="riskActionButtons().length > 0">
+                        <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Önerilen Aksiyonlar</div>
+                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <template x-for="(action, actionIndex) in riskActionButtons()" :key="action.label + '-' + actionIndex">
+                                <button @click="runRiskAction(action.action)"
+                                        class="rounded-xl px-3 py-2.5 text-left border transition-all"
+                                        :class="action.tone === 'danger' ? 'bg-red-50 border-red-200 hover:bg-red-100' : action.tone === 'warning' ? 'bg-amber-50 border-amber-200 hover:bg-amber-100' : 'bg-blue-50 border-blue-200 hover:bg-blue-100'">
+                                    <div class="flex items-start gap-2">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                                             :class="action.tone === 'danger' ? 'bg-red-100 text-red-700' : action.tone === 'warning' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'">
+                                            <i :class="action.icon"></i>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="text-xs font-bold text-gray-900" x-text="action.label"></div>
+                                            <div class="text-[11px] text-gray-600 mt-0.5" x-text="action.detail"></div>
+                                        </div>
+                                    </div>
+                                </button>
+                            </template>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2051,6 +2073,79 @@ function posScreen() {
             }
 
             return warnings.slice(0, 3);
+        },
+
+        riskActionButtons() {
+            const actions = [];
+
+            if (!this.selectedCustomer && (this.totals.grand_total || 0) >= 500) {
+                actions.push({
+                    tone: 'warning',
+                    icon: 'fas fa-user-plus text-xs',
+                    label: 'Müşteri seç',
+                    detail: 'Yüksek tutarlı işlem için müşteriyi satışa bağla.',
+                    action: 'select-customer',
+                });
+            }
+
+            if (this.remainingAmount() > 0) {
+                actions.push({
+                    tone: 'info',
+                    icon: 'fas fa-money-bill-wave text-xs',
+                    label: 'Tahsilatı tamamla',
+                    detail: 'Ödenen alanına geçip kalan ' + formatCurrency(this.remainingAmount()) + ' tutarı gir.',
+                    action: 'focus-paid',
+                });
+            }
+
+            if (this.creditRiskTone() !== 'info' && this.cart.length > 0) {
+                actions.push({
+                    tone: this.creditRiskTone(),
+                    icon: 'fas fa-layer-group text-xs',
+                    label: 'Parçalı ödeme aç',
+                    detail: 'Riskli tutarı nakit/kart/veresiye karışımıyla daha kontrollü böl.',
+                    action: 'open-mixed',
+                });
+            }
+
+            if (this.selectedCustomer && this.customerDebtAmount() > 0) {
+                actions.push({
+                    tone: 'danger',
+                    icon: 'fas fa-hand-holding-dollar text-xs',
+                    label: 'Ödeme al ekranı',
+                    detail: 'Önce mevcut borç için tahsilat girişi yapmayı değerlendir.',
+                    action: 'open-odeme-al',
+                });
+            }
+
+            return actions.slice(0, 4);
+        },
+
+        runRiskAction(action) {
+            if (action === 'select-customer') {
+                this.showCustomerModal = true;
+                this.customerModalTab = 'list';
+                this.$nextTick(() => {
+                    this.searchCustomers('');
+                    this.$refs.customerModalSearch?.focus();
+                });
+                return;
+            }
+
+            if (action === 'focus-paid') {
+                this.$nextTick(() => this.$refs.summaryPaidInput?.focus());
+                return;
+            }
+
+            if (action === 'open-mixed') {
+                this.showMixedPayment = true;
+                this.mixedRemaining = this.totals.grand_total;
+                return;
+            }
+
+            if (action === 'open-odeme-al') {
+                this.openOdemeAl();
+            }
         },
 
         removeFromCart(index) {
