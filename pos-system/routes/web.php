@@ -33,6 +33,10 @@ use App\Http\Controllers\Admin\AdminController;
 Route::get('/login', [PosLoginController::class, 'showLogin'])->name('pos.login');
 Route::post('/login', [PosLoginController::class, 'login']);
 Route::post('/logout', [PosLoginController::class, 'logout'])->name('pos.logout');
+Route::middleware('auth')->group(function () {
+    Route::get('/terminal-sec', [PosLoginController::class, 'showTerminalSelect'])->name('pos.terminal.select');
+    Route::post('/terminal-sec', [PosLoginController::class, 'selectTerminal'])->name('pos.terminal.select.store');
+});
 
 // POS Routes (authenticated)
 Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class, 'throttle:120,1'])->group(function () {
